@@ -1,0 +1,17 @@
+{
+  "name": "FieldCollect",
+  "short_name": "FieldCollect",
+  "description": "Application de collecte de données terrain avec mode hors ligne",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
