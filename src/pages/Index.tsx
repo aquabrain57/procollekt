@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { SurveyCard } from '@/components/SurveyCard';
@@ -8,20 +9,32 @@ import { ResponsesList } from '@/components/ResponsesList';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
 import { mockSurveys } from '@/data/mockSurveys';
 import { Survey, SurveyResponse, SyncStatus } from '@/types/survey';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Tab = 'home' | 'surveys' | 'data' | 'settings';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { profile } = useProfile();
   const isOnline = useOnlineStatus();
   const [activeTab, setActiveTab] = useState<Tab>('home');
   const [selectedSurvey, setSelectedSurvey] = useState<Survey | null>(null);
   const [responses, setResponses] = useLocalStorage<SurveyResponse[]>('survey_responses', []);
   const [isSyncing, setIsSyncing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Redirect to auth if not logged in
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+    }
+  }, [user, authLoading, navigate]);
 
   const syncStatus: SyncStatus = {
     isOnline,
@@ -83,6 +96,22 @@ const Index = () => {
     }
   };
 
+  // Show loading while checking auth
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Don't render if not authenticated
+  if (!user) {
+    return null;
+  }
+
+  const displayName = profile?.full_name || user?.email?.split('@')[0] || 'Utilisateur';
+
   const renderContent = () => {
     if (selectedSurvey) {
       return (
@@ -103,7 +132,7 @@ const Index = () => {
             {/* Welcome Section */}
             <div className="slide-up">
               <h2 className="text-2xl font-bold text-foreground mb-1">
-                Bonjour 👋
+                Bonjour, {displayName} 👋
               </h2>
               <p className="text-muted-foreground">
                 Prêt à collecter des données aujourd'hui ?

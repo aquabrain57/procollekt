@@ -1,6 +1,9 @@
-import { RefreshCw, Trash2, Download, Upload, Smartphone, Globe } from 'lucide-react';
+import { RefreshCw, Trash2, Download, Upload, Smartphone, Globe, LogOut } from 'lucide-react';
 import { SyncStatus } from '@/types/survey';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProfile } from '@/hooks/useProfile';
+import { ProfileEditor } from './ProfileEditor';
 
 interface SettingsPanelProps {
   syncStatus: SyncStatus;
@@ -10,6 +13,9 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }: SettingsPanelProps) => {
+  const { signOut, user } = useAuth();
+  const { profile } = useProfile();
+
   const handleExport = () => {
     toast.info('Fonctionnalité d\'export à venir');
   };
@@ -18,10 +24,18 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
     toast.info('Fonctionnalité d\'import à venir');
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    toast.success('Déconnexion réussie');
+  };
+
   return (
     <div className="space-y-6">
+      {/* Profile Section */}
+      <ProfileEditor profile={profile} />
+
       {/* Sync Section */}
-      <section className="bg-card rounded-xl border border-border p-4 slide-up">
+      <section className="bg-card rounded-xl border border-border p-4 slide-up" style={{ animationDelay: '50ms' }}>
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <RefreshCw className="h-5 w-5 text-primary" />
           Synchronisation
@@ -61,7 +75,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
       </section>
 
       {/* Data Management */}
-      <section className="bg-card rounded-xl border border-border p-4 slide-up" style={{ animationDelay: '50ms' }}>
+      <section className="bg-card rounded-xl border border-border p-4 slide-up" style={{ animationDelay: '100ms' }}>
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <Smartphone className="h-5 w-5 text-primary" />
           Gestion des données
@@ -99,22 +113,30 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
         </div>
       </section>
 
-      {/* App Info */}
-      <section className="bg-card rounded-xl border border-border p-4 slide-up" style={{ animationDelay: '100ms' }}>
+      {/* Account Section */}
+      <section className="bg-card rounded-xl border border-border p-4 slide-up" style={{ animationDelay: '150ms' }}>
         <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
           <Globe className="h-5 w-5 text-primary" />
-          À propos
+          Compte
         </h3>
 
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
+        <div className="space-y-3">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Email</span>
+            <span className="text-foreground">{user?.email}</span>
+          </div>
+          <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Version</span>
             <span className="text-foreground">1.0.0</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Mode</span>
-            <span className="text-foreground">Hors ligne compatible</span>
-          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 border border-border text-foreground hover:bg-muted transition-colors mt-4"
+          >
+            <LogOut className="h-4 w-4" />
+            Se déconnecter
+          </button>
         </div>
       </section>
     </div>
