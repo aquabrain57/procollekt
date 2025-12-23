@@ -384,9 +384,11 @@ const Index = () => {
         showBack={surveyView !== 'list'}
         onBack={handleBack}
         syncStatus={syncStatus}
+        activeTab={surveyView === 'list' ? activeTab : undefined}
+        onTabChange={surveyView === 'list' ? setActiveTab : undefined}
       />
 
-      <main className="fade-in">
+      <main className="fade-in max-w-5xl mx-auto">
         {renderContent()}
       </main>
 
