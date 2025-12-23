@@ -1,11 +1,17 @@
 import { useState } from 'react';
-import { Plus, GripVertical, Trash2, Settings, Save, Eye, Send } from 'lucide-react';
+import { Plus, GripVertical, Trash2, Settings, Save, Eye, Send, Copy, ChevronDown, ChevronUp, Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star } from 'lucide-react';
 import { DbSurvey, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -13,25 +19,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from '@/components/ui/sheet';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const FIELD_TYPES = [
-  { value: 'text', label: 'Texte', icon: '📝' },
-  { value: 'number', label: 'Nombre', icon: '🔢' },
-  { value: 'select', label: 'Choix unique', icon: '☑️' },
-  { value: 'multiselect', label: 'Choix multiple', icon: '✅' },
-  { value: 'date', label: 'Date', icon: '📅' },
-  { value: 'location', label: 'Localisation GPS', icon: '📍' },
-  { value: 'photo', label: 'Photo', icon: '📷' },
-  { value: 'rating', label: 'Note (1-5)', icon: '⭐' },
+  { value: 'text', label: 'Texte court', icon: Type, description: 'Réponse libre sur une ligne' },
+  { value: 'number', label: 'Nombre', icon: Hash, description: 'Valeur numérique' },
+  { value: 'select', label: 'Choix unique', icon: ListChecks, description: 'Une seule option parmi plusieurs' },
+  { value: 'multiselect', label: 'Choix multiple', icon: CheckSquare, description: 'Plusieurs options possibles' },
+  { value: 'date', label: 'Date', icon: Calendar, description: 'Sélection de date' },
+  { value: 'location', label: 'Localisation GPS', icon: MapPin, description: 'Coordonnées géographiques' },
+  { value: 'photo', label: 'Photo', icon: Camera, description: 'Capture d\'image' },
+  { value: 'rating', label: 'Échelle de notation', icon: Star, description: 'Note de 1 à 5 étoiles' },
 ];
 
 interface SurveyBuilderProps {
@@ -40,19 +39,256 @@ interface SurveyBuilderProps {
   onPreview: () => void;
 }
 
+interface FieldEditorProps {
+  field: DbSurveyField;
+  index: number;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onUpdate: (updates: Partial<DbSurveyField>) => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}
+
+const FieldEditor = ({
+  field,
+  index,
+  isExpanded,
+  onToggle,
+  onUpdate,
+  onDelete,
+  onDuplicate,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
+}: FieldEditorProps) => {
+  const [optionsText, setOptionsText] = useState(
+    field.options?.map(o => o.label).join('\n') || ''
+  );
+
+  const fieldType = FIELD_TYPES.find(t => t.value === field.field_type);
+  const Icon = fieldType?.icon || Type;
+
+  const handleOptionsChange = (text: string) => {
+    setOptionsText(text);
+    const options = text
+      .split('\n')
+      .filter(line => line.trim())
+      .map((line, i) => ({
+        value: `option_${i}`,
+        label: line.trim(),
+      }));
+    onUpdate({ options });
+  };
+
+  return (
+    <Card className={cn(
+      'transition-all duration-200',
+      isExpanded ? 'ring-2 ring-primary/20' : 'hover:shadow-md'
+    )}>
+      <Collapsible open={isExpanded} onOpenChange={onToggle}>
+        <CardHeader className="p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col gap-1">
+              <button
+                onClick={onMoveUp}
+                disabled={isFirst}
+                className="p-1 hover:bg-muted rounded disabled:opacity-30"
+              >
+                <ChevronUp className="h-3 w-3" />
+              </button>
+              <button
+                onClick={onMoveDown}
+                disabled={isLast}
+                className="p-1 hover:bg-muted rounded disabled:opacity-30"
+              >
+                <ChevronDown className="h-3 w-3" />
+              </button>
+            </div>
+            
+            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+            
+            <div className="p-2 bg-primary/10 rounded-lg">
+              <Icon className="h-4 w-4 text-primary" />
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
+                <div className="flex-1">
+                  <p className="font-medium text-foreground truncate">{field.label}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {fieldType?.label}
+                    {field.required && ' • Obligatoire'}
+                  </p>
+                </div>
+                {isExpanded ? (
+                  <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                )}
+              </CollapsibleTrigger>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CollapsibleContent>
+          <CardContent className="p-4 pt-0 space-y-4 border-t">
+            {/* Question Label */}
+            <div className="space-y-2">
+              <Label>Question</Label>
+              <Input
+                value={field.label}
+                onChange={(e) => onUpdate({ label: e.target.value })}
+                placeholder="Entrez votre question..."
+                className="text-base"
+              />
+            </div>
+
+            {/* Field Type */}
+            <div className="space-y-2">
+              <Label>Type de réponse</Label>
+              <Select
+                value={field.field_type}
+                onValueChange={(value) => onUpdate({ 
+                  field_type: value as DbSurveyField['field_type'],
+                  options: (value === 'select' || value === 'multiselect') 
+                    ? [{ value: 'option1', label: 'Option 1' }] 
+                    : null,
+                  min_value: value === 'rating' ? 1 : null,
+                  max_value: value === 'rating' ? 5 : null,
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FIELD_TYPES.map((type) => (
+                    <SelectItem key={type.value} value={type.value}>
+                      <div className="flex items-center gap-2">
+                        <type.icon className="h-4 w-4" />
+                        <span>{type.label}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Placeholder for text fields */}
+            {(field.field_type === 'text' || field.field_type === 'number') && (
+              <div className="space-y-2">
+                <Label>Texte d'aide (placeholder)</Label>
+                <Input
+                  value={field.placeholder || ''}
+                  onChange={(e) => onUpdate({ placeholder: e.target.value })}
+                  placeholder="Ex: Entrez votre réponse ici..."
+                />
+              </div>
+            )}
+
+            {/* Options for select/multiselect */}
+            {(field.field_type === 'select' || field.field_type === 'multiselect') && (
+              <div className="space-y-2">
+                <Label>Options (une par ligne)</Label>
+                <Textarea
+                  value={optionsText}
+                  onChange={(e) => handleOptionsChange(e.target.value)}
+                  rows={5}
+                  placeholder="Option 1&#10;Option 2&#10;Option 3"
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {field.field_type === 'multiselect' 
+                    ? 'Les répondants pourront sélectionner plusieurs options'
+                    : 'Les répondants devront choisir une seule option'
+                  }
+                </p>
+              </div>
+            )}
+
+            {/* Min/Max for number and rating */}
+            {(field.field_type === 'number' || field.field_type === 'rating') && (
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Valeur minimum</Label>
+                  <Input
+                    type="number"
+                    value={field.min_value ?? ''}
+                    onChange={(e) => onUpdate({ 
+                      min_value: e.target.value ? parseInt(e.target.value) : null 
+                    })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valeur maximum</Label>
+                  <Input
+                    type="number"
+                    value={field.max_value ?? ''}
+                    onChange={(e) => onUpdate({ 
+                      max_value: e.target.value ? parseInt(e.target.value) : null 
+                    })}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Required toggle */}
+            <div className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
+              <div>
+                <Label>Question obligatoire</Label>
+                <p className="text-xs text-muted-foreground">
+                  Le répondant devra répondre à cette question
+                </p>
+              </div>
+              <Switch
+                checked={field.required}
+                onCheckedChange={(checked) => onUpdate({ required: checked })}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-2 border-t">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onDuplicate}
+                className="flex-1"
+              >
+                <Copy className="h-4 w-4 mr-1" />
+                Dupliquer
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={onDelete}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
+  );
+};
+
 export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderProps) => {
-  const { fields, loading, addField, updateField, deleteField } = useSurveyFields(survey.id);
-  const [editingField, setEditingField] = useState<DbSurveyField | null>(null);
-  const [optionsText, setOptionsText] = useState('');
+  const { fields, loading, addField, updateField, deleteField, reorderFields } = useSurveyFields(survey.id);
+  const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
 
   const handleAddField = async (type: string) => {
+    const fieldType = FIELD_TYPES.find(t => t.value === type);
     const newField = await addField({
       field_type: type as DbSurveyField['field_type'],
-      label: `Nouveau champ ${FIELD_TYPES.find(t => t.value === type)?.label}`,
+      label: `Nouvelle question ${fieldType?.label || ''}`,
       placeholder: '',
       required: false,
       options: type === 'select' || type === 'multiselect' 
-        ? [{ value: 'option1', label: 'Option 1' }] 
+        ? [{ value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Option 2' }] 
         : null,
       min_value: type === 'rating' ? 1 : null,
       max_value: type === 'rating' ? 5 : null,
@@ -61,52 +297,60 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
     });
 
     if (newField) {
-      setEditingField(newField);
-      if (newField.options) {
-        setOptionsText(newField.options.map(o => o.label).join('\n'));
-      }
+      setExpandedFieldId(newField.id);
+      toast.success('Question ajoutée');
     }
   };
 
-  const handleSaveField = async () => {
-    if (!editingField) return;
-
-    let options = editingField.options;
-    if (editingField.field_type === 'select' || editingField.field_type === 'multiselect') {
-      options = optionsText
-        .split('\n')
-        .filter(line => line.trim())
-        .map((line, i) => ({
-          value: `option_${i}`,
-          label: line.trim(),
-        }));
-    }
-
-    await updateField(editingField.id, {
-      ...editingField,
-      options,
-    });
-
-    setEditingField(null);
-    setOptionsText('');
-    toast.success('Champ enregistré');
+  const handleUpdateField = async (id: string, updates: Partial<DbSurveyField>) => {
+    await updateField(id, updates);
   };
 
   const handleDeleteField = async (id: string) => {
     await deleteField(id);
+    if (expandedFieldId === id) {
+      setExpandedFieldId(null);
+    }
   };
 
-  const getFieldIcon = (type: string) => {
-    return FIELD_TYPES.find(t => t.value === type)?.icon || '📝';
+  const handleDuplicateField = async (field: DbSurveyField) => {
+    const newField = await addField({
+      field_type: field.field_type,
+      label: `${field.label} (copie)`,
+      placeholder: field.placeholder,
+      required: field.required,
+      options: field.options,
+      min_value: field.min_value,
+      max_value: field.max_value,
+      conditional_on: field.conditional_on,
+      field_order: fields.length,
+    });
+
+    if (newField) {
+      setExpandedFieldId(newField.id);
+      toast.success('Question dupliquée');
+    }
+  };
+
+  const handleMoveField = async (index: number, direction: 'up' | 'down') => {
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= fields.length) return;
+
+    const newFields = [...fields];
+    [newFields[index], newFields[newIndex]] = [newFields[newIndex], newFields[index]];
+    
+    await reorderFields(newFields.map((f, i) => ({ ...f, field_order: i })));
   };
 
   return (
     <div className="space-y-6 pb-32">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-bold text-foreground">{survey.title}</h2>
-          <p className="text-sm text-muted-foreground">{survey.description}</p>
+          {survey.description && (
+            <p className="text-sm text-muted-foreground">{survey.description}</p>
+          )}
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={onPreview}>
@@ -120,175 +364,81 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+      {/* Status */}
+      <div className={cn(
+        'inline-flex items-center px-3 py-1 rounded-full text-sm font-medium',
         survey.status === 'active' 
           ? 'bg-success/10 text-success' 
           : 'bg-muted text-muted-foreground'
-      }`}>
-        {survey.status === 'active' ? '🟢 Publié' : '⚪ Brouillon'}
+      )}>
+        {survey.status === 'active' ? '🟢 Enquête publiée' : '⚪ Brouillon'}
       </div>
 
-      {/* Fields List */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-foreground">Champs du formulaire</h3>
+      {/* Questions */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-foreground">
+            Questions ({fields.length})
+          </h3>
+        </div>
         
         {loading ? (
           <div className="text-center py-8 text-muted-foreground">
             Chargement...
           </div>
         ) : fields.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-            <p>Aucun champ ajouté</p>
-            <p className="text-sm">Ajoutez des champs pour créer votre formulaire</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {fields.map((field) => (
-              <div
-                key={field.id}
-                className="bg-card border border-border rounded-xl p-4 flex items-center gap-3"
-              >
-                <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-                <span className="text-xl">{getFieldIcon(field.field_type)}</span>
-                <div className="flex-1">
-                  <p className="font-medium text-foreground">{field.label}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {FIELD_TYPES.find(t => t.value === field.field_type)?.label}
-                    {field.required && ' • Obligatoire'}
-                  </p>
-                </div>
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="icon"
-                      onClick={() => {
-                        setEditingField(field);
-                        if (field.options) {
-                          setOptionsText(field.options.map(o => o.label).join('\n'));
-                        }
-                      }}
-                    >
-                      <Settings className="h-4 w-4" />
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent>
-                    <SheetHeader>
-                      <SheetTitle>Modifier le champ</SheetTitle>
-                      <SheetDescription>
-                        Configurez les propriétés de ce champ
-                      </SheetDescription>
-                    </SheetHeader>
-                    
-                    {editingField && (
-                      <div className="space-y-4 mt-6">
-                        <div className="space-y-2">
-                          <Label>Libellé</Label>
-                          <Input
-                            value={editingField.label}
-                            onChange={(e) => setEditingField({
-                              ...editingField,
-                              label: e.target.value,
-                            })}
-                          />
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Placeholder</Label>
-                          <Input
-                            value={editingField.placeholder || ''}
-                            onChange={(e) => setEditingField({
-                              ...editingField,
-                              placeholder: e.target.value,
-                            })}
-                          />
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <Label>Obligatoire</Label>
-                          <Switch
-                            checked={editingField.required}
-                            onCheckedChange={(checked) => setEditingField({
-                              ...editingField,
-                              required: checked,
-                            })}
-                          />
-                        </div>
-
-                        {(editingField.field_type === 'select' || editingField.field_type === 'multiselect') && (
-                          <div className="space-y-2">
-                            <Label>Options (une par ligne)</Label>
-                            <Textarea
-                              value={optionsText}
-                              onChange={(e) => setOptionsText(e.target.value)}
-                              rows={5}
-                              placeholder="Option 1&#10;Option 2&#10;Option 3"
-                            />
-                          </div>
-                        )}
-
-                        {(editingField.field_type === 'number' || editingField.field_type === 'rating') && (
-                          <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label>Min</Label>
-                              <Input
-                                type="number"
-                                value={editingField.min_value || ''}
-                                onChange={(e) => setEditingField({
-                                  ...editingField,
-                                  min_value: e.target.value ? parseInt(e.target.value) : null,
-                                })}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label>Max</Label>
-                              <Input
-                                type="number"
-                                value={editingField.max_value || ''}
-                                onChange={(e) => setEditingField({
-                                  ...editingField,
-                                  max_value: e.target.value ? parseInt(e.target.value) : null,
-                                })}
-                              />
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="flex gap-2 pt-4">
-                          <Button onClick={handleSaveField} className="flex-1">
-                            <Save className="h-4 w-4 mr-1" />
-                            Enregistrer
-                          </Button>
-                          <Button 
-                            variant="destructive" 
-                            onClick={() => handleDeleteField(editingField.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </SheetContent>
-                </Sheet>
+          <Card className="border-2 border-dashed">
+            <CardContent className="text-center py-12">
+              <div className="p-4 bg-muted rounded-full w-fit mx-auto mb-4">
+                <Plus className="h-8 w-8 text-muted-foreground" />
               </div>
+              <p className="font-medium text-foreground mb-1">Aucune question</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Commencez à créer votre formulaire en ajoutant des questions
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {fields.map((field, index) => (
+              <FieldEditor
+                key={field.id}
+                field={field}
+                index={index}
+                isExpanded={expandedFieldId === field.id}
+                onToggle={() => setExpandedFieldId(
+                  expandedFieldId === field.id ? null : field.id
+                )}
+                onUpdate={(updates) => handleUpdateField(field.id, updates)}
+                onDelete={() => handleDeleteField(field.id)}
+                onDuplicate={() => handleDuplicateField(field)}
+                onMoveUp={() => handleMoveField(index, 'up')}
+                onMoveDown={() => handleMoveField(index, 'down')}
+                isFirst={index === 0}
+                isLast={index === fields.length - 1}
+              />
             ))}
           </div>
         )}
       </div>
 
-      {/* Add Field Section */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-foreground">Ajouter un champ</h3>
-        <div className="grid grid-cols-2 gap-2">
+      {/* Add Question Panel */}
+      <div className="space-y-4">
+        <h3 className="font-semibold text-foreground">Ajouter une question</h3>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {FIELD_TYPES.map((type) => (
             <button
               key={type.value}
               onClick={() => handleAddField(type.value)}
-              className="bg-card border border-border rounded-xl p-3 flex items-center gap-3 hover:bg-muted transition-colors text-left"
+              className="bg-card border border-border rounded-xl p-4 flex flex-col items-center gap-2 hover:bg-muted hover:border-primary/50 transition-all text-center group"
             >
-              <span className="text-xl">{type.icon}</span>
+              <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                <type.icon className="h-5 w-5 text-primary" />
+              </div>
               <span className="text-sm font-medium text-foreground">{type.label}</span>
+              <span className="text-xs text-muted-foreground hidden md:block">
+                {type.description}
+              </span>
             </button>
           ))}
         </div>
