@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { z } from 'zod';
+import { DbSurvey } from '@/hooks/useSurveys';
 
 const surveySchema = z.object({
   title: z.string().min(3, 'Le titre doit contenir au moins 3 caractères').max(100),
@@ -21,10 +22,11 @@ const surveySchema = z.object({
 });
 
 interface CreateSurveyDialogProps {
-  onSubmit: (title: string, description: string) => Promise<any>;
+  onSubmit: (title: string, description: string) => Promise<DbSurvey | null>;
+  onSurveyCreated?: (survey: DbSurvey) => void;
 }
 
-export const CreateSurveyDialog = ({ onSubmit }: CreateSurveyDialogProps) => {
+export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDialogProps) => {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -53,6 +55,11 @@ export const CreateSurveyDialog = ({ onSubmit }: CreateSurveyDialogProps) => {
       setTitle('');
       setDescription('');
       setOpen(false);
+      
+      // Redirect to builder after creation
+      if (onSurveyCreated) {
+        onSurveyCreated(survey);
+      }
     }
   };
 
@@ -64,11 +71,11 @@ export const CreateSurveyDialog = ({ onSubmit }: CreateSurveyDialogProps) => {
           Créer une enquête
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Nouvelle enquête</DialogTitle>
           <DialogDescription>
-            Créez un nouveau formulaire d'enquête pour collecter des données sur le terrain.
+            Donnez un nom à votre formulaire, puis vous pourrez créer vos questions.
           </DialogDescription>
         </DialogHeader>
 
@@ -81,6 +88,7 @@ export const CreateSurveyDialog = ({ onSubmit }: CreateSurveyDialogProps) => {
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Ex: Étude de marché agricole"
               maxLength={100}
+              className="text-base"
             />
             {errors.title && (
               <p className="text-sm text-destructive">{errors.title}</p>
@@ -88,7 +96,7 @@ export const CreateSurveyDialog = ({ onSubmit }: CreateSurveyDialogProps) => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Description (optionnel)</Label>
             <Textarea
               id="description"
               value={description}
@@ -100,15 +108,30 @@ export const CreateSurveyDialog = ({ onSubmit }: CreateSurveyDialogProps) => {
             {errors.description && (
               <p className="text-sm text-destructive">{errors.description}</p>
             )}
+            <p className="text-xs text-muted-foreground">
+              Cette description sera visible par les enquêteurs
+            </p>
           </div>
         </div>
 
-        <DialogFooter>
+        <div className="bg-muted/50 rounded-lg p-4 text-sm">
+          <p className="font-medium text-foreground mb-1">Étape suivante</p>
+          <p className="text-muted-foreground">
+            Après avoir créé l'enquête, vous pourrez ajouter vos questions : texte, choix multiples, dates, GPS, photos, et plus encore.
+          </p>
+        </div>
+
+        <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => setOpen(false)}>
             Annuler
           </Button>
           <Button onClick={handleSubmit} disabled={isSubmitting}>
-            {isSubmitting ? 'Création...' : 'Créer l\'enquête'}
+            {isSubmitting ? 'Création...' : (
+              <>
+                Créer et ajouter des questions
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </>
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>
