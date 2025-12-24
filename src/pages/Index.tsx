@@ -10,7 +10,7 @@ import { SurveyBuilder } from '@/components/SurveyBuilder';
 import { MySurveysList } from '@/components/MySurveysList';
 import { CreateSurveyDialog } from '@/components/CreateSurveyDialog';
 import { ActiveSurveyForm } from '@/components/ActiveSurveyForm';
-import { SurveyResponsesView } from '@/components/SurveyResponsesView';
+import { SurveyAnalytics } from '@/components/SurveyAnalytics';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -119,6 +119,11 @@ const Index = () => {
     setSurveyView('builder');
   };
 
+  const handleSurveyCreated = (survey: DbSurvey) => {
+    setSelectedSurvey(survey);
+    setSurveyView('builder');
+  };
+
   const handleFillSurvey = (survey: DbSurvey) => {
     setSelectedSurvey(survey);
     setSurveyView('fill');
@@ -173,7 +178,7 @@ const Index = () => {
     if (surveyView === 'responses' && selectedSurvey) {
       return (
         <div className="p-4 pb-24">
-          <SurveyResponsesView
+          <SurveyAnalytics
             survey={selectedSurvey}
             responses={responses}
           />
@@ -310,7 +315,7 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="my-surveys" className="mt-4 space-y-4">
-                <CreateSurveyDialog onSubmit={createSurvey} />
+                <CreateSurveyDialog onSubmit={createSurvey} onSurveyCreated={handleSurveyCreated} />
                 
                 {surveysLoading ? (
                   <div className="text-center py-8 text-muted-foreground">
