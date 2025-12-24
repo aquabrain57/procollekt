@@ -3,12 +3,13 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   MapPin, Download, FileSpreadsheet, FileText, File, 
-  BarChart3, PieChart, TrendingUp, Users, Calendar, CheckCircle
+  BarChart3, PieChart, TrendingUp, Users, Calendar, CheckCircle, Map
 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ResponsesMap } from '@/components/ResponsesMap';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -555,6 +556,19 @@ export const SurveyAnalytics = ({ survey, responses }: SurveyAnalyticsProps) => 
                 </CardContent>
               </Card>
             )}
+
+            {/* Interactive Map */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Map className="h-4 w-4" />
+                  Carte des réponses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsesMap responses={responses} fields={fields} />
+              </CardContent>
+            </Card>
 
             {/* Field Analytics */}
             <div className="space-y-4">
