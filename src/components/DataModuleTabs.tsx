@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, BarChart3, TrendingUp } from 'lucide-react';
+import { FileText, BarChart3 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse } from '@/hooks/useSurveys';
 import { DetailedAnalysis } from '@/components/DetailedAnalysis';
+import { SurveyResponsesView } from '@/components/SurveyResponsesView';
 
 interface DataModuleTabsProps {
   survey: DbSurvey;
@@ -15,7 +15,7 @@ export const DataModuleTabs = ({ survey, responses }: DataModuleTabsProps) => {
       <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="responses" className="flex items-center gap-2">
           <FileText className="h-4 w-4" />
-          Réponses
+          Réponses simples
         </TabsTrigger>
         <TabsTrigger value="analysis" className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
@@ -24,7 +24,7 @@ export const DataModuleTabs = ({ survey, responses }: DataModuleTabsProps) => {
       </TabsList>
 
       <TabsContent value="responses" className="mt-0">
-        <DetailedAnalysis survey={survey} responses={responses} />
+        <SurveyResponsesView survey={survey} responses={responses} />
       </TabsContent>
 
       <TabsContent value="analysis" className="mt-0">
