@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, GripVertical, Trash2, Settings, Save, Eye, Send, Copy, ChevronDown, ChevronUp, Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star } from 'lucide-react';
+import { Plus, GripVertical, Trash2, Settings, Save, Eye, Send, Copy, ChevronDown, ChevronUp, Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star, Share2 } from 'lucide-react';
 import { DbSurvey, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { ShareSurveyDialog } from '@/components/ShareSurveyDialog';
 import {
   Collapsible,
   CollapsibleContent,
@@ -352,7 +353,10 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
             <p className="text-sm text-muted-foreground">{survey.description}</p>
           )}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {survey.status === 'active' && (
+            <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} />
+          )}
           <Button variant="outline" size="sm" onClick={onPreview}>
             <Eye className="h-4 w-4 mr-1" />
             Aperçu
