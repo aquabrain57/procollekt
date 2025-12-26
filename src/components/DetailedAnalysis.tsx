@@ -181,8 +181,8 @@ export const DetailedAnalysis = ({ survey, responses }: DetailedAnalysisProps) =
 
     fieldAnalytics.forEach(fa => {
       if (fa.type === 'categorical' && 'data' in fa && fa.data.length > 0) {
-        const topPercentage = fa.data[0].percentage;
-        if (topPercentage > 70) {
+        const firstItem = fa.data[0];
+        if ('percentage' in firstItem && firstItem.percentage > 70) {
           recs.push(`Pour "${fa.field.label}": forte concentration sur une option. Vérifiez la diversité de l'échantillon.`);
         }
       }
