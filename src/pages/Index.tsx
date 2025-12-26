@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
 import { SurveyCard } from '@/components/SurveyCard';
-import { DashboardStats } from '@/components/DashboardStats';
 import { ResponsesList } from '@/components/ResponsesList';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { SurveyBuilder } from '@/components/SurveyBuilder';
@@ -11,6 +10,8 @@ import { MySurveysList } from '@/components/MySurveysList';
 import { CreateSurveyDialog } from '@/components/CreateSurveyDialog';
 import { ActiveSurveyForm } from '@/components/ActiveSurveyForm';
 import { SurveyAnalytics } from '@/components/SurveyAnalytics';
+import { EnhancedDashboard } from '@/components/EnhancedDashboard';
+import { DataModuleTabs } from '@/components/DataModuleTabs';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -35,7 +36,8 @@ const Index = () => {
   const [isSyncing, setIsSyncing] = useState(false);
 
   const { surveys, loading: surveysLoading, createSurvey, deleteSurvey, publishSurvey, unpublishSurvey } = useSurveys();
-  const { responses, loading: responsesLoading } = useSurveyResponses(selectedSurvey?.id);
+  const { responses: allResponses, loading: responsesLoading } = useSurveyResponses();
+  const { responses, loading: selectedResponsesLoading } = useSurveyResponses(selectedSurvey?.id);
 
   // Redirect to auth if not logged in
   useEffect(() => {
@@ -200,8 +202,8 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Stats */}
-            <DashboardStats surveys={surveysForStats} responses={[]} />
+            {/* Enhanced Dashboard Stats */}
+            <EnhancedDashboard surveys={surveys} responses={allResponses} />
 
             {/* Quick Actions */}
             <div className="slide-up" style={{ animationDelay: '200ms' }}>
@@ -345,6 +347,8 @@ const Index = () => {
                 <p className="font-medium">Aucune donnée</p>
                 <p className="text-sm">Créez des enquêtes pour collecter des données</p>
               </div>
+            ) : selectedSurvey ? (
+              <DataModuleTabs survey={selectedSurvey} responses={responses} />
             ) : (
               <div className="space-y-3">
                 <h3 className="font-semibold text-foreground">Sélectionnez une enquête</h3>
@@ -356,7 +360,7 @@ const Index = () => {
                   >
                     <h4 className="font-semibold text-foreground">{survey.title}</h4>
                     <p className="text-sm text-muted-foreground">
-                      Cliquez pour voir les réponses
+                      Cliquez pour voir les réponses et l'analyse
                     </p>
                   </div>
                 ))}
