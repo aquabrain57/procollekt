@@ -3,7 +3,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, BarChart3, TrendingUp } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse } from '@/hooks/useSurveys';
 import { DetailedAnalysis } from '@/components/DetailedAnalysis';
-import { DetailedAnalysis } from '@/components/DetailedAnalysis';
 
 interface DataModuleTabsProps {
   survey: DbSurvey;
