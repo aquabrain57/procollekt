@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Camera, MapPin, Star, Check } from 'lucide-react';
 import { FormField as FormFieldType } from '@/types/survey';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -176,13 +177,29 @@ export const FormFieldComponent = ({ field, value, onChange, error }: FormFieldP
           <div>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               capture="environment"
               className="hidden"
               id={`photo-${field.id}`}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  // Validate file type
+                  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                  if (!allowedTypes.includes(file.type)) {
+                    toast.error('Format non supporté. Utilisez JPEG, PNG ou WebP');
+                    e.target.value = '';
+                    return;
+                  }
+                  
+                  // Validate file size (max 5MB)
+                  const maxSize = 5 * 1024 * 1024;
+                  if (file.size > maxSize) {
+                    toast.error('Image trop volumineuse. Maximum 5MB');
+                    e.target.value = '';
+                    return;
+                  }
+                  
                   const reader = new FileReader();
                   reader.onload = (e) => {
                     onChange(e.target?.result);
@@ -210,6 +227,7 @@ export const FormFieldComponent = ({ field, value, onChange, error }: FormFieldP
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <Camera className="h-8 w-8 mb-2" />
                   <span className="text-sm">Prendre une photo</span>
+                  <span className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP (max 5MB)</span>
                 </div>
               )}
             </label>

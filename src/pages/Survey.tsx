@@ -256,13 +256,29 @@ const SurveyFormField = ({
           <div>
             <input
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
               capture="environment"
               className="hidden"
               id={`photo-${field.id}`}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
+                  // Validate file type
+                  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+                  if (!allowedTypes.includes(file.type)) {
+                    toast.error('Format non supporté. Utilisez JPEG, PNG ou WebP');
+                    e.target.value = '';
+                    return;
+                  }
+                  
+                  // Validate file size (max 5MB)
+                  const maxSize = 5 * 1024 * 1024;
+                  if (file.size > maxSize) {
+                    toast.error('Image trop volumineuse. Maximum 5MB');
+                    e.target.value = '';
+                    return;
+                  }
+                  
                   const reader = new FileReader();
                   reader.onload = (e) => {
                     onChange(e.target?.result);
@@ -284,6 +300,7 @@ const SurveyFormField = ({
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <Camera className="h-8 w-8 mb-2" />
                   <span className="text-sm">Prendre une photo</span>
+                  <span className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP (max 5MB)</span>
                 </div>
               )}
             </label>
@@ -411,6 +428,13 @@ const Survey = () => {
   };
 
   const syncPendingResponses = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    // Cannot sync without authentication
+    if (!user) {
+      return;
+    }
+    
     const toSync = [...pendingResponses];
     const synced: string[] = [];
 
@@ -420,7 +444,7 @@ const Survey = () => {
           .from('survey_responses')
           .insert({
             survey_id: response.survey_id,
-            user_id: (await supabase.auth.getUser()).data.user?.id || 'anonymous',
+            user_id: user.id,
             data: response.data,
             location: response.location,
             sync_status: 'synced',
@@ -467,6 +491,16 @@ const Survey = () => {
 
     setSubmitting(true);
 
+    // Check authentication first
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      toast.error('Vous devez être connecté pour soumettre une réponse');
+      navigate('/auth?redirect=' + encodeURIComponent(`/survey/${survey.id}`));
+      setSubmitting(false);
+      return;
+    }
+
     const responseData = {
       id: crypto.randomUUID(),
       survey_id: survey.id,
@@ -477,13 +511,11 @@ const Survey = () => {
 
     if (isOnline) {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        
         const { error } = await supabase
           .from('survey_responses')
           .insert({
             survey_id: survey.id,
-            user_id: user?.id || 'anonymous',
+            user_id: user.id,
             data: formData,
             location,
             sync_status: 'synced',
@@ -498,7 +530,7 @@ const Survey = () => {
         // Save locally if online submission fails
         setPendingResponses(prev => [...prev, responseData]);
         setSubmitted(true);
-        toast.success('Réponse sauvegardée localement');
+        toast.info('Réponse sauvegardée localement');
       }
     } else {
       // Save locally when offline
