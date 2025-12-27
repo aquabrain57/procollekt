@@ -1,11 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DbSurvey, DbSurveyField } from '@/hooks/useSurveys';
-import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -19,7 +18,56 @@ interface PendingResponse {
   created_at: string;
 }
 
-// Inline FormField component for public surveys
+// Optimized input component with local state to prevent lag
+const TextInput = ({ 
+  value, 
+  onChange, 
+  placeholder,
+  type = 'text',
+  min,
+  max,
+}: { 
+  value: string; 
+  onChange: (value: string) => void; 
+  placeholder?: string;
+  type?: string;
+  min?: number;
+  max?: number;
+}) => {
+  const [localValue, setLocalValue] = useState(value);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setLocalValue(newValue);
+    
+    // Debounce the parent update
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      onChange(type === 'number' && newValue ? newValue : newValue);
+    }, 150);
+  };
+
+  return (
+    <input
+      type={type}
+      placeholder={placeholder}
+      value={localValue}
+      onChange={handleChange}
+      min={min}
+      max={max}
+      className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+    />
+  );
+};
+
+// Inline FormField component for public surveys - optimized
 const SurveyFormField = ({ 
   field, 
   value, 
@@ -33,22 +81,20 @@ const SurveyFormField = ({
     switch (field.field_type) {
       case 'text':
         return (
-          <Input
-            type="text"
-            placeholder={field.placeholder || ''}
+          <TextInput
             value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className="text-base"
+            onChange={onChange}
+            placeholder={field.placeholder || ''}
           />
         );
 
       case 'number':
         return (
-          <Input
+          <TextInput
             type="number"
+            value={value?.toString() || ''}
+            onChange={(v) => onChange(v ? Number(v) : '')}
             placeholder={field.placeholder || ''}
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')}
             min={field.min_value || undefined}
             max={field.max_value || undefined}
           />
@@ -111,7 +157,7 @@ const SurveyFormField = ({
       case 'rating':
         const maxRating = field.max_value || 5;
         return (
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             {Array.from({ length: maxRating }, (_, i) => i + 1).map((rating) => (
               <button
                 key={rating}
@@ -132,11 +178,37 @@ const SurveyFormField = ({
 
       case 'date':
         return (
-          <Input
-            type="date"
+          <div className="relative">
+            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <input
+              type="date"
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        );
+
+      case 'time':
+        return (
+          <div className="relative">
+            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <input
+              type="time"
+              value={value || ''}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+          </div>
+        );
+
+      case 'datetime':
+        return (
+          <input
+            type="datetime-local"
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
-            className="text-base"
+            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         );
 
@@ -218,8 +290,36 @@ const SurveyFormField = ({
           </div>
         );
 
+      case 'consent':
+        return (
+          <button
+            type="button"
+            onClick={() => onChange(!value)}
+            className={cn(
+              'w-full px-4 py-4 rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
+              value
+                ? 'border-green-500 bg-green-500/5 text-foreground'
+                : 'border-border bg-background text-muted-foreground hover:border-primary/50'
+            )}
+          >
+            <div className={cn(
+              'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors',
+              value ? 'border-green-500 bg-green-500' : 'border-muted-foreground'
+            )}>
+              {value && <Check className="h-3 w-3 text-white" />}
+            </div>
+            <span>Je donne mon consentement</span>
+          </button>
+        );
+
       default:
-        return null;
+        return (
+          <TextInput
+            value={value || ''}
+            onChange={onChange}
+            placeholder={field.placeholder || ''}
+          />
+        );
     }
   };
 
@@ -250,7 +350,6 @@ const Survey = () => {
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [gettingLocation, setGettingLocation] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -341,32 +440,9 @@ const Survey = () => {
     }
   };
 
-  const getLocation = async () => {
-    setGettingLocation(true);
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0,
-        });
-      });
-      setLocation({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
-      toast.success('Position GPS enregistrée');
-    } catch (err) {
-      console.error('Error getting location:', err);
-      toast.error('Impossible d\'obtenir la position GPS');
-    } finally {
-      setGettingLocation(false);
-    }
-  };
-
-  const handleFieldChange = (fieldId: string, value: any) => {
+  const handleFieldChange = useCallback((fieldId: string, value: any) => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));
-  };
+  }, []);
 
   const validateForm = (): boolean => {
     for (const field of fields) {
@@ -503,31 +579,34 @@ const Survey = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-lg border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-foreground truncate">{survey?.title}</h1>
-              {survey?.description && (
-                <p className="text-sm text-muted-foreground truncate">{survey.description}</p>
-              )}
-            </div>
-            <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${isOnline ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
-              {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              {isOnline ? 'En ligne' : 'Hors ligne'}
-            </div>
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="font-bold text-foreground truncate">{survey?.title}</h1>
+          <div className="flex items-center gap-2">
+            {isOnline ? (
+              <span className="flex items-center gap-1 text-xs text-green-600">
+                <Wifi className="h-3 w-3" />
+                En ligne
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-orange-600">
+                <WifiOff className="h-3 w-3" />
+                Hors ligne
+              </span>
+            )}
+            {pendingResponses.length > 0 && (
+              <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
+                {pendingResponses.length} en attente
+              </span>
+            )}
           </div>
         </div>
       </header>
 
       {/* Form */}
-      <main className="max-w-2xl mx-auto p-4 pb-32">
-        {pendingResponses.length > 0 && (
-          <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3 mb-4 text-sm">
-            <p className="text-orange-600 font-medium">
-              {pendingResponses.length} réponse(s) en attente de synchronisation
-            </p>
-          </div>
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        {survey?.description && (
+          <p className="text-muted-foreground mb-6">{survey.description}</p>
         )}
 
         <div className="space-y-4">
@@ -539,57 +618,26 @@ const Survey = () => {
               onChange={(value) => handleFieldChange(field.id, value)}
             />
           ))}
-
-          {/* GPS Location */}
-          <Card>
-            <CardContent className="pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-foreground">Position GPS</p>
-                  <p className="text-sm text-muted-foreground">
-                    {location 
-                      ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}` 
-                      : 'Non enregistrée'}
-                  </p>
-                </div>
-                <Button 
-                  variant={location ? 'outline' : 'default'} 
-                  size="sm" 
-                  onClick={getLocation}
-                  disabled={gettingLocation}
-                >
-                  {gettingLocation ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <MapPin className="h-4 w-4" />
-                  )}
-                  <span className="ml-2">{location ? 'Actualiser' : 'Enregistrer'}</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
-      </main>
 
-      {/* Submit Button */}
-      <div className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-lg border-t border-border p-4">
-        <div className="max-w-2xl mx-auto">
-          <Button 
-            onClick={handleSubmit} 
-            disabled={submitting} 
-            className="w-full h-12 text-base"
+        {/* Submit button */}
+        <div className="mt-8 pb-8">
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="w-full py-6 text-lg"
           >
             {submitting ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                 Envoi en cours...
               </>
             ) : (
-              'Envoyer la réponse'
+              'Soumettre la réponse'
             )}
           </Button>
         </div>
-      </div>
+      </main>
     </div>
   );
 };

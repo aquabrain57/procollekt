@@ -16,7 +16,7 @@ export interface DbSurvey {
 export interface DbSurveyField {
   id: string;
   survey_id: string;
-  field_type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'location' | 'photo' | 'rating';
+  field_type: 'text' | 'number' | 'select' | 'multiselect' | 'date' | 'time' | 'datetime' | 'location' | 'photo' | 'rating' | 'consent' | 'note' | 'file' | 'audio' | 'video' | 'barcode' | 'range' | 'ranking' | 'calculate' | 'hidden' | 'matrix' | 'line' | 'area' | 'decimal';
   label: string;
   placeholder: string | null;
   required: boolean;
