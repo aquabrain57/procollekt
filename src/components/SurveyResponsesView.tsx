@@ -72,8 +72,9 @@ export const SurveyResponsesView = ({ survey, responses }: SurveyResponsesViewPr
   const exportToCSV = () => {
     if (responses.length === 0 || fields.length === 0) return;
 
-    const headers = ['Date', 'Heure', 'Enquêteur', 'Localisation (Lat)', 'Localisation (Lng)', ...fields.map(f => f.label)];
-    const rows = responses.map(response => {
+    // Exclude user_id from exports to protect respondent privacy
+    const headers = ['Date', 'Heure', 'Réponse #', 'Localisation (Lat)', 'Localisation (Lng)', ...fields.map(f => f.label)];
+    const rows = responses.map((response, index) => {
       const date = format(new Date(response.created_at), 'dd/MM/yyyy');
       const time = format(new Date(response.created_at), 'HH:mm:ss');
       const lat = response.location?.latitude?.toFixed(6) || '';
@@ -86,7 +87,8 @@ export const SurveyResponsesView = ({ survey, responses }: SurveyResponsesViewPr
         return value?.toString() || '';
       });
 
-      return [date, time, response.user_id.slice(0, 8), lat, lng, ...fieldValues];
+      // Use anonymous response number instead of user_id
+      return [date, time, `#${responses.length - index}`, lat, lng, ...fieldValues];
     });
 
     const csvContent = [headers, ...rows]
@@ -186,11 +188,11 @@ export const SurveyResponsesView = ({ survey, responses }: SurveyResponsesViewPr
                               </div>
                             </div>
                             
-                            {/* Enquêteur and location */}
+                            {/* Response indicator and location - user_id hidden for privacy */}
                             <div className="flex items-center gap-4 flex-wrap text-sm">
                               <div className="flex items-center gap-1.5 text-foreground">
                                 <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="font-medium">ID: {response.user_id.slice(0, 8)}...</span>
+                                <span className="font-medium">Répondant #{responses.length - index}</span>
                               </div>
                               {locationStr && (
                                 <div className="flex items-center gap-1.5 text-muted-foreground">
