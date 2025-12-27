@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import DOMPurify from 'dompurify';
 import { DbSurveyResponse, DbSurveyField } from '@/hooks/useSurveys';
 import { MapPin, AlertCircle } from 'lucide-react';
 
@@ -101,13 +102,15 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
             </div>
           `;
 
-          // Build popup content
+          // Build popup content with sanitized user data to prevent XSS
           const firstFields = fields.slice(0, 3);
           const fieldHtml = firstFields.map(field => {
             const value = response.data[field.id];
             if (value === undefined || value === null || value === '') return '';
             const displayValue = Array.isArray(value) ? value.join(', ') : value.toString();
-            return `<div style="margin-bottom: 4px;"><strong>${field.label}:</strong> ${displayValue.slice(0, 50)}</div>`;
+            const sanitizedLabel = DOMPurify.sanitize(field.label);
+            const sanitizedValue = DOMPurify.sanitize(displayValue.slice(0, 50));
+            return `<div style="margin-bottom: 4px;"><strong>${sanitizedLabel}:</strong> ${sanitizedValue}</div>`;
           }).join('');
 
           const popupContent = `
