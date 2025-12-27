@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Sanitize log strings to prevent log injection
+const sanitizeLog = (str: string, maxLength = 100) => 
+  str.replace(/[\n\r\t]/g, ' ').substring(0, maxLength);
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -15,7 +19,7 @@ serve(async (req) => {
     // Verify authentication
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      console.error("Missing Authorization header");
+      console.error("Auth: missing header");
       return new Response(
         JSON.stringify({ error: "Non autorisé" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -26,9 +30,9 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     
     if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Missing Supabase configuration");
+      console.error("Config: missing env vars");
       return new Response(
-        JSON.stringify({ error: "Configuration serveur manquante" }),
+        JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -40,14 +44,12 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     
     if (authError || !user) {
-      console.error("Authentication failed:", authError?.message);
+      console.error("Auth: verification failed");
       return new Response(
         JSON.stringify({ error: "Non autorisé" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    console.log("Authenticated user:", user.id);
 
     const { prompt } = await req.json();
     
@@ -60,9 +62,9 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY is not configured");
+      console.error("Config: API key missing");
       return new Response(
-        JSON.stringify({ error: "Configuration API manquante" }),
+        JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -94,7 +96,8 @@ Règles importantes:
 - Les questions doivent être en français
 - Retourne UNIQUEMENT le JSON, sans texte additionnel`;
 
-    console.log("Calling Lovable AI Gateway with prompt:", prompt.substring(0, 100) + "...");
+    // Log request metadata only (no sensitive content)
+    console.log("AI request:", { userId: user.id, promptLength: prompt.length });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -113,8 +116,7 @@ Règles importantes:
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error("AI Gateway error:", response.status, errorText);
+      console.error("AI Gateway:", { status: response.status });
       
       if (response.status === 429) {
         return new Response(
@@ -129,17 +131,22 @@ Règles importantes:
         );
       }
       
-      throw new Error(`AI Gateway error: ${response.status}`);
+      return new Response(
+        JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      throw new Error("No content in AI response");
+      console.error("AI: empty response");
+      return new Response(
+        JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-
-    console.log("AI Response content:", content.substring(0, 200) + "...");
 
     // Parse the JSON from the response
     let questions;
@@ -155,29 +162,35 @@ Règles importantes:
         if (arrayMatch) {
           questions = JSON.parse(arrayMatch[0]);
         } else {
-          throw new Error("No valid JSON found in response");
+          throw new Error("Invalid response format");
         }
       }
     } catch (parseError) {
-      console.error("JSON parse error:", parseError, "Content:", content);
-      throw new Error("Failed to parse AI response");
+      console.error("AI: parse error");
+      return new Response(
+        JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     if (!Array.isArray(questions)) {
-      throw new Error("Questions is not an array");
+      console.error("AI: invalid format");
+      return new Response(
+        JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`Successfully generated ${questions.length} questions`);
+    console.log("AI success:", { questionCount: questions.length });
 
     return new Response(
       JSON.stringify({ questions }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: unknown) {
-    console.error("Error in generate-survey-questions:", error);
-    const message = error instanceof Error ? error.message : "Erreur interne du serveur";
+    console.error("Function error:", { type: error instanceof Error ? error.constructor.name : "unknown" });
     return new Response(
-      JSON.stringify({ error: message }),
+      JSON.stringify({ error: "Une erreur est survenue. Veuillez réessayer." }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
