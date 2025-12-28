@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Plus, GripVertical, Trash2, Settings, Save, Eye, Send, Copy, ChevronDown, ChevronUp, Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star, Share2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, GripVertical, Trash2, Eye, Send, Copy, ChevronDown, ChevronUp, Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star } from 'lucide-react';
 import { DbSurvey, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,24 @@ import {
 } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+
+const useDebouncedPatch = <T extends object>(
+  patchFn: (patch: Partial<T>) => void,
+  delayMs: number
+) => {
+  const timerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) window.clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  return (patch: Partial<T>) => {
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(() => patchFn(patch), delayMs);
+  };
+};
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Texte court', icon: Type, description: 'Réponse libre sur une ligne' },
@@ -67,30 +85,42 @@ const FieldEditor = ({
   isFirst,
   isLast,
 }: FieldEditorProps) => {
-  const [optionsText, setOptionsText] = useState(
-    field.options?.map(o => o.label).join('\n') || ''
-  );
+  // Local state for fast typing (avoid saving to backend on every keystroke)
+  const [localLabel, setLocalLabel] = useState(field.label);
+  const [localPlaceholder, setLocalPlaceholder] = useState(field.placeholder || '');
+  const [optionsText, setOptionsText] = useState(field.options?.map((o) => o.label).join('\n') || '');
 
-  const fieldType = FIELD_TYPES.find(t => t.value === field.field_type);
+  useEffect(() => {
+    setLocalLabel(field.label);
+    setLocalPlaceholder(field.placeholder || '');
+    setOptionsText(field.options?.map((o) => o.label).join('\n') || '');
+  }, [field.id]);
+
+  const fieldType = useMemo(() => FIELD_TYPES.find((t) => t.value === field.field_type), [field.field_type]);
   const Icon = fieldType?.icon || Type;
+
+  const debouncedUpdate = useDebouncedPatch<DbSurveyField>((patch) => onUpdate(patch), 400);
 
   const handleOptionsChange = (text: string) => {
     setOptionsText(text);
     const options = text
       .split('\n')
-      .filter(line => line.trim())
+      .filter((line) => line.trim())
       .map((line, i) => ({
         value: `option_${i}`,
         label: line.trim(),
       }));
-    onUpdate({ options });
+
+    debouncedUpdate({ options });
   };
 
   return (
-    <Card className={cn(
-      'transition-all duration-200',
-      isExpanded ? 'ring-2 ring-primary/20' : 'hover:shadow-md'
-    )}>
+    <Card
+      className={cn(
+        'transition-all duration-200',
+        isExpanded ? 'ring-2 ring-primary/20' : 'hover:shadow-md'
+      )}
+    >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
         <CardHeader className="p-4">
           <div className="flex items-center gap-3">
@@ -110,13 +140,13 @@ const FieldEditor = ({
                 <ChevronDown className="h-3 w-3" />
               </button>
             </div>
-            
+
             <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
-            
+
             <div className="p-2 bg-primary/10 rounded-lg">
               <Icon className="h-4 w-4 text-primary" />
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <CollapsibleTrigger className="flex items-center gap-2 w-full text-left">
                 <div className="flex-1">
@@ -142,8 +172,12 @@ const FieldEditor = ({
             <div className="space-y-2">
               <Label>Question</Label>
               <Input
-                value={field.label}
-                onChange={(e) => onUpdate({ label: e.target.value })}
+                value={localLabel}
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setLocalLabel(next);
+                  debouncedUpdate({ label: next });
+                }}
                 placeholder="Entrez votre question..."
                 className="text-base"
               />
@@ -154,14 +188,17 @@ const FieldEditor = ({
               <Label>Type de réponse</Label>
               <Select
                 value={field.field_type}
-                onValueChange={(value) => onUpdate({ 
-                  field_type: value as DbSurveyField['field_type'],
-                  options: (value === 'select' || value === 'multiselect') 
-                    ? [{ value: 'option1', label: 'Option 1' }] 
-                    : null,
-                  min_value: value === 'rating' ? 1 : null,
-                  max_value: value === 'rating' ? 5 : null,
-                })}
+                onValueChange={(value) =>
+                  onUpdate({
+                    field_type: value as DbSurveyField['field_type'],
+                    options:
+                      value === 'select' || value === 'multiselect'
+                        ? [{ value: 'option1', label: 'Option 1' }]
+                        : null,
+                    min_value: value === 'rating' ? 1 : null,
+                    max_value: value === 'rating' ? 5 : null,
+                  })
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -184,8 +221,12 @@ const FieldEditor = ({
               <div className="space-y-2">
                 <Label>Texte d'aide (placeholder)</Label>
                 <Input
-                  value={field.placeholder || ''}
-                  onChange={(e) => onUpdate({ placeholder: e.target.value })}
+                  value={localPlaceholder}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setLocalPlaceholder(next);
+                    debouncedUpdate({ placeholder: next });
+                  }}
                   placeholder="Ex: Entrez votre réponse ici..."
                 />
               </div>
@@ -203,10 +244,9 @@ const FieldEditor = ({
                   className="font-mono text-sm"
                 />
                 <p className="text-xs text-muted-foreground">
-                  {field.field_type === 'multiselect' 
+                  {field.field_type === 'multiselect'
                     ? 'Les répondants pourront sélectionner plusieurs options'
-                    : 'Les répondants devront choisir une seule option'
-                  }
+                    : 'Les répondants devront choisir une seule option'}
                 </p>
               </div>
             )}
@@ -219,9 +259,9 @@ const FieldEditor = ({
                   <Input
                     type="number"
                     value={field.min_value ?? ''}
-                    onChange={(e) => onUpdate({ 
-                      min_value: e.target.value ? parseInt(e.target.value) : null 
-                    })}
+                    onChange={(e) =>
+                      onUpdate({ min_value: e.target.value ? parseInt(e.target.value) : null })
+                    }
                   />
                 </div>
                 <div className="space-y-2">
@@ -229,9 +269,9 @@ const FieldEditor = ({
                   <Input
                     type="number"
                     value={field.max_value ?? ''}
-                    onChange={(e) => onUpdate({ 
-                      max_value: e.target.value ? parseInt(e.target.value) : null 
-                    })}
+                    onChange={(e) =>
+                      onUpdate({ max_value: e.target.value ? parseInt(e.target.value) : null })
+                    }
                   />
                 </div>
               </div>
@@ -241,32 +281,18 @@ const FieldEditor = ({
             <div className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg">
               <div>
                 <Label>Question obligatoire</Label>
-                <p className="text-xs text-muted-foreground">
-                  Le répondant devra répondre à cette question
-                </p>
+                <p className="text-xs text-muted-foreground">Le répondant devra répondre à cette question</p>
               </div>
-              <Switch
-                checked={field.required}
-                onCheckedChange={(checked) => onUpdate({ required: checked })}
-              />
+              <Switch checked={field.required} onCheckedChange={(checked) => onUpdate({ required: checked })} />
             </div>
 
             {/* Actions */}
             <div className="flex gap-2 pt-2 border-t">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onDuplicate}
-                className="flex-1"
-              >
+              <Button variant="outline" size="sm" onClick={onDuplicate} className="flex-1">
                 <Copy className="h-4 w-4 mr-1" />
                 Dupliquer
               </Button>
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={onDelete}
-              >
+              <Button variant="destructive" size="sm" onClick={onDelete}>
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
