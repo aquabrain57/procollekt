@@ -20,6 +20,8 @@ import { Survey, SyncStatus } from '@/types/survey';
 import { Plus, Search, Loader2, FileEdit, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { supabase } from '@/integrations/supabase/client';
+import { z } from 'zod';
 
 type Tab = 'home' | 'surveys' | 'data' | 'settings';
 type SurveyView = 'list' | 'builder' | 'fill' | 'responses';
@@ -121,7 +123,54 @@ const Index = () => {
     setSurveyView('builder');
   };
 
-  const handleSurveyCreated = (survey: DbSurvey) => {
+  const generatedFieldSchema = z.object({
+    field_type: z.string().min(1),
+    label: z.string().min(1).max(200),
+    placeholder: z.string().optional().nullable(),
+    required: z.boolean().optional().default(false),
+    options: z
+      .array(z.object({ value: z.string(), label: z.string() }))
+      .optional()
+      .nullable(),
+    min_value: z.number().int().optional().nullable(),
+    max_value: z.number().int().optional().nullable(),
+  });
+
+  const addGeneratedFieldsToSurvey = async (surveyId: string, fieldsToAdd: unknown[]) => {
+    const parsed = z.array(generatedFieldSchema).safeParse(fieldsToAdd);
+    if (!parsed.success) {
+      console.warn('Invalid generated fields payload');
+      return;
+    }
+
+    const rows = parsed.data.map((f, i) => ({
+      survey_id: surveyId,
+      field_type: f.field_type,
+      label: f.label,
+      placeholder: f.placeholder ?? null,
+      required: Boolean(f.required),
+      options: f.options ?? null,
+      min_value: f.min_value ?? null,
+      max_value: f.max_value ?? null,
+      conditional_on: null,
+      field_order: i,
+    }));
+
+    const { error } = await supabase.from('survey_fields').insert(rows);
+    if (error) throw error;
+  };
+
+  const handleSurveyCreated = async (survey: DbSurvey, fieldsToAdd?: unknown[]) => {
+    try {
+      if (fieldsToAdd?.length) {
+        await addGeneratedFieldsToSurvey(survey.id, fieldsToAdd);
+        toast.success('Questions ajoutées automatiquement');
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error('Enquête créée, mais ajout automatique des questions a échoué');
+    }
+
     setSelectedSurvey(survey);
     setSurveyView('builder');
   };
@@ -134,6 +183,10 @@ const Index = () => {
   const handleViewResponses = (survey: DbSurvey) => {
     setSelectedSurvey(survey);
     setSurveyView('responses');
+  };
+
+  const handleSelectDataSurvey = (survey: DbSurvey) => {
+    setSelectedSurvey(survey);
   };
 
   const handlePublishToggle = async () => {
@@ -355,7 +408,7 @@ const Index = () => {
                 {mySurveys.map((survey) => (
                   <div
                     key={survey.id}
-                    onClick={() => handleViewResponses(survey)}
+                    onClick={() => handleSelectDataSurvey(survey)}
                     className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted transition-colors"
                   >
                     <h4 className="font-semibold text-foreground">{survey.title}</h4>
