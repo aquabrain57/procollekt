@@ -1,8 +1,8 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, BarChart3 } from 'lucide-react';
+import { Table2, BarChart3 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse } from '@/hooks/useSurveys';
-import { DetailedAnalysis } from '@/components/DetailedAnalysis';
-import { SurveyResponsesView } from '@/components/SurveyResponsesView';
+import { ResponsesTable } from '@/components/ResponsesTable';
+import { AdvancedReports } from '@/components/AdvancedReports';
 
 interface DataModuleTabsProps {
   survey: DbSurvey;
@@ -11,24 +11,24 @@ interface DataModuleTabsProps {
 
 export const DataModuleTabs = ({ survey, responses }: DataModuleTabsProps) => {
   return (
-    <Tabs defaultValue="responses" className="w-full">
+    <Tabs defaultValue="table" className="w-full">
       <TabsList className="grid w-full grid-cols-2 mb-6">
-        <TabsTrigger value="responses" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Réponses simples
+        <TabsTrigger value="table" className="flex items-center gap-2">
+          <Table2 className="h-4 w-4" />
+          Table des réponses
         </TabsTrigger>
-        <TabsTrigger value="analysis" className="flex items-center gap-2">
+        <TabsTrigger value="reports" className="flex items-center gap-2">
           <BarChart3 className="h-4 w-4" />
-          Analyse détaillée
+          Rapports avancés
         </TabsTrigger>
       </TabsList>
 
-      <TabsContent value="responses" className="mt-0">
-        <SurveyResponsesView survey={survey} responses={responses} />
+      <TabsContent value="table" className="mt-0">
+        <ResponsesTable survey={survey} responses={responses} />
       </TabsContent>
 
-      <TabsContent value="analysis" className="mt-0">
-        <DetailedAnalysis survey={survey} responses={responses} />
+      <TabsContent value="reports" className="mt-0">
+        <AdvancedReports survey={survey} responses={responses} />
       </TabsContent>
     </Tabs>
   );
