@@ -401,22 +401,59 @@ const Index = () => {
                 <p className="text-sm">Créez des enquêtes pour collecter des données</p>
               </div>
             ) : selectedSurvey ? (
-              <DataModuleTabs survey={selectedSurvey} responses={responses} />
-            ) : (
-              <div className="space-y-3">
-                <h3 className="font-semibold text-foreground">Sélectionnez une enquête</h3>
-                {mySurveys.map((survey) => (
-                  <div
-                    key={survey.id}
-                    onClick={() => handleSelectDataSurvey(survey)}
-                    className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted transition-colors"
+              <div className="space-y-4">
+                {/* Back button and survey info */}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedSurvey(null)}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
                   >
-                    <h4 className="font-semibold text-foreground">{survey.title}</h4>
+                    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <div>
+                    <h3 className="font-semibold text-foreground">{selectedSurvey.title}</h3>
                     <p className="text-sm text-muted-foreground">
-                      Cliquez pour voir les réponses et l'analyse
+                      {responses.length} réponse{responses.length !== 1 ? 's' : ''}
                     </p>
                   </div>
-                ))}
+                </div>
+                <DataModuleTabs survey={selectedSurvey} responses={responses} />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="font-semibold text-foreground text-lg">Données des enquêtes</h3>
+                <p className="text-sm text-muted-foreground">
+                  Sélectionnez une enquête pour voir les réponses collectées et les rapports d'analyse
+                </p>
+                <div className="grid gap-3">
+                  {mySurveys.map((survey) => {
+                    const surveyResponses = allResponses.filter(r => r.survey_id === survey.id);
+                    return (
+                      <div
+                        key={survey.id}
+                        onClick={() => handleSelectDataSurvey(survey)}
+                        className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted hover:border-primary/50 transition-all"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-foreground">{survey.title}</h4>
+                            <p className="text-sm text-muted-foreground">
+                              {surveyResponses.length} réponse{surveyResponses.length !== 1 ? 's' : ''}
+                              {survey.status === 'active' && (
+                                <span className="ml-2 text-green-600">• Active</span>
+                              )}
+                            </p>
+                          </div>
+                          <svg className="h-5 w-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M9 18l6-6-6-6" />
+                          </svg>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
