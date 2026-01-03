@@ -86,21 +86,21 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
   }, [surveys, responses]);
 
   return (
-    <div className="space-y-6">
-      {/* Primary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="w-full space-y-6">
+      {/* Primary Stats - Full Width */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-foreground">{stats.totalResponses}</p>
+                <p className="text-3xl lg:text-4xl font-bold text-foreground">{stats.totalResponses}</p>
                 <p className="text-sm text-muted-foreground">Réponses totales</p>
               </div>
-              <div className="p-3 bg-primary/20 rounded-xl">
-                <Users className="h-6 w-6 text-primary" />
+              <div className="p-3 lg:p-4 bg-primary/20 rounded-xl">
+                <Users className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-primary">
+            <div className="mt-3 flex items-center gap-1 text-xs text-primary">
               <TrendingUp className="h-3 w-3" />
               <span>+{stats.todayResponses} aujourd'hui</span>
             </div>
@@ -108,17 +108,17 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
         </Card>
 
         <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-foreground">{stats.activeSurveys}</p>
+                <p className="text-3xl lg:text-4xl font-bold text-foreground">{stats.activeSurveys}</p>
                 <p className="text-sm text-muted-foreground">Enquêtes actives</p>
               </div>
-              <div className="p-3 bg-green-500/20 rounded-xl">
-                <ClipboardList className="h-6 w-6 text-green-600" />
+              <div className="p-3 lg:p-4 bg-green-500/20 rounded-xl">
+                <ClipboardList className="h-6 w-6 lg:h-8 lg:w-8 text-green-600" />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-green-600">
+            <div className="mt-3 flex items-center gap-1 text-xs text-green-600">
               <Activity className="h-3 w-3" />
               <span>{stats.draftSurveys} brouillons</span>
             </div>
@@ -126,17 +126,17 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
         </Card>
 
         <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5 border-orange-500/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-foreground">{stats.geolocatedRate}%</p>
+                <p className="text-3xl lg:text-4xl font-bold text-foreground">{stats.geolocatedRate}%</p>
                 <p className="text-sm text-muted-foreground">Géolocalisées</p>
               </div>
-              <div className="p-3 bg-orange-500/20 rounded-xl">
-                <MapPin className="h-6 w-6 text-orange-600" />
+              <div className="p-3 lg:p-4 bg-orange-500/20 rounded-xl">
+                <MapPin className="h-6 w-6 lg:h-8 lg:w-8 text-orange-600" />
               </div>
             </div>
-            <div className="mt-2 flex items-center gap-1 text-xs text-orange-600">
+            <div className="mt-3 flex items-center gap-1 text-xs text-orange-600">
               <Zap className="h-3 w-3" />
               <span>{stats.geolocated} réponses</span>
             </div>
@@ -144,18 +144,18 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5 border-purple-500/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-3xl font-bold text-foreground">{stats.synced}</p>
+                <p className="text-3xl lg:text-4xl font-bold text-foreground">{stats.synced}</p>
                 <p className="text-sm text-muted-foreground">Synchronisées</p>
               </div>
-              <div className="p-3 bg-purple-500/20 rounded-xl">
-                <CheckCircle className="h-6 w-6 text-purple-600" />
+              <div className="p-3 lg:p-4 bg-purple-500/20 rounded-xl">
+                <CheckCircle className="h-6 w-6 lg:h-8 lg:w-8 text-purple-600" />
               </div>
             </div>
             {stats.pending > 0 && (
-              <div className="mt-2 flex items-center gap-1 text-xs text-purple-600">
+              <div className="mt-3 flex items-center gap-1 text-xs text-purple-600">
                 <Clock className="h-3 w-3" />
                 <span>{stats.pending} en attente</span>
               </div>
@@ -164,18 +164,18 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
         </Card>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* Charts Row - Full Width */}
+      <div className="grid lg:grid-cols-2 gap-6 w-full">
         {/* Activity Chart */}
-        <Card>
+        <Card className="w-full">
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
+            <CardTitle className="text-base lg:text-lg flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 lg:h-5 lg:w-5" />
               Activité (7 derniers jours)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-[200px]">
+            <div className="h-[200px] lg:h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={stats.chartData}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -205,15 +205,15 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
 
         {/* Top Surveys */}
         {stats.bySurvey.length > 0 && (
-          <Card>
+          <Card className="w-full">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
+              <CardTitle className="text-base lg:text-lg flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 lg:h-5 lg:w-5" />
                 Top enquêtes
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[200px]">
+              <div className="h-[200px] lg:h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={stats.bySurvey} layout="vertical">
                     <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
@@ -236,24 +236,30 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
         )}
       </div>
 
-      {/* Secondary Stats Row */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Secondary Stats Row - Full Width */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full">
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.avgPerSurvey}</p>
-            <p className="text-xs text-muted-foreground">Moy. réponses/enquête</p>
+          <CardContent className="p-4 lg:p-6 text-center">
+            <p className="text-2xl lg:text-3xl font-bold text-foreground">{stats.avgPerSurvey}</p>
+            <p className="text-xs lg:text-sm text-muted-foreground">Moy. réponses/enquête</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.totalSurveys}</p>
-            <p className="text-xs text-muted-foreground">Enquêtes créées</p>
+          <CardContent className="p-4 lg:p-6 text-center">
+            <p className="text-2xl lg:text-3xl font-bold text-foreground">{stats.totalSurveys}</p>
+            <p className="text-xs lg:text-sm text-muted-foreground">Enquêtes créées</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">{stats.todayResponses}</p>
-            <p className="text-xs text-muted-foreground">Réponses aujourd'hui</p>
+          <CardContent className="p-4 lg:p-6 text-center">
+            <p className="text-2xl lg:text-3xl font-bold text-foreground">{stats.todayResponses}</p>
+            <p className="text-xs lg:text-sm text-muted-foreground">Réponses aujourd'hui</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 lg:p-6 text-center">
+            <p className="text-2xl lg:text-3xl font-bold text-foreground">{stats.geolocated}</p>
+            <p className="text-xs lg:text-sm text-muted-foreground">Avec localisation</p>
           </CardContent>
         </Card>
       </div>

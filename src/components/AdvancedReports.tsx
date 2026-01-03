@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   Download, BarChart3, PieChart, TrendingUp, Users, 
   CheckCircle, MapPin, Calendar, Lightbulb, AlertTriangle,
   FileSpreadsheet, FileText, File, MessageSquare, Target,
-  ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronUp
+  ThumbsUp, ThumbsDown, Info, ChevronDown, ChevronUp, Zap,
+  Globe, TrendingDown
 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { ResponsesMap } from '@/components/ResponsesMap';
+import { reverseGeocodeBatch } from '@/hooks/useReverseGeocode';
 import {
   Collapsible,
   CollapsibleContent,
@@ -52,15 +54,22 @@ interface FieldAnalysis {
     max_value?: number | null;
   };
   type: 'categorical' | 'numeric' | 'text';
-  data?: { name: string; fullName: string; value: number; percentage: number }[];
-  stats?: { avg: string; min: number; max: number; median: number; count: number };
+  data?: { name: string; fullName: string; value: number; percentage: number; frequency: string }[];
+  stats?: { avg: string; min: number; max: number; median: number; count: number; stdDev: string };
   count?: number;
   total?: number;
   insights: {
     comment: string;
     sentiment: 'positive' | 'neutral' | 'warning';
     recommendation?: string;
+    marketInsight?: string;
   };
+}
+
+interface GeoAnalysis {
+  byCity: { name: string; count: number; percentage: number }[];
+  byRegion: { name: string; count: number; percentage: number }[];
+  hotspots: { name: string; description: string; type: 'high' | 'medium' | 'low' }[];
 }
 
 export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => {
@@ -144,15 +153,20 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
         
         const totalOptions = Object.values(optionCounts).reduce((a, b) => a + b, 0);
         const chartData = Object.entries(optionCounts)
-          .map(([name, value]) => ({
-            name: name.length > 20 ? name.slice(0, 20) + '...' : name,
-            fullName: name,
-            value,
-            percentage: Math.round((value / totalOptions) * 100),
-          }))
+          .map(([name, value]) => {
+            const percentage = Math.round((value / totalOptions) * 100);
+            return {
+              name: name.length > 20 ? name.slice(0, 20) + '...' : name,
+              fullName: name,
+              value,
+              percentage,
+              frequency: `${value}/${totalOptions} (${percentage}%)`,
+            };
+          })
           .sort((a, b) => b.value - a.value);
 
         const topOption = chartData[0];
+        const secondOption = chartData[1];
         const hasConcentration = topOption && topOption.percentage > 60;
         const isBalanced = chartData.length > 1 && 
           Math.abs(chartData[0].percentage - chartData[chartData.length - 1].percentage) < 20;
@@ -160,17 +174,21 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
         let comment = '';
         let sentiment: 'positive' | 'neutral' | 'warning' = 'neutral';
         let recommendation: string | undefined;
+        let marketInsight: string | undefined;
 
         if (hasConcentration) {
-          comment = `Forte concentration: "${topOption.fullName}" domine avec ${topOption.percentage}% des réponses.`;
+          comment = `🔥 Forte concentration: "${topOption.fullName}" domine avec ${topOption.percentage}% des réponses (${topOption.value} sur ${totalOptions}).`;
           sentiment = 'warning';
-          recommendation = "Vérifiez si l'échantillon est représentatif ou si cette tendance reflète une réalité du marché.";
+          recommendation = "Cette concentration indique une opportunité de marché. Ciblez cette préférence dans votre stratégie.";
+          marketInsight = `Zone à fort potentiel: ${topOption.percentage}% de la demande se concentre sur "${topOption.fullName}". Priorisez ce segment.`;
         } else if (isBalanced) {
-          comment = `Distribution équilibrée entre les options. Pas de préférence marquée.`;
+          comment = `Distribution équilibrée entre ${chartData.length} options. Pas de préférence marquée.`;
           sentiment = 'neutral';
-        } else if (chartData.length > 0) {
-          comment = `"${topOption.fullName}" est en tête (${topOption.percentage}%), suivi par les autres options.`;
+          marketInsight = "Marché fragmenté: diversifiez votre offre pour couvrir plusieurs segments.";
+        } else if (chartData.length > 0 && topOption) {
+          comment = `"${topOption.fullName}" en tête avec ${topOption.percentage}% (${topOption.value}), suivi de "${secondOption?.fullName || 'autres'}" (${secondOption?.percentage || 0}%).`;
           sentiment = 'positive';
+          marketInsight = `Tendance claire: concentrez vos efforts sur les 2-3 options dominantes qui représentent ${chartData.slice(0, 3).reduce((sum, d) => sum + d.percentage, 0)}% du marché.`;
         }
 
         return { 
@@ -178,7 +196,7 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
           type: 'categorical' as const, 
           data: chartData, 
           total: values.length,
-          insights: { comment, sentiment, recommendation }
+          insights: { comment, sentiment, recommendation, marketInsight }
         };
       }
 
@@ -190,6 +208,12 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
         const sorted = [...numbers].sort((a, b) => a - b);
         const median = sorted.length > 0 ? sorted[Math.floor(sorted.length / 2)] : 0;
         
+        // Calculate standard deviation
+        const variance = numbers.length > 0 
+          ? numbers.reduce((sum, n) => sum + Math.pow(n - avg, 2), 0) / numbers.length 
+          : 0;
+        const stdDev = Math.sqrt(variance);
+        
         const distribution: Record<number, number> = {};
         numbers.forEach(n => {
           distribution[n] = (distribution[n] || 0) + 1;
@@ -200,44 +224,52 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
             name: String(value),
             fullName: String(value),
             value: count,
-            percentage: Math.round((count / numbers.length) * 100)
+            percentage: Math.round((count / numbers.length) * 100),
+            frequency: `${count}/${numbers.length} (${Math.round((count / numbers.length) * 100)}%)`,
           }))
           .sort((a, b) => Number(a.name) - Number(b.name));
 
         let comment = '';
         let sentiment: 'positive' | 'neutral' | 'warning' = 'neutral';
         let recommendation: string | undefined;
+        let marketInsight: string | undefined;
 
         if (field.field_type === 'rating') {
           const maxRating = field.max_value || 5;
           const avgPercentage = (avg / maxRating) * 100;
           if (avgPercentage >= 80) {
-            comment = `Excellent score moyen de ${avg.toFixed(1)}/${maxRating} (${avgPercentage.toFixed(0)}%).`;
+            comment = `✅ Excellent score: ${avg.toFixed(1)}/${maxRating} (${avgPercentage.toFixed(0)}%). Écart-type: ${stdDev.toFixed(2)}.`;
             sentiment = 'positive';
+            marketInsight = "Score élevé = forte satisfaction. Utilisez ces témoignages positifs dans votre communication.";
           } else if (avgPercentage >= 60) {
-            comment = `Score satisfaisant de ${avg.toFixed(1)}/${maxRating}. Marge d'amélioration possible.`;
+            comment = `Score satisfaisant: ${avg.toFixed(1)}/${maxRating} (${avgPercentage.toFixed(0)}%). Marge d'amélioration.`;
             sentiment = 'neutral';
+            recommendation = "Identifiez les facteurs qui freinent la satisfaction pour atteindre l'excellence.";
           } else {
-            comment = `Score faible de ${avg.toFixed(1)}/${maxRating}. Attention requise.`;
+            comment = `⚠️ Score faible: ${avg.toFixed(1)}/${maxRating} (${avgPercentage.toFixed(0)}%). Attention requise.`;
             sentiment = 'warning';
-            recommendation = "Analysez les causes de ce score bas et identifiez les axes d'amélioration.";
+            recommendation = "Analysez les causes de ce score bas. Priorisez les améliorations.";
+            marketInsight = "Risque de perte de clients. Action corrective urgente recommandée.";
           }
         } else {
-          comment = `Moyenne: ${avg.toFixed(1)}, Médiane: ${median}, Écart: ${min}-${max}`;
+          comment = `Moyenne: ${avg.toFixed(1)} | Médiane: ${median} | Écart: ${min}-${max} | σ: ${stdDev.toFixed(2)}`;
+          marketInsight = stdDev > avg * 0.5 
+            ? "Forte dispersion des valeurs: le marché est hétérogène. Segmentez votre approche."
+            : "Faible dispersion: le marché est homogène. Une stratégie uniforme peut fonctionner.";
         }
 
         return { 
           field, 
           type: 'numeric' as const, 
           data: chartData,
-          stats: { avg: avg.toFixed(1), min, max, median, count: numbers.length },
-          insights: { comment, sentiment, recommendation }
+          stats: { avg: avg.toFixed(1), min, max, median, count: numbers.length, stdDev: stdDev.toFixed(2) },
+          insights: { comment, sentiment, recommendation, marketInsight }
         };
       }
 
       // Text field
       const uniqueValues = new Set(values.map(v => String(v).toLowerCase().trim()));
-      const comment = `${values.length} réponses textuelles collectées (${uniqueValues.size} réponses uniques).`;
+      const comment = `${values.length} réponses textuelles (${uniqueValues.size} uniques).`;
       
       return { 
         field, 
@@ -246,40 +278,135 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
         insights: { 
           comment, 
           sentiment: 'neutral' as const,
-          recommendation: values.length > 10 ? "Analysez les réponses pour identifier les thèmes récurrents." : undefined
+          recommendation: values.length > 10 ? "Analysez les réponses pour identifier les thèmes récurrents et les insights qualitatifs." : undefined,
+          marketInsight: values.length > 5 ? "Les réponses ouvertes révèlent souvent des besoins non couverts par les options prédéfinies." : undefined
         }
       };
     });
   }, [fields, responses]);
 
-  // Global recommendations
+  // Geographic analysis
+  const [geoAnalysis, setGeoAnalysis] = useState<GeoAnalysis | null>(null);
+  
+  useEffect(() => {
+    const analyzeGeography = async () => {
+      const geoResponses = responses.filter(r => r.location);
+      if (geoResponses.length < 3) return;
+
+      // Batch geocode locations
+      const locations = geoResponses.map(r => ({
+        id: r.id,
+        latitude: r.location!.latitude,
+        longitude: r.location!.longitude,
+      }));
+
+      try {
+        const geocoded = await reverseGeocodeBatch(locations.slice(0, 20)); // Limit to avoid rate limits
+        
+        const byCityMap: Record<string, number> = {};
+        const byRegionMap: Record<string, number> = {};
+
+        geocoded.forEach((loc) => {
+          if (loc.city) {
+            byCityMap[loc.city] = (byCityMap[loc.city] || 0) + 1;
+          }
+          if (loc.region) {
+            byRegionMap[loc.region] = (byRegionMap[loc.region] || 0) + 1;
+          }
+        });
+
+        const total = geocoded.size;
+        const byCity = Object.entries(byCityMap)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percentage: Math.round((count / total) * 100),
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        const byRegion = Object.entries(byRegionMap)
+          .map(([name, count]) => ({
+            name,
+            count,
+            percentage: Math.round((count / total) * 100),
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
+
+        // Generate hotspots
+        const hotspots: GeoAnalysis['hotspots'] = [];
+        if (byCity.length > 0 && byCity[0].percentage > 40) {
+          hotspots.push({
+            name: byCity[0].name,
+            description: `Zone à très fort potentiel: ${byCity[0].percentage}% des répondants. Forte concentration de consommateurs.`,
+            type: 'high',
+          });
+        }
+        byCity.slice(0, 3).forEach(city => {
+          if (city.percentage >= 20 && city.percentage <= 40) {
+            hotspots.push({
+              name: city.name,
+              description: `Zone prometteuse: ${city.percentage}% du marché. Potentiel de croissance.`,
+              type: 'medium',
+            });
+          }
+        });
+
+        setGeoAnalysis({ byCity, byRegion, hotspots });
+      } catch (error) {
+        console.error('Geographic analysis error:', error);
+      }
+    };
+
+    analyzeGeography();
+  }, [responses]);
+
+  // Global recommendations with market insights
   const globalRecommendations = useMemo(() => {
     const recs: { text: string; type: 'success' | 'warning' | 'info' }[] = [];
     
     if (globalStats.total < 30) {
-      recs.push({ text: "Échantillon insuffisant (< 30 réponses). Continuez la collecte pour des résultats statistiquement significatifs.", type: 'warning' });
+      recs.push({ text: "📊 Échantillon insuffisant (< 30 réponses). Continuez la collecte pour des résultats statistiquement significatifs.", type: 'warning' });
     } else if (globalStats.total >= 100) {
-      recs.push({ text: "Excellent volume de données ! L'échantillon est représentatif.", type: 'success' });
+      recs.push({ text: "✅ Excellent volume de données ! L'échantillon est représentatif et fiable.", type: 'success' });
+    } else if (globalStats.total >= 50) {
+      recs.push({ text: "📈 Bon échantillon (50+ réponses). Les tendances sont significatives.", type: 'success' });
     }
     
     if (globalStats.completionRate < 70) {
-      recs.push({ text: "Taux de complétion faible. Simplifiez le questionnaire ou formez les enquêteurs.", type: 'warning' });
+      recs.push({ text: "⚠️ Taux de complétion faible. Simplifiez le questionnaire ou formez les enquêteurs.", type: 'warning' });
+    } else if (globalStats.completionRate >= 90) {
+      recs.push({ text: "✅ Excellent taux de complétion ! Qualité des données optimale.", type: 'success' });
     }
     
     if (globalStats.locationRate < 50) {
-      recs.push({ text: "Peu de réponses géolocalisées. Encouragez l'activation du GPS.", type: 'info' });
+      recs.push({ text: "📍 Peu de réponses géolocalisées. L'analyse géographique sera limitée.", type: 'info' });
+    } else if (globalStats.locationRate >= 80) {
+      recs.push({ text: "🗺️ Excellente couverture géographique. Analyse territoriale fiable.", type: 'success' });
     }
 
-    if (globalStats.avgPerDay < 3) {
-      recs.push({ text: "Rythme de collecte lent. Envisagez d'augmenter le nombre d'enquêteurs.", type: 'info' });
+    if (globalStats.avgPerDay < 3 && globalStats.total < 50) {
+      recs.push({ text: "⏱️ Rythme de collecte lent. Augmentez le nombre d'enquêteurs.", type: 'info' });
+    }
+
+    // Add field-specific insights
+    const highConcentrationFields = fieldAnalytics.filter(fa => 
+      fa.type === 'categorical' && fa.data?.[0]?.percentage && fa.data[0].percentage > 60
+    );
+    if (highConcentrationFields.length > 0) {
+      recs.push({ 
+        text: `🎯 ${highConcentrationFields.length} question(s) avec forte concentration de réponses. Opportunités de marché identifiées.`, 
+        type: 'success' 
+      });
     }
 
     if (recs.length === 0) {
-      recs.push({ text: "Excellente qualité de données ! Continuez sur cette lancée.", type: 'success' });
+      recs.push({ text: "✅ Excellente qualité de données ! Continuez sur cette lancée.", type: 'success' });
     }
 
     return recs;
-  }, [globalStats]);
+  }, [globalStats, fieldAnalytics]);
 
   // Export functions
   const exportToExcel = () => {
@@ -552,6 +679,107 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
           </CardContent>
         </Card>
 
+        {/* Geographic Analysis - Zones à fort potentiel */}
+        {geoAnalysis && (geoAnalysis.byCity.length > 0 || geoAnalysis.hotspots.length > 0) && (
+          <Card className="border-2 border-primary/20">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Globe className="h-4 w-4 text-primary" />
+                Analyse géographique - Zones à fort potentiel
+              </CardTitle>
+              <CardDescription>Répartition géographique et zones de consommation</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Hotspots */}
+              {geoAnalysis.hotspots.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-yellow-500" />
+                    Zones identifiées
+                  </h4>
+                  {geoAnalysis.hotspots.map((hotspot, idx) => (
+                    <div 
+                      key={idx}
+                      className={`p-3 rounded-lg ${
+                        hotspot.type === 'high' ? 'bg-green-500/10 border border-green-500/30' :
+                        hotspot.type === 'medium' ? 'bg-blue-500/10 border border-blue-500/30' :
+                        'bg-muted'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <MapPin className={`h-4 w-4 ${
+                          hotspot.type === 'high' ? 'text-green-600' : 'text-blue-600'
+                        }`} />
+                        <span className="font-medium text-foreground">{hotspot.name}</span>
+                        <Badge variant={hotspot.type === 'high' ? 'default' : 'secondary'} className="text-xs">
+                          {hotspot.type === 'high' ? 'Fort potentiel' : 'Potentiel moyen'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1 ml-6">{hotspot.description}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Cities distribution */}
+              {geoAnalysis.byCity.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium text-sm">Répartition par ville</h4>
+                  <div className="space-y-2">
+                    {geoAnalysis.byCity.slice(0, 5).map((city, idx) => (
+                      <div key={idx} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-foreground">{city.name}</span>
+                          <span className="text-muted-foreground">{city.count} ({city.percentage}%)</span>
+                        </div>
+                        <Progress value={city.percentage} className="h-2" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Regions distribution */}
+              {geoAnalysis.byRegion.length > 0 && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="h-[180px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={geoAnalysis.byRegion}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={60}
+                          dataKey="count"
+                          label={({ name, percentage }) => `${name} (${percentage}%)`}
+                        >
+                          {geoAnalysis.byRegion.map((_, index) => (
+                            <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex flex-col justify-center">
+                    <h4 className="font-medium text-sm mb-2">Par région</h4>
+                    {geoAnalysis.byRegion.map((region, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm py-1">
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
+                        />
+                        <span className="text-foreground">{region.name}</span>
+                        <span className="text-muted-foreground ml-auto">{region.percentage}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Timeline Chart */}
         {globalStats.timelineData.length > 1 && (
           <Card>
@@ -660,6 +888,19 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
                     <CardContent className="pt-0">
                       <Separator className="mb-4" />
 
+                      {/* Market Insight */}
+                      {fa.insights.marketInsight && (
+                        <div className="mb-4 p-3 bg-primary/10 rounded-lg border border-primary/20">
+                          <div className="flex items-start gap-2">
+                            <Lightbulb className="h-4 w-4 text-primary mt-0.5" />
+                            <div>
+                              <span className="text-xs font-medium text-primary">Insight marché</span>
+                              <p className="text-sm text-foreground mt-1">{fa.insights.marketInsight}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Recommendation */}
                       {fa.insights.recommendation && (
                         <div className="mb-4 p-3 bg-orange-500/10 rounded-lg">
@@ -673,13 +914,18 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
                       {/* Categorical field */}
                       {fa.type === 'categorical' && fa.data && fa.data.length > 0 && (
                         <div className="space-y-4">
-                          {/* Progress bars */}
+                          {/* Frequency table header */}
+                          <div className="text-xs text-muted-foreground font-medium mb-2">
+                            Fréquences et pourcentages
+                          </div>
+                          
+                          {/* Progress bars with frequencies */}
                           <div className="space-y-3">
                             {fa.data.map((item, index) => (
                               <div key={item.fullName} className="space-y-1">
                                 <div className="flex justify-between text-sm">
-                                  <span className="text-foreground">{item.fullName}</span>
-                                  <span className="text-muted-foreground">{item.value} ({item.percentage}%)</span>
+                                  <span className="text-foreground font-medium">{item.fullName}</span>
+                                  <span className="text-muted-foreground font-mono text-xs">{item.frequency}</span>
                                 </div>
                                 <Progress 
                                   value={item.percentage} 

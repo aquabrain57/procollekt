@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
-import { SurveyCard } from '@/components/SurveyCard';
+import { SurveyCardEnhanced } from '@/components/SurveyCardEnhanced';
 import { ResponsesList } from '@/components/ResponsesList';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { SurveyBuilder } from '@/components/SurveyBuilder';
@@ -291,20 +291,18 @@ const Index = () => {
               <div className="slide-up" style={{ animationDelay: '250ms' }}>
                 <h3 className="font-semibold text-foreground mb-3">Enquêtes disponibles</h3>
                 <div className="space-y-3">
-                  {activeSurveys.slice(0, 3).map((survey) => (
-                    <div
-                      key={survey.id}
-                      onClick={() => handleFillSurvey(survey)}
-                      className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted transition-colors"
-                    >
-                      <h4 className="font-semibold text-foreground">{survey.title}</h4>
-                      {survey.description && (
-                        <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                          {survey.description}
-                        </p>
-                      )}
-                    </div>
-                  ))}
+                    {activeSurveys.slice(0, 3).map((survey) => (
+                      <SurveyCardEnhanced
+                        key={survey.id}
+                        survey={survey}
+                        responses={allResponses}
+                        onClick={() => handleFillSurvey(survey)}
+                        showSubscribe={true}
+                        onSubscribe={() => {
+                          toast.success(`Vous suivez maintenant "${survey.title}"`);
+                        }}
+                      />
+                    ))}
                 </div>
               </div>
             )}
@@ -352,18 +350,16 @@ const Index = () => {
                 ) : (
                   <div className="space-y-3">
                     {filteredActiveSurveys.map((survey) => (
-                      <div
+                      <SurveyCardEnhanced
                         key={survey.id}
+                        survey={survey}
+                        responses={allResponses}
                         onClick={() => handleFillSurvey(survey)}
-                        className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted transition-colors"
-                      >
-                        <h4 className="font-semibold text-foreground">{survey.title}</h4>
-                        {survey.description && (
-                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
-                            {survey.description}
-                          </p>
-                        )}
-                      </div>
+                        showSubscribe={true}
+                        onSubscribe={() => {
+                          toast.success(`Vous suivez maintenant "${survey.title}"`);
+                        }}
+                      />
                     ))}
                   </div>
                 )}
@@ -431,26 +427,12 @@ const Index = () => {
                   {mySurveys.map((survey) => {
                     const surveyResponses = allResponses.filter(r => r.survey_id === survey.id);
                     return (
-                      <div
+                      <SurveyCardEnhanced
                         key={survey.id}
+                        survey={survey}
+                        responses={allResponses}
                         onClick={() => handleSelectDataSurvey(survey)}
-                        className="bg-card border border-border rounded-xl p-4 cursor-pointer hover:bg-muted hover:border-primary/50 transition-all"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold text-foreground">{survey.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {surveyResponses.length} réponse{surveyResponses.length !== 1 ? 's' : ''}
-                              {survey.status === 'active' && (
-                                <span className="ml-2 text-green-600">• Active</span>
-                              )}
-                            </p>
-                          </div>
-                          <svg className="h-5 w-5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M9 18l6-6-6-6" />
-                          </svg>
-                        </div>
-                      </div>
+                      />
                     );
                   })}
                 </div>
