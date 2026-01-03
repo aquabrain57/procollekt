@@ -1,0 +1,92 @@
+import { MapPin, Loader2 } from 'lucide-react';
+import { useReverseGeocode } from '@/hooks/useReverseGeocode';
+import { Badge } from '@/components/ui/badge';
+
+interface LocationDisplayProps {
+  latitude: number | undefined | null;
+  longitude: number | undefined | null;
+  showCoordinates?: boolean;
+  compact?: boolean;
+  className?: string;
+}
+
+export const LocationDisplay = ({ 
+  latitude, 
+  longitude, 
+  showCoordinates = false,
+  compact = false,
+  className = ''
+}: LocationDisplayProps) => {
+  const { city, region, country, fullAddress, loading } = useReverseGeocode(latitude, longitude);
+
+  if (latitude === undefined || latitude === null || longitude === undefined || longitude === null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  if (loading) {
+    return (
+      <div className={`flex items-center gap-1 text-muted-foreground ${className}`}>
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span className="text-xs">Chargement...</span>
+      </div>
+    );
+  }
+
+  if (compact) {
+    return (
+      <Badge variant="secondary" className={`text-xs gap-1 ${className}`}>
+        <MapPin className="h-3 w-3" />
+        {city || region || `${latitude.toFixed(2)}, ${longitude.toFixed(2)}`}
+      </Badge>
+    );
+  }
+
+  return (
+    <div className={`space-y-1 ${className}`}>
+      <div className="flex items-center gap-2 text-sm">
+        <MapPin className="h-4 w-4 text-green-600 flex-shrink-0" />
+        <span className="font-medium text-foreground">
+          {fullAddress || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
+        </span>
+      </div>
+      {showCoordinates && (city || region) && (
+        <div className="text-xs text-muted-foreground ml-6">
+          GPS: {latitude.toFixed(6)}, {longitude.toFixed(6)}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Simple inline location display for tables
+export const LocationBadge = ({ 
+  latitude, 
+  longitude 
+}: { 
+  latitude: number | undefined | null; 
+  longitude: number | undefined | null;
+}) => {
+  const { city, region, loading } = useReverseGeocode(latitude, longitude);
+
+  if (latitude === undefined || latitude === null) {
+    return <span className="text-muted-foreground">—</span>;
+  }
+
+  if (loading) {
+    return (
+      <Badge variant="secondary" className="text-xs">
+        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+        ...
+      </Badge>
+    );
+  }
+
+  const displayText = city || region || `${latitude.toFixed(2)}°`;
+
+  return (
+    <Badge variant="secondary" className="text-xs gap-1 max-w-[120px]">
+      <MapPin className="h-3 w-3 flex-shrink-0" />
+      <span className="truncate">{displayText}</span>
+    </Badge>
+  );
+};

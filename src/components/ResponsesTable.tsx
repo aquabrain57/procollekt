@@ -39,6 +39,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { LocationBadge, LocationDisplay } from '@/components/LocationDisplay';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -368,10 +369,10 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                       </TableCell>
                       <TableCell>
                         {response.location ? (
-                          <Badge variant="secondary" className="text-xs">
-                            <MapPin className="h-3 w-3 mr-1" />
-                            GPS
-                          </Badge>
+                          <LocationBadge 
+                            latitude={response.location.latitude} 
+                            longitude={response.location.longitude} 
+                          />
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
@@ -489,13 +490,11 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                 {/* Location */}
                 {selectedResponse.location && (
                   <div className="p-3 bg-muted rounded-lg">
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-green-600" />
-                      <span className="font-medium">Localisation:</span>
-                      <span>
-                        {selectedResponse.location.latitude.toFixed(6)}, {selectedResponse.location.longitude.toFixed(6)}
-                      </span>
-                    </div>
+                    <LocationDisplay
+                      latitude={selectedResponse.location.latitude}
+                      longitude={selectedResponse.location.longitude}
+                      showCoordinates={true}
+                    />
                   </div>
                 )}
 
