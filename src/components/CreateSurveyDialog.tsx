@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Plus, ArrowRight, LayoutTemplate, Sparkles, Globe, Briefcase, Upload, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,8 +44,6 @@ interface CreateSurveyDialogProps {
 
 export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDialogProps) => {
   const [open, setOpen] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
   const [sector, setSector] = useState('');
   const [country, setCountry] = useState('');
   const [errors, setErrors] = useState<{ title?: string; description?: string; sector?: string; country?: string }>({});
@@ -54,8 +52,37 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
   const [pendingAIFields, setPendingAIFields] = useState<any[] | null>(null);
   const [xlsUrl, setXlsUrl] = useState('');
   const [activeTab, setActiveTab] = useState('manual');
+  const [canSubmit, setCanSubmit] = useState(false);
+  
+  // Use refs for fast input without re-renders
+  const titleRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      if (titleRef.current) titleRef.current.value = '';
+      if (descriptionRef.current) descriptionRef.current.value = '';
+      setSector('');
+      setCountry('');
+      setErrors({});
+      setPendingTemplate(null);
+      setPendingAIFields(null);
+      setXlsUrl('');
+      setActiveTab('manual');
+      setCanSubmit(false);
+    }
+  }, [open]);
+
+  const checkCanSubmit = () => {
+    const title = titleRef.current?.value.trim() || '';
+    setCanSubmit(title.length >= 3 && sector !== '' && country !== '');
+  };
 
   const handleSubmit = async () => {
+    const title = titleRef.current?.value.trim() || '';
+    const description = descriptionRef.current?.value.trim() || '';
+    
     setErrors({});
     
     const result = surveySchema.safeParse({ title, description, sector, country });
@@ -92,16 +119,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         fieldsToAdd = pendingAIFields;
       }
 
-      // Reset form
-      setTitle('');
-      setDescription('');
-      setSector('');
-      setCountry('');
       setOpen(false);
-      setPendingTemplate(null);
-      setPendingAIFields(null);
-      setXlsUrl('');
-      setActiveTab('manual');
       
       if (onSurveyCreated) {
         onSurveyCreated(survey, fieldsToAdd);
@@ -110,23 +128,25 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
   };
 
   const handleTemplateSelect = (template: SurveyTemplate) => {
-    if (!title) {
-      setTitle(template.name);
+    if (titleRef.current && !titleRef.current.value) {
+      titleRef.current.value = template.name;
     }
-    if (!description) {
-      setDescription(template.description);
+    if (descriptionRef.current && !descriptionRef.current.value) {
+      descriptionRef.current.value = template.description;
     }
     setPendingTemplate(template);
     setPendingAIFields(null);
+    checkCanSubmit();
     toast.success(`Modèle "${template.name}" sélectionné`);
   };
 
   const handleAIGenerate = (fields: any[]) => {
     setPendingAIFields(fields);
     setPendingTemplate(null);
-    if (!title) {
-      setTitle('Enquête générée par IA');
+    if (titleRef.current && !titleRef.current.value) {
+      titleRef.current.value = 'Enquête générée par IA';
     }
+    checkCanSubmit();
     toast.success(`${fields.length} questions générées par l'IA`);
   };
 
@@ -138,15 +158,17 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
     toast.info('Import XLSForm en cours de développement');
   };
 
-  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
-  }, []);
+  const handleSectorChange = (value: string) => {
+    setSector(value);
+    setTimeout(checkCanSubmit, 0);
+  };
 
-  const handleDescriptionChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescription(e.target.value);
-  }, []);
+  const handleCountryChange = (value: string) => {
+    setCountry(value);
+    setTimeout(checkCanSubmit, 0);
+  };
 
-  // Common form fields component
+  // Optimized input component to avoid re-renders
   const ProjectInfoFields = () => (
     <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
       <h4 className="font-medium text-sm text-foreground flex items-center gap-2">
@@ -157,11 +179,13 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         <Label htmlFor="title">Nom du projet *</Label>
         <Input
           id="title"
-          value={title}
-          onChange={handleTitleChange}
+          ref={titleRef}
+          defaultValue=""
+          onChange={checkCanSubmit}
           placeholder="Ex: Étude de marché Libreville"
           maxLength={100}
           className="text-base"
+          autoComplete="off"
         />
         {errors.title && (
           <p className="text-sm text-destructive">{errors.title}</p>
@@ -172,11 +196,12 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         <Label htmlFor="description">Description</Label>
         <Textarea
           id="description"
-          value={description}
-          onChange={handleDescriptionChange}
+          ref={descriptionRef}
+          defaultValue=""
           placeholder="Décrivez l'objectif de cette enquête..."
           rows={2}
           maxLength={500}
+          autoComplete="off"
         />
         {errors.description && (
           <p className="text-sm text-destructive">{errors.description}</p>
@@ -189,7 +214,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
             <Briefcase className="h-3.5 w-3.5" />
             Secteur *
           </Label>
-          <Select value={sector} onValueChange={setSector}>
+          <Select value={sector} onValueChange={handleSectorChange}>
             <SelectTrigger className={errors.sector ? 'border-destructive' : ''}>
               <SelectValue placeholder="Sélectionner..." />
             </SelectTrigger>
@@ -211,7 +236,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
             <Globe className="h-3.5 w-3.5" />
             Pays *
           </Label>
-          <Select value={country} onValueChange={setCountry}>
+          <Select value={country} onValueChange={handleCountryChange}>
             <SelectTrigger className={errors.country ? 'border-destructive' : ''}>
               <SelectValue placeholder="Sélectionner..." />
             </SelectTrigger>
@@ -375,7 +400,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting || !title.trim() || !sector || !country}
+            disabled={isSubmitting || !canSubmit}
           >
             {isSubmitting ? 'Création...' : (
               <>

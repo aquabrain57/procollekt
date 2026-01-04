@@ -43,13 +43,18 @@ const useDebouncedPatch = <T extends object>(
 
 const FIELD_TYPES = [
   { value: 'text', label: 'Texte court', icon: Type, description: 'Réponse libre sur une ligne' },
+  { value: 'textarea', label: 'Texte long', icon: Type, description: 'Réponse détaillée multi-lignes' },
   { value: 'number', label: 'Nombre', icon: Hash, description: 'Valeur numérique' },
+  { value: 'email', label: 'Email', icon: Type, description: 'Adresse email valide' },
+  { value: 'phone', label: 'Téléphone', icon: Type, description: 'Numéro de téléphone' },
   { value: 'select', label: 'Choix unique', icon: ListChecks, description: 'Une seule option parmi plusieurs' },
   { value: 'multiselect', label: 'Choix multiple', icon: CheckSquare, description: 'Plusieurs options possibles' },
   { value: 'date', label: 'Date', icon: Calendar, description: 'Sélection de date' },
-  { value: 'location', label: 'Localisation GPS', icon: MapPin, description: 'Coordonnées géographiques' },
+  { value: 'time', label: 'Heure', icon: Calendar, description: 'Sélection d\'heure' },
+  { value: 'location', label: 'Localisation GPS', icon: MapPin, description: 'Position avec nom de ville' },
   { value: 'photo', label: 'Photo', icon: Camera, description: 'Capture d\'image' },
   { value: 'rating', label: 'Échelle de notation', icon: Star, description: 'Note de 1 à 5 étoiles' },
+  { value: 'range', label: 'Échelle linéaire', icon: Hash, description: 'Valeur sur une échelle (1-10)' },
 ];
 
 interface SurveyBuilderProps {
