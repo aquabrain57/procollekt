@@ -1,4 +1,4 @@
-export type FieldType = 'text' | 'textarea' | 'email' | 'phone' | 'number' | 'decimal' | 'select' | 'multiselect' | 'date' | 'time' | 'datetime' | 'location' | 'photo' | 'audio' | 'video' | 'rating' | 'note' | 'barcode' | 'consent' | 'file' | 'range' | 'ranking' | 'calculate' | 'hidden' | 'matrix' | 'line' | 'area';
+export type FieldType = 'text' | 'textarea' | 'email' | 'phone' | 'number' | 'decimal' | 'select' | 'multiselect' | 'date' | 'time' | 'datetime' | 'location' | 'photo' | 'audio' | 'video' | 'rating' | 'note' | 'barcode' | 'consent' | 'file' | 'range' | 'ranking' | 'calculate' | 'hidden' | 'matrix' | 'line' | 'area' | 'signature';
 
 export interface FieldOption {
   value: string;

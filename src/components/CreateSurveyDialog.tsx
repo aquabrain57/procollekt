@@ -1,9 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, memo } from 'react';
 import { Plus, ArrowRight, LayoutTemplate, Sparkles, Globe, Briefcase, Upload, Link } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -168,24 +167,26 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
     setTimeout(checkCanSubmit, 0);
   };
 
-  // Optimized input component to avoid re-renders
-  const ProjectInfoFields = () => (
+  // Render project info fields inline (no nested component to avoid re-renders)
+  const renderProjectInfoFields = () => (
     <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
       <h4 className="font-medium text-sm text-foreground flex items-center gap-2">
         📋 Informations du projet
       </h4>
       
       <div className="space-y-2">
-        <Label htmlFor="title">Nom du projet *</Label>
-        <Input
-          id="title"
+        <Label htmlFor="survey-title">Nom du projet *</Label>
+        <input
+          id="survey-title"
           ref={titleRef}
+          type="text"
           defaultValue=""
-          onChange={checkCanSubmit}
+          onInput={checkCanSubmit}
           placeholder="Ex: Étude de marché Libreville"
           maxLength={100}
-          className="text-base"
           autoComplete="off"
+          spellCheck={false}
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {errors.title && (
           <p className="text-sm text-destructive">{errors.title}</p>
@@ -193,15 +194,17 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
+        <Label htmlFor="survey-description">Description</Label>
+        <textarea
+          id="survey-description"
           ref={descriptionRef}
           defaultValue=""
           placeholder="Décrivez l'objectif de cette enquête..."
           rows={2}
           maxLength={500}
           autoComplete="off"
+          spellCheck={false}
+          className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
         {errors.description && (
           <p className="text-sm text-destructive">{errors.description}</p>
@@ -293,7 +296,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           </TabsList>
 
           <TabsContent value="manual" className="space-y-4 py-4">
-            <ProjectInfoFields />
+            {renderProjectInfoFields()}
           </TabsContent>
 
           <TabsContent value="template" className="space-y-4 py-4">
@@ -311,7 +314,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
             )}
             
             <Separator />
-            <ProjectInfoFields />
+            {renderProjectInfoFields()}
           </TabsContent>
 
           <TabsContent value="ai" className="space-y-4 py-4">
@@ -329,7 +332,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
             )}
             
             <Separator />
-            <ProjectInfoFields />
+            {renderProjectInfoFields()}
           </TabsContent>
 
           <TabsContent value="import" className="space-y-4 py-4">
@@ -378,7 +381,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
             </div>
             
             <Separator />
-            <ProjectInfoFields />
+            {renderProjectInfoFields()}
           </TabsContent>
         </Tabs>
 

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, GripVertical, Trash2, Eye, Send, Copy, ChevronDown, ChevronUp, Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star } from 'lucide-react';
+import { 
+  Plus, GripVertical, Trash2, Eye, Send, Copy, ChevronDown, ChevronUp, 
+  Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star,
+  AlignLeft, Mail, Phone, Clock, Image, Video, Mic, QrCode, FileText,
+  ToggleLeft, Calculator, Layers, SlidersHorizontal, CheckCircle, File
+} from 'lucide-react';
 import { DbSurvey, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,19 +47,43 @@ const useDebouncedPatch = <T extends object>(
 };
 
 const FIELD_TYPES = [
-  { value: 'text', label: 'Texte court', icon: Type, description: 'Réponse libre sur une ligne' },
-  { value: 'textarea', label: 'Texte long', icon: Type, description: 'Réponse détaillée multi-lignes' },
-  { value: 'number', label: 'Nombre', icon: Hash, description: 'Valeur numérique' },
-  { value: 'email', label: 'Email', icon: Type, description: 'Adresse email valide' },
-  { value: 'phone', label: 'Téléphone', icon: Type, description: 'Numéro de téléphone' },
-  { value: 'select', label: 'Choix unique', icon: ListChecks, description: 'Une seule option parmi plusieurs' },
-  { value: 'multiselect', label: 'Choix multiple', icon: CheckSquare, description: 'Plusieurs options possibles' },
-  { value: 'date', label: 'Date', icon: Calendar, description: 'Sélection de date' },
-  { value: 'time', label: 'Heure', icon: Calendar, description: 'Sélection d\'heure' },
-  { value: 'location', label: 'Localisation GPS', icon: MapPin, description: 'Position avec nom de ville' },
-  { value: 'photo', label: 'Photo', icon: Camera, description: 'Capture d\'image' },
-  { value: 'rating', label: 'Échelle de notation', icon: Star, description: 'Note de 1 à 5 étoiles' },
-  { value: 'range', label: 'Échelle linéaire', icon: Hash, description: 'Valeur sur une échelle (1-10)' },
+  // Types de base
+  { value: 'text', label: 'Texte', icon: Type, description: 'Réponse courte', category: 'base' },
+  { value: 'textarea', label: 'Texte long', icon: AlignLeft, description: 'Réponse détaillée', category: 'base' },
+  { value: 'number', label: 'Chiffre', icon: Hash, description: 'Valeur numérique', category: 'base' },
+  { value: 'decimal', label: 'Décimale', icon: Calculator, description: 'Nombre avec virgule', category: 'base' },
+  
+  // Choix
+  { value: 'select', label: 'Choix unique', icon: CheckCircle, description: 'Une option', category: 'choice' },
+  { value: 'multiselect', label: 'Sélectionner plusieurs', icon: CheckSquare, description: 'Plusieurs options', category: 'choice' },
+  
+  // Contact
+  { value: 'email', label: 'Email', icon: Mail, description: 'Adresse email', category: 'contact' },
+  { value: 'phone', label: 'Téléphone', icon: Phone, description: 'Numéro téléphone', category: 'contact' },
+  
+  // Date et heure
+  { value: 'date', label: 'Date', icon: Calendar, description: 'Sélection date', category: 'datetime' },
+  { value: 'time', label: 'Heure', icon: Clock, description: 'Sélection heure', category: 'datetime' },
+  { value: 'datetime', label: 'Date et heure', icon: Calendar, description: 'Date + heure', category: 'datetime' },
+  
+  // Médias
+  { value: 'photo', label: 'Photographie', icon: Camera, description: 'Capture image', category: 'media' },
+  { value: 'audio', label: 'Audio', icon: Mic, description: 'Enregistrement audio', category: 'media' },
+  { value: 'video', label: 'Vidéo', icon: Video, description: 'Capture vidéo', category: 'media' },
+  { value: 'file', label: 'Fichier', icon: File, description: 'Téléverser fichier', category: 'media' },
+  
+  // Localisation
+  { value: 'location', label: 'Position', icon: MapPin, description: 'GPS + nom ville', category: 'geo' },
+  
+  // Notation
+  { value: 'rating', label: 'Notation', icon: Star, description: 'Étoiles 1-5', category: 'scale' },
+  { value: 'range', label: 'Intervalle', icon: SlidersHorizontal, description: 'Échelle linéaire', category: 'scale' },
+  
+  // Avancé
+  { value: 'barcode', label: 'Code-barres/QR', icon: QrCode, description: 'Scanner code', category: 'advanced' },
+  { value: 'signature', label: 'Signature', icon: FileText, description: 'Signature manuscrite', category: 'advanced' },
+  { value: 'consent', label: 'Consentir', icon: ToggleLeft, description: 'Case consentement', category: 'advanced' },
+  { value: 'note', label: 'Note', icon: Layers, description: 'Texte informatif', category: 'advanced' },
 ];
 
 interface SurveyBuilderProps {
@@ -457,25 +486,23 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
         )}
       </div>
 
-      {/* Add Question Panel */}
+      {/* Add Question Panel - KoboToolbox style */}
       <div className="space-y-4">
         <h3 className="font-semibold text-foreground">Ajouter une question</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {FIELD_TYPES.map((type) => (
-            <button
-              key={type.value}
-              onClick={() => handleAddField(type.value)}
-              className="bg-card border border-border rounded-xl p-4 flex flex-col items-center gap-2 hover:bg-muted hover:border-primary/50 transition-all text-center group"
-            >
-              <div className="p-3 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
-                <type.icon className="h-5 w-5 text-primary" />
-              </div>
-              <span className="text-sm font-medium text-foreground">{type.label}</span>
-              <span className="text-xs text-muted-foreground hidden md:block">
-                {type.description}
-              </span>
-            </button>
-          ))}
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+            {FIELD_TYPES.map((type) => (
+              <button
+                key={type.value}
+                onClick={() => handleAddField(type.value)}
+                className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-primary/10 transition-all text-center group border border-transparent hover:border-primary/30"
+                title={type.description}
+              >
+                <type.icon className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-xs font-medium text-foreground leading-tight">{type.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
