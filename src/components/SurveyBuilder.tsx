@@ -3,7 +3,8 @@ import {
   Plus, GripVertical, Trash2, Eye, Send, Copy, ChevronDown, ChevronUp, 
   Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star,
   AlignLeft, Mail, Phone, Clock, Image, Video, Mic, QrCode, FileText,
-  ToggleLeft, Calculator, Layers, SlidersHorizontal, CheckCircle, File
+  ToggleLeft, Calculator, Layers, SlidersHorizontal, CheckCircle, File,
+  PenTool, List, Eye as EyeIcon, Grid, Minus, Square, MessageSquare
 } from 'lucide-react';
 import { DbSurvey, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
@@ -55,7 +56,8 @@ const FIELD_TYPES = [
   
   // Choix
   { value: 'select', label: 'Choix unique', icon: CheckCircle, description: 'Une option', category: 'choice' },
-  { value: 'multiselect', label: 'Sélectionner plusieurs', icon: CheckSquare, description: 'Plusieurs options', category: 'choice' },
+  { value: 'multiselect', label: 'Multi-sélection', icon: CheckSquare, description: 'Plusieurs options', category: 'choice' },
+  { value: 'ranking', label: 'Classement', icon: List, description: 'Ordonner options', category: 'choice' },
   
   // Contact
   { value: 'email', label: 'Email', icon: Mail, description: 'Adresse email', category: 'contact' },
@@ -64,26 +66,31 @@ const FIELD_TYPES = [
   // Date et heure
   { value: 'date', label: 'Date', icon: Calendar, description: 'Sélection date', category: 'datetime' },
   { value: 'time', label: 'Heure', icon: Clock, description: 'Sélection heure', category: 'datetime' },
-  { value: 'datetime', label: 'Date et heure', icon: Calendar, description: 'Date + heure', category: 'datetime' },
+  { value: 'datetime', label: 'Date+Heure', icon: Calendar, description: 'Date + heure', category: 'datetime' },
   
   // Médias
-  { value: 'photo', label: 'Photographie', icon: Camera, description: 'Capture image', category: 'media' },
+  { value: 'photo', label: 'Photo', icon: Camera, description: 'Capture image', category: 'media' },
   { value: 'audio', label: 'Audio', icon: Mic, description: 'Enregistrement audio', category: 'media' },
   { value: 'video', label: 'Vidéo', icon: Video, description: 'Capture vidéo', category: 'media' },
   { value: 'file', label: 'Fichier', icon: File, description: 'Téléverser fichier', category: 'media' },
   
   // Localisation
-  { value: 'location', label: 'Position', icon: MapPin, description: 'GPS + nom ville', category: 'geo' },
+  { value: 'location', label: 'Position GPS', icon: MapPin, description: 'GPS + nom ville', category: 'geo' },
+  { value: 'line', label: 'Ligne', icon: Minus, description: 'Tracer ligne', category: 'geo' },
+  { value: 'area', label: 'Zone', icon: Square, description: 'Délimiter zone', category: 'geo' },
   
   // Notation
   { value: 'rating', label: 'Notation', icon: Star, description: 'Étoiles 1-5', category: 'scale' },
   { value: 'range', label: 'Intervalle', icon: SlidersHorizontal, description: 'Échelle linéaire', category: 'scale' },
   
   // Avancé
-  { value: 'barcode', label: 'Code-barres/QR', icon: QrCode, description: 'Scanner code', category: 'advanced' },
-  { value: 'signature', label: 'Signature', icon: FileText, description: 'Signature manuscrite', category: 'advanced' },
+  { value: 'barcode', label: 'Code-barres', icon: QrCode, description: 'Scanner code', category: 'advanced' },
+  { value: 'signature', label: 'Signature', icon: PenTool, description: 'Signature manuscrite', category: 'advanced' },
   { value: 'consent', label: 'Consentir', icon: ToggleLeft, description: 'Case consentement', category: 'advanced' },
-  { value: 'note', label: 'Note', icon: Layers, description: 'Texte informatif', category: 'advanced' },
+  { value: 'note', label: 'Note', icon: MessageSquare, description: 'Texte informatif', category: 'advanced' },
+  { value: 'calculate', label: 'Calcul', icon: Calculator, description: 'Valeur calculée', category: 'advanced' },
+  { value: 'hidden', label: 'Caché', icon: EyeIcon, description: 'Champ masqué', category: 'advanced' },
+  { value: 'matrix', label: 'Tableau', icon: Grid, description: 'Grille questions', category: 'advanced' },
 ];
 
 interface SurveyBuilderProps {

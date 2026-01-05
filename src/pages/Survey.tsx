@@ -18,6 +18,41 @@ interface PendingResponse {
   created_at: string;
 }
 
+// Hook pour le reverse geocoding
+const useReverseGeocode = (lat: number | null, lng: number | null) => {
+  const [locationName, setLocationName] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (lat === null || lng === null) {
+      setLocationName('');
+      return;
+    }
+
+    const fetchLocationName = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(
+          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=fr`
+        );
+        const data = await response.json();
+        const city = data.city || data.locality || data.principalSubdivision || '';
+        const country = data.countryName || '';
+        setLocationName(city ? `${city}, ${country}` : country);
+      } catch (error) {
+        console.error('Error reverse geocoding:', error);
+        setLocationName('');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLocationName();
+  }, [lat, lng]);
+
+  return { locationName, loading };
+};
+
 // Optimized input component with local state to prevent lag
 const TextInput = ({ 
   value, 
@@ -67,15 +102,99 @@ const TextInput = ({
   );
 };
 
+// Location field with auto-detection and city name display
+const LocationFieldWithAutoDetect = ({
+  value,
+  onChange,
+  autoDetectedLocation,
+}: {
+  value: any;
+  onChange: (value: any) => void;
+  autoDetectedLocation: { lat: number; lng: number } | null;
+}) => {
+  const displayValue = value || autoDetectedLocation;
+  const { locationName, loading: geoLoading } = useReverseGeocode(
+    displayValue?.latitude || displayValue?.lat || null,
+    displayValue?.longitude || displayValue?.lng || null
+  );
+
+  const handleCapture = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          onChange({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+          toast.success('Position GPS mise à jour');
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          toast.error("Impossible d'obtenir la position GPS");
+        }
+      );
+    }
+  };
+
+  // Auto-set if not already set and we have auto-detected location
+  useEffect(() => {
+    if (!value && autoDetectedLocation) {
+      onChange({
+        latitude: autoDetectedLocation.lat,
+        longitude: autoDetectedLocation.lng,
+      });
+    }
+  }, [autoDetectedLocation]);
+
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        onClick={handleCapture}
+        className={cn(
+          'w-full px-4 py-4 rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
+          displayValue
+            ? 'border-green-500 bg-green-500/5 text-foreground'
+            : 'border-border bg-background text-muted-foreground hover:border-primary/50'
+        )}
+      >
+        <MapPin className={cn('h-5 w-5', displayValue ? 'text-green-500' : 'text-muted-foreground')} />
+        <div className="flex-1">
+          {displayValue ? (
+            <div>
+              {geoLoading ? (
+                <span className="text-sm text-muted-foreground">Chargement...</span>
+              ) : locationName ? (
+                <span className="text-sm font-medium">{locationName}</span>
+              ) : (
+                <span className="text-sm">
+                  {(displayValue.latitude || displayValue.lat)?.toFixed(4)}, {(displayValue.longitude || displayValue.lng)?.toFixed(4)}
+                </span>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">
+                GPS: {(displayValue.latitude || displayValue.lat)?.toFixed(6)}, {(displayValue.longitude || displayValue.lng)?.toFixed(6)}
+              </p>
+            </div>
+          ) : (
+            <span>Capturer la position GPS</span>
+          )}
+        </div>
+      </button>
+    </div>
+  );
+};
+
 // Inline FormField component for public surveys - optimized
 const SurveyFormField = ({ 
   field, 
   value, 
-  onChange 
+  onChange,
+  autoDetectedLocation,
 }: { 
   field: DbSurveyField; 
   value: any; 
   onChange: (value: any) => void;
+  autoDetectedLocation: { lat: number; lng: number } | null;
 }) => {
   const renderField = () => {
     switch (field.field_type) {
@@ -88,7 +207,19 @@ const SurveyFormField = ({
           />
         );
 
+      case 'textarea':
+        return (
+          <textarea
+            value={value || ''}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={field.placeholder || ''}
+            rows={4}
+            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+          />
+        );
+
       case 'number':
+      case 'decimal':
         return (
           <TextInput
             type="number"
@@ -97,6 +228,26 @@ const SurveyFormField = ({
             placeholder={field.placeholder || ''}
             min={field.min_value || undefined}
             max={field.max_value || undefined}
+          />
+        );
+
+      case 'email':
+        return (
+          <TextInput
+            type="email"
+            value={value || ''}
+            onChange={onChange}
+            placeholder={field.placeholder || 'email@example.com'}
+          />
+        );
+
+      case 'phone':
+        return (
+          <TextInput
+            type="tel"
+            value={value || ''}
+            onChange={onChange}
+            placeholder={field.placeholder || '+241 XX XX XX XX'}
           />
         );
 
@@ -176,6 +327,25 @@ const SurveyFormField = ({
           </div>
         );
 
+      case 'range':
+        return (
+          <div className="space-y-3">
+            <input
+              type="range"
+              min={field.min_value || 0}
+              max={field.max_value || 100}
+              value={value || field.min_value || 0}
+              onChange={(e) => onChange(parseInt(e.target.value))}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+            />
+            <div className="flex justify-between text-sm text-muted-foreground">
+              <span>{field.min_value || 0}</span>
+              <span className="font-medium text-foreground">{value || field.min_value || 0}</span>
+              <span>{field.max_value || 100}</span>
+            </div>
+          </div>
+        );
+
       case 'date':
         return (
           <div className="relative">
@@ -214,41 +384,11 @@ const SurveyFormField = ({
 
       case 'location':
         return (
-          <button
-            type="button"
-            onClick={() => {
-              if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                  (position) => {
-                    onChange({
-                      latitude: position.coords.latitude,
-                      longitude: position.coords.longitude,
-                    });
-                    toast.success('Position GPS enregistrée');
-                  },
-                  (error) => {
-                    console.error('Error getting location:', error);
-                    toast.error('Impossible d\'obtenir la position GPS');
-                  }
-                );
-              }
-            }}
-            className={cn(
-              'w-full px-4 py-4 rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
-              value
-                ? 'border-green-500 bg-green-500/5 text-foreground'
-                : 'border-border bg-background text-muted-foreground hover:border-primary/50'
-            )}
-          >
-            <MapPin className={cn('h-5 w-5', value ? 'text-green-500' : 'text-muted-foreground')} />
-            {value ? (
-              <span className="text-sm">
-                {value.latitude.toFixed(6)}, {value.longitude.toFixed(6)}
-              </span>
-            ) : (
-              <span>Capturer la position GPS</span>
-            )}
-          </button>
+          <LocationFieldWithAutoDetect
+            value={value}
+            onChange={onChange}
+            autoDetectedLocation={autoDetectedLocation}
+          />
         );
 
       case 'photo':
@@ -263,7 +403,6 @@ const SurveyFormField = ({
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  // Validate file type
                   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
                   if (!allowedTypes.includes(file.type)) {
                     toast.error('Format non supporté. Utilisez JPEG, PNG ou WebP');
@@ -271,7 +410,6 @@ const SurveyFormField = ({
                     return;
                   }
                   
-                  // Validate file size (max 5MB)
                   const maxSize = 5 * 1024 * 1024;
                   if (file.size > maxSize) {
                     toast.error('Image trop volumineuse. Maximum 5MB');
@@ -329,6 +467,13 @@ const SurveyFormField = ({
           </button>
         );
 
+      case 'note':
+        return (
+          <div className="p-4 bg-muted/50 rounded-lg text-muted-foreground">
+            {field.placeholder || 'Information'}
+          </div>
+        );
+
       default:
         return (
           <TextInput
@@ -366,7 +511,26 @@ const Survey = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [autoDetectedLocation, setAutoDetectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [cachedSurvey, setCachedSurvey] = useLocalStorage<{ survey: DbSurvey; fields: DbSurveyField[] } | null>(`survey_cache_${id}`, null);
+
+  // Auto-detect location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setAutoDetectedLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error('Auto-location detection failed:', error);
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+      );
+    }
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -374,15 +538,17 @@ const Survey = () => {
     }
   }, [id]);
 
-  // Sync pending responses when online
-  useEffect(() => {
-    if (isOnline && pendingResponses.length > 0) {
-      syncPendingResponses();
-    }
-  }, [isOnline]);
-
   const loadSurvey = async () => {
     try {
+      // Try to load from cache first if offline
+      if (!isOnline && cachedSurvey) {
+        setSurvey(cachedSurvey.survey);
+        setFields(cachedSurvey.fields);
+        initializeFormData(cachedSurvey.fields);
+        setLoading(false);
+        return;
+      }
+
       const { data: surveyData, error: surveyError } = await supabase
         .from('surveys')
         .select('*')
@@ -392,6 +558,14 @@ const Survey = () => {
 
       if (surveyError) throw surveyError;
       if (!surveyData) {
+        // Try cache if survey not found online
+        if (cachedSurvey) {
+          setSurvey(cachedSurvey.survey);
+          setFields(cachedSurvey.fields);
+          initializeFormData(cachedSurvey.fields);
+          setLoading(false);
+          return;
+        }
         setError('Enquête non trouvée ou inactive');
         setLoading(false);
         return;
@@ -408,60 +582,36 @@ const Survey = () => {
       if (fieldsError) throw fieldsError;
       
       setFields(fieldsData as DbSurveyField[]);
-
-      // Initialize form data
-      const initialData: Record<string, any> = {};
-      fieldsData.forEach(field => {
-        if (field.field_type === 'multiselect') {
-          initialData[field.id] = [];
-        } else {
-          initialData[field.id] = '';
-        }
-      });
-      setFormData(initialData);
+      
+      // Cache the survey for offline use
+      setCachedSurvey({ survey: surveyData as DbSurvey, fields: fieldsData as DbSurveyField[] });
+      
+      initializeFormData(fieldsData as DbSurveyField[]);
     } catch (err) {
       console.error('Error loading survey:', err);
-      setError('Erreur lors du chargement de l\'enquête');
+      // Try cache on error
+      if (cachedSurvey) {
+        setSurvey(cachedSurvey.survey);
+        setFields(cachedSurvey.fields);
+        initializeFormData(cachedSurvey.fields);
+      } else {
+        setError('Erreur lors du chargement de l\'enquête');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const syncPendingResponses = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // Cannot sync without authentication
-    if (!user) {
-      return;
-    }
-    
-    const toSync = [...pendingResponses];
-    const synced: string[] = [];
-
-    for (const response of toSync) {
-      try {
-        const { error } = await supabase
-          .from('survey_responses')
-          .insert({
-            survey_id: response.survey_id,
-            user_id: user.id,
-            data: response.data,
-            location: response.location,
-            sync_status: 'synced',
-          });
-
-        if (!error) {
-          synced.push(response.id);
-        }
-      } catch (err) {
-        console.error('Error syncing response:', err);
+  const initializeFormData = (fieldsData: DbSurveyField[]) => {
+    const initialData: Record<string, any> = {};
+    fieldsData.forEach(field => {
+      if (field.field_type === 'multiselect') {
+        initialData[field.id] = [];
+      } else {
+        initialData[field.id] = '';
       }
-    }
-
-    if (synced.length > 0) {
-      setPendingResponses(prev => prev.filter(r => !synced.includes(r.id)));
-      toast.success(`${synced.length} réponse(s) synchronisée(s)`);
-    }
+    });
+    setFormData(initialData);
   };
 
   const handleFieldChange = useCallback((fieldId: string, value: any) => {
@@ -491,17 +641,18 @@ const Survey = () => {
 
     setSubmitting(true);
 
-    // Check authentication first
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      toast.error('Vous devez être connecté pour soumettre une réponse');
-      navigate('/auth?redirect=' + encodeURIComponent(`/survey/${survey.id}`));
-      setSubmitting(false);
-      return;
+    // Get location from form data or auto-detected
+    const locationField = fields.find(f => f.field_type === 'location');
+    let location = autoDetectedLocation;
+    if (locationField && formData[locationField.id]) {
+      const locData = formData[locationField.id];
+      location = {
+        lat: locData.latitude || locData.lat,
+        lng: locData.longitude || locData.lng,
+      };
     }
 
-    const responseData = {
+    const responseData: PendingResponse = {
       id: crypto.randomUUID(),
       survey_id: survey.id,
       data: formData,
@@ -509,51 +660,47 @@ const Survey = () => {
       created_at: new Date().toISOString(),
     };
 
+    // Always save locally first (public access - no auth required)
+    setPendingResponses(prev => [...prev, responseData]);
+    
+    // Try to sync if online (using anonymous insert if possible)
     if (isOnline) {
       try {
-        const { error } = await supabase
-          .from('survey_responses')
-          .insert({
-            survey_id: survey.id,
-            user_id: user.id,
-            data: formData,
-            location,
-            sync_status: 'synced',
-          });
-
-        if (error) throw error;
+        // Check if user is authenticated
+        const { data: { user } } = await supabase.auth.getUser();
         
-        setSubmitted(true);
-        toast.success('Réponse envoyée avec succès !');
+        if (user) {
+          // If authenticated, insert directly
+          const { error } = await supabase
+            .from('survey_responses')
+            .insert({
+              survey_id: survey.id,
+              user_id: user.id,
+              data: formData,
+              location,
+              sync_status: 'synced',
+            });
+
+          if (!error) {
+            // Remove from pending if sync successful
+            setPendingResponses(prev => prev.filter(r => r.id !== responseData.id));
+          }
+        }
+        // If not authenticated, keep in local storage for later sync
       } catch (err) {
-        console.error('Error submitting response:', err);
-        // Save locally if online submission fails
-        setPendingResponses(prev => [...prev, responseData]);
-        setSubmitted(true);
-        toast.info('Réponse sauvegardée localement');
+        console.error('Error syncing response:', err);
+        // Keep in local storage
       }
-    } else {
-      // Save locally when offline
-      setPendingResponses(prev => [...prev, responseData]);
-      setSubmitted(true);
-      toast.success('Réponse sauvegardée (sera synchronisée automatiquement)');
     }
 
+    setSubmitted(true);
+    toast.success(isOnline ? 'Réponse enregistrée !' : 'Réponse sauvegardée localement');
     setSubmitting(false);
   };
 
   const handleNewResponse = () => {
     setSubmitted(false);
-    const initialData: Record<string, any> = {};
-    fields.forEach(field => {
-      if (field.field_type === 'multiselect') {
-        initialData[field.id] = [];
-      } else {
-        initialData[field.id] = '';
-      }
-    });
-    setFormData(initialData);
-    setLocation(null);
+    initializeFormData(fields);
   };
 
   if (loading) {
@@ -648,6 +795,7 @@ const Survey = () => {
               field={field}
               value={formData[field.id]}
               onChange={(value) => handleFieldChange(field.id, value)}
+              autoDetectedLocation={autoDetectedLocation}
             />
           ))}
         </div>
