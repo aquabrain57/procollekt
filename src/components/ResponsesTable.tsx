@@ -305,103 +305,95 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
         </Card>
       ) : (
         <>
-          <Card>
-            <ScrollArea className="w-full">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[50px]">#</TableHead>
-                    <TableHead 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleSort('date')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        Date
-                        {getSortIcon('date')}
-                      </div>
-                    </TableHead>
-                    <TableHead 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => handleSort('location')}
-                    >
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4" />
-                        GPS
-                        {getSortIcon('location')}
-                      </div>
-                    </TableHead>
-                    {visibleFields.map(field => (
+          <Card className="overflow-hidden">
+            <ScrollArea className="w-full" style={{ maxHeight: 'calc(100vh - 350px)', minHeight: '400px' }}>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="sticky top-0 bg-card z-10">
+                    <TableRow>
+                      <TableHead className="w-[50px]">#</TableHead>
                       <TableHead 
-                        key={field.id}
-                        className="cursor-pointer hover:bg-muted/50 max-w-[200px]"
-                        onClick={() => handleSort(field.id)}
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleSort('date')}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="truncate">{field.label}</span>
-                          {getSortIcon(field.id)}
+                          <Clock className="h-4 w-4" />
+                          Date
+                          {getSortIcon('date')}
                         </div>
                       </TableHead>
-                    ))}
-                    {hasMoreFields && (
-                      <TableHead className="text-muted-foreground">
-                        +{fields.length - 5} cols
-                      </TableHead>
-                    )}
-                    <TableHead className="w-[80px] text-center">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedResponses.map((response, index) => (
-                    <TableRow key={response.id} className="hover:bg-muted/30">
-                      <TableCell className="font-mono text-muted-foreground">
-                        {(currentPage - 1) * pageSize + index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">
-                            {format(new Date(response.created_at), 'dd/MM/yyyy')}
-                          </div>
-                          <div className="text-muted-foreground text-xs">
-                            {format(new Date(response.created_at), 'HH:mm')}
-                          </div>
+                      <TableHead 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => handleSort('location')}
+                      >
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          GPS
+                          {getSortIcon('location')}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {response.location ? (
-                          <LocationBadge 
-                            latitude={response.location.latitude} 
-                            longitude={response.location.longitude} 
-                          />
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </TableCell>
-                      {visibleFields.map(field => (
-                        <TableCell key={field.id} className="max-w-[200px]">
-                          <span className="truncate block">
-                            {formatCellValue(response.data[field.id], field)}
-                          </span>
-                        </TableCell>
-                      ))}
-                      {hasMoreFields && (
-                        <TableCell className="text-muted-foreground text-xs">
-                          ...
-                        </TableCell>
-                      )}
-                      <TableCell className="text-center">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => setSelectedResponse(response)}
+                      </TableHead>
+                      {fields.map(field => (
+                        <TableHead 
+                          key={field.id}
+                          className="cursor-pointer hover:bg-muted/50 min-w-[150px] max-w-[250px]"
+                          onClick={() => handleSort(field.id)}
                         >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="truncate">{field.label}</span>
+                            {getSortIcon(field.id)}
+                          </div>
+                        </TableHead>
+                      ))}
+                      <TableHead className="w-[80px] text-center sticky right-0 bg-card">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedResponses.map((response, index) => (
+                      <TableRow key={response.id} className="hover:bg-muted/30">
+                        <TableCell className="font-mono text-muted-foreground">
+                          {(currentPage - 1) * pageSize + index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            <div className="font-medium">
+                              {format(new Date(response.created_at), 'dd/MM/yyyy')}
+                            </div>
+                            <div className="text-muted-foreground text-xs">
+                              {format(new Date(response.created_at), 'HH:mm')}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {response.location ? (
+                            <LocationBadge 
+                              latitude={response.location.latitude} 
+                              longitude={response.location.longitude} 
+                            />
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                        {fields.map(field => (
+                          <TableCell key={field.id} className="min-w-[150px] max-w-[250px]">
+                            <span className="truncate block">
+                              {formatCellValue(response.data[field.id], field)}
+                            </span>
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-center sticky right-0 bg-card">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => setSelectedResponse(response)}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </ScrollArea>
           </Card>
 

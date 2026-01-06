@@ -559,121 +559,138 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
   }
 
   return (
-    <ScrollArea className="h-[calc(100vh-250px)]">
-      <div className="space-y-6 pr-4">
+    <ScrollArea className="h-[calc(100vh-200px)]">
+      <div className="space-y-6 pr-4 pb-8">
         {/* Header with export */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 bg-background/95 backdrop-blur z-10 py-2">
           <div>
-            <h2 className="text-xl font-bold text-foreground">{survey.title}</h2>
+            <h2 className="text-2xl font-bold text-foreground bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+              {survey.title}
+            </h2>
             <p className="text-sm text-muted-foreground">
-              Rapport d'analyse avancé • {responses.length} réponse{responses.length !== 1 ? 's' : ''}
+              Rapport d'analyse avancé • {responses.length} réponse{responses.length !== 1 ? 's' : ''} • {format(new Date(), 'dd MMM yyyy', { locale: fr })}
             </p>
           </div>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm">
+              <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg">
                 <Download className="h-4 w-4 mr-2" />
                 Exporter le rapport
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportToExcel}>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onClick={exportToExcel} className="cursor-pointer">
                 <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
-                Excel complet
+                Excel complet (.xlsx)
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={exportToPDF}>
+              <DropdownMenuItem onClick={exportToPDF} className="cursor-pointer">
                 <File className="h-4 w-4 mr-2 text-red-600" />
-                PDF résumé
+                PDF résumé (.pdf)
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-primary/20 rounded-lg">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{globalStats.total}</p>
-                  <p className="text-xs text-muted-foreground">Réponses</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500/20 rounded-lg">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{globalStats.completionRate}%</p>
-                  <p className="text-xs text-muted-foreground">Complétion</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-orange-500/10 to-orange-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-500/20 rounded-lg">
-                  <MapPin className="h-5 w-5 text-orange-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{globalStats.locationRate}%</p>
-                  <p className="text-xs text-muted-foreground">Géolocalisées</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-br from-purple-500/10 to-purple-500/5">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-500/20 rounded-lg">
-                  <TrendingUp className="h-5 w-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-foreground">{globalStats.avgPerDay}</p>
-                  <p className="text-xs text-muted-foreground">Moy./jour</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Global Recommendations */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Lightbulb className="h-4 w-4" />
-              Recommandations
+        {/* Executive Summary Card */}
+        <Card className="bg-gradient-to-br from-primary/5 via-background to-primary/10 border-primary/20 shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              Résumé Exécutif
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 p-4 border border-primary/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-primary/20 rounded-xl">
+                    <Users className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">{globalStats.total}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Réponses totales</p>
+                  </div>
+                </div>
+                <div className="absolute -right-4 -bottom-4 h-20 w-20 rounded-full bg-primary/5" />
+              </div>
+
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500/20 to-green-500/5 p-4 border border-green-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-green-500/20 rounded-xl">
+                    <CheckCircle className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">{globalStats.completionRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Taux complétion</p>
+                  </div>
+                </div>
+                <div className="absolute -right-4 -bottom-4 h-20 w-20 rounded-full bg-green-500/5" />
+              </div>
+
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500/20 to-orange-500/5 p-4 border border-orange-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-orange-500/20 rounded-xl">
+                    <MapPin className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">{globalStats.locationRate}%</p>
+                    <p className="text-xs text-muted-foreground font-medium">Géolocalisées</p>
+                  </div>
+                </div>
+                <div className="absolute -right-4 -bottom-4 h-20 w-20 rounded-full bg-orange-500/5" />
+              </div>
+
+              <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500/20 to-purple-500/5 p-4 border border-purple-500/20">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-purple-500/20 rounded-xl">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-3xl font-bold text-foreground">{globalStats.avgPerDay}</p>
+                    <p className="text-xs text-muted-foreground font-medium">Moyenne/jour</p>
+                  </div>
+                </div>
+                <div className="absolute -right-4 -bottom-4 h-20 w-20 rounded-full bg-purple-500/5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Global Recommendations */}
+        <Card className="border-l-4 border-l-primary shadow-md">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <Lightbulb className="h-5 w-5 text-primary" />
+              </div>
+              Recommandations Stratégiques
+            </CardTitle>
+            <CardDescription>Points d'action basés sur l'analyse des données</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {globalRecommendations.map((rec, index) => (
               <div 
                 key={index}
-                className={`flex items-start gap-3 p-3 rounded-lg ${
-                  rec.type === 'success' ? 'bg-green-500/10' :
-                  rec.type === 'warning' ? 'bg-orange-500/10' : 'bg-blue-500/10'
+                className={`flex items-start gap-3 p-4 rounded-xl border transition-all hover:shadow-md ${
+                  rec.type === 'success' ? 'bg-green-500/5 border-green-500/20 hover:border-green-500/40' :
+                  rec.type === 'warning' ? 'bg-orange-500/5 border-orange-500/20 hover:border-orange-500/40' : 
+                  'bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40'
                 }`}
               >
-                {rec.type === 'success' ? (
-                  <ThumbsUp className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                ) : rec.type === 'warning' ? (
-                  <AlertTriangle className="h-4 w-4 text-orange-600 mt-0.5 flex-shrink-0" />
-                ) : (
-                  <Info className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                )}
-                <span className="text-sm text-foreground">{rec.text}</span>
+                <div className={`p-2 rounded-lg ${
+                  rec.type === 'success' ? 'bg-green-500/20' :
+                  rec.type === 'warning' ? 'bg-orange-500/20' : 'bg-blue-500/20'
+                }`}>
+                  {rec.type === 'success' ? (
+                    <ThumbsUp className="h-4 w-4 text-green-600" />
+                  ) : rec.type === 'warning' ? (
+                    <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  ) : (
+                    <Info className="h-4 w-4 text-blue-600" />
+                  )}
+                </div>
+                <span className="text-sm text-foreground leading-relaxed flex-1">{rec.text}</span>
               </div>
             ))}
           </CardContent>

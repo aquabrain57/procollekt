@@ -15,9 +15,10 @@ import { toast } from 'sonner';
 interface ShareSurveyDialogProps {
   surveyId: string;
   surveyTitle: string;
+  surveyDescription?: string | null;
 }
 
-export const ShareSurveyDialog = ({ surveyId, surveyTitle }: ShareSurveyDialogProps) => {
+export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: ShareSurveyDialogProps) => {
   const [copied, setCopied] = useState(false);
   
   const surveyUrl = `${window.location.origin}/survey/${surveyId}`;
@@ -38,7 +39,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle }: ShareSurveyDialogPr
       try {
         await navigator.share({
           title: surveyTitle,
-          text: `Répondez à l'enquête: ${surveyTitle}`,
+          text: surveyDescription || `Répondez à l'enquête: ${surveyTitle}`,
           url: surveyUrl,
         });
       } catch (err) {
@@ -66,6 +67,9 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle }: ShareSurveyDialogPr
             Partager l'enquête
           </DialogTitle>
           <DialogDescription>
+            {surveyDescription ? (
+              <span className="block mb-2">{surveyDescription}</span>
+            ) : null}
             Partagez ce lien avec vos enquêteurs de terrain pour qu'ils puissent collecter des données.
           </DialogDescription>
         </DialogHeader>
