@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DbSurvey, DbSurveyField } from '@/hooks/useSurveys';
-import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from '@/lib/utils';
+import { PWAInstallBanner } from '@/components/PWAInstallBanner';
 
 interface PendingResponse {
   id: string;
@@ -474,6 +475,324 @@ const SurveyFormField = ({
           </div>
         );
 
+      case 'ranking':
+        const rankItems = field.options || [];
+        const rankings = Array.isArray(value) ? value : [];
+        return (
+          <div className="space-y-2">
+            <p className="text-sm text-muted-foreground">Ordonnez les éléments par ordre de préférence</p>
+            {rankItems.map((option, idx) => {
+              const currentRank = rankings.indexOf(option.value) + 1;
+              return (
+                <div
+                  key={option.value}
+                  className={cn(
+                    'flex items-center gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-all',
+                    currentRank > 0
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border bg-background hover:border-primary/50'
+                  )}
+                  onClick={() => {
+                    if (currentRank > 0) {
+                      onChange(rankings.filter((v: string) => v !== option.value));
+                    } else {
+                      onChange([...rankings, option.value]);
+                    }
+                  }}
+                >
+                  <div className={cn(
+                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
+                    currentRank > 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                  )}>
+                    {currentRank > 0 ? currentRank : idx + 1}
+                  </div>
+                  <GripVertical className="h-4 w-4 text-muted-foreground" />
+                  <span className="flex-1 text-foreground">{option.label}</span>
+                </div>
+              );
+            })}
+          </div>
+        );
+
+      case 'audio':
+        return (
+          <div className="space-y-3">
+            <input
+              type="file"
+              accept="audio/*"
+              capture="user"
+              className="hidden"
+              id={`audio-${field.id}`}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (file.size > 10 * 1024 * 1024) {
+                    toast.error('Audio trop volumineux. Maximum 10MB');
+                    e.target.value = '';
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => onChange(ev.target?.result);
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            <label
+              htmlFor={`audio-${field.id}`}
+              className={cn(
+                'flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+              )}
+            >
+              <Mic className={cn('h-8 w-8 mb-2', value ? 'text-green-500' : 'text-muted-foreground')} />
+              <span className="text-sm text-muted-foreground">
+                {value ? 'Audio enregistré ✓' : 'Enregistrer un audio'}
+              </span>
+            </label>
+            {value && (
+              <audio controls src={value} className="w-full" />
+            )}
+          </div>
+        );
+
+      case 'video':
+        return (
+          <div className="space-y-3">
+            <input
+              type="file"
+              accept="video/*"
+              capture="environment"
+              className="hidden"
+              id={`video-${field.id}`}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (file.size > 50 * 1024 * 1024) {
+                    toast.error('Vidéo trop volumineuse. Maximum 50MB');
+                    e.target.value = '';
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => onChange(ev.target?.result);
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            <label
+              htmlFor={`video-${field.id}`}
+              className={cn(
+                'flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+              )}
+            >
+              <Video className={cn('h-8 w-8 mb-2', value ? 'text-green-500' : 'text-muted-foreground')} />
+              <span className="text-sm text-muted-foreground">
+                {value ? 'Vidéo capturée ✓' : 'Capturer une vidéo'}
+              </span>
+            </label>
+            {value && (
+              <video controls src={value} className="w-full rounded-lg" />
+            )}
+          </div>
+        );
+
+      case 'file':
+        return (
+          <div className="space-y-3">
+            <input
+              type="file"
+              className="hidden"
+              id={`file-${field.id}`}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  if (file.size > 10 * 1024 * 1024) {
+                    toast.error('Fichier trop volumineux. Maximum 10MB');
+                    e.target.value = '';
+                    return;
+                  }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => onChange({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    data: ev.target?.result
+                  });
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            <label
+              htmlFor={`file-${field.id}`}
+              className={cn(
+                'flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+              )}
+            >
+              <File className={cn('h-8 w-8 mb-2', value ? 'text-green-500' : 'text-muted-foreground')} />
+              <span className="text-sm text-muted-foreground">
+                {value ? `${value.name} ✓` : 'Téléverser un fichier'}
+              </span>
+              <span className="text-xs text-muted-foreground mt-1">Maximum 10MB</span>
+            </label>
+          </div>
+        );
+
+      case 'line':
+      case 'area':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg text-center">
+            <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
+              {field.field_type === 'line' ? <Minus className="h-5 w-5" /> : <Square className="h-5 w-5" />}
+              <span className="text-sm font-medium">
+                {field.field_type === 'line' ? 'Tracer une ligne' : 'Délimiter une zone'}
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Fonctionnalité cartographique avancée (disponible sur tablette)
+            </p>
+            <LocationFieldWithAutoDetect
+              value={value}
+              onChange={onChange}
+              autoDetectedLocation={autoDetectedLocation}
+            />
+          </div>
+        );
+
+      case 'barcode':
+        return (
+          <div className="space-y-3">
+            <TextInput
+              value={value || ''}
+              onChange={onChange}
+              placeholder="Code-barres ou QR code"
+            />
+            <div className="p-4 bg-muted/30 rounded-lg text-center">
+              <QrCode className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-xs text-muted-foreground">
+                Entrez le code manuellement ou utilisez un scanner externe
+              </p>
+            </div>
+          </div>
+        );
+
+      case 'signature':
+        return (
+          <div className="space-y-3">
+            <div
+              className={cn(
+                'h-32 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+              )}
+              onClick={() => {
+                if (!value) {
+                  const sig = `Signature capturée le ${new Date().toLocaleString('fr-FR')}`;
+                  onChange(sig);
+                  toast.success('Signature enregistrée');
+                }
+              }}
+            >
+              {value ? (
+                <div className="text-center">
+                  <PenTool className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                  <span className="text-sm text-green-600">Signature validée ✓</span>
+                </div>
+              ) : (
+                <div className="text-center text-muted-foreground">
+                  <PenTool className="h-8 w-8 mx-auto mb-2" />
+                  <span className="text-sm">Touchez pour signer</span>
+                </div>
+              )}
+            </div>
+            {value && (
+              <button
+                type="button"
+                onClick={() => onChange(null)}
+                className="text-xs text-destructive hover:underline"
+              >
+                Effacer la signature
+              </button>
+            )}
+          </div>
+        );
+
+      case 'calculate':
+        return (
+          <div className="p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calculator className="h-5 w-5" />
+              <span className="text-sm">Valeur calculée automatiquement</span>
+            </div>
+            {value !== undefined && value !== '' && (
+              <p className="mt-2 text-lg font-semibold text-foreground">{value}</p>
+            )}
+          </div>
+        );
+
+      case 'hidden':
+        return null;
+
+      case 'matrix':
+        const matrixRows = field.options?.filter((o: any) => o.type === 'row') || [];
+        const matrixCols = field.options?.filter((o: any) => o.type === 'column') || [];
+        const matrixValues = value || {};
+        
+        if (matrixRows.length === 0 || matrixCols.length === 0) {
+          return (
+            <div className="p-4 bg-muted/30 rounded-lg text-center">
+              <Grid className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">Grille de questions (configuration requise)</p>
+            </div>
+          );
+        }
+
+        return (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="p-2"></th>
+                  {matrixCols.map((col: any) => (
+                    <th key={col.value} className="p-2 text-center text-muted-foreground font-medium">
+                      {col.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {matrixRows.map((row: any) => (
+                  <tr key={row.value} className="border-t border-border">
+                    <td className="p-2 font-medium text-foreground">{row.label}</td>
+                    {matrixCols.map((col: any) => (
+                      <td key={col.value} className="p-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onChange({
+                              ...matrixValues,
+                              [row.value]: col.value
+                            });
+                          }}
+                          className={cn(
+                            'w-6 h-6 rounded-full border-2 transition-all',
+                            matrixValues[row.value] === col.value
+                              ? 'border-primary bg-primary'
+                              : 'border-muted-foreground hover:border-primary'
+                          )}
+                        >
+                          {matrixValues[row.value] === col.value && (
+                            <Check className="h-3 w-3 text-white mx-auto" />
+                          )}
+                        </button>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+
       default:
         return (
           <TextInput
@@ -721,8 +1040,7 @@ const Survey = () => {
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-bold text-foreground mb-2">Erreur</h2>
-            <p className="text-muted-foreground mb-4">{error}</p>
-            <Button onClick={() => navigate('/')}>Retour à l'accueil</Button>
+            <p className="text-muted-foreground">{error}</p>
           </CardContent>
         </Card>
       </div>
@@ -741,14 +1059,9 @@ const Survey = () => {
             <p className="text-muted-foreground mb-6">
               Votre réponse a été enregistrée avec succès.
             </p>
-            <div className="space-y-3">
-              <Button onClick={handleNewResponse} className="w-full">
-                Nouvelle réponse
-              </Button>
-              <Button variant="outline" onClick={() => navigate('/')} className="w-full">
-                Retour à l'accueil
-              </Button>
-            </div>
+            <Button onClick={handleNewResponse} className="w-full">
+              Nouvelle réponse
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -818,6 +1131,9 @@ const Survey = () => {
           </Button>
         </div>
       </main>
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
     </div>
   );
 };

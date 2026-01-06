@@ -422,7 +422,7 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
         </div>
         <div className="flex gap-2 flex-wrap">
           {survey.status === 'active' && (
-            <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} />
+            <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} />
           )}
           <Button variant="outline" size="sm" onClick={onPreview}>
             <Eye className="h-4 w-4 mr-1" />

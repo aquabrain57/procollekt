@@ -17,9 +17,9 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'placeholder.svg'],
       manifest: {
-        name: 'FieldCollect - Collecte de données terrain',
-        short_name: 'FieldCollect',
-        description: 'Application mobile de collecte de données terrain avec mode hors-ligne',
+        name: 'WooCollekt IA - Collecte de données terrain',
+        short_name: 'WooCollekt',
+        description: 'Application professionnelle de collecte de données terrain avec IA',
         theme_color: '#6366f1',
         background_color: '#0a0a0a',
         display: 'standalone',

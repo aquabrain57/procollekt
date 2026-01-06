@@ -1,11 +1,11 @@
 {
-  "name": "FieldCollect",
-  "short_name": "FieldCollect",
-  "description": "Application de collecte de données terrain avec mode hors ligne",
+  "name": "WooCollekt IA",
+  "short_name": "WooCollekt",
+  "description": "Application professionnelle de collecte de données terrain avec IA",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f8fafc",
-  "theme_color": "#2563eb",
+  "background_color": "#0a0a0a",
+  "theme_color": "#6366f1",
   "orientation": "portrait-primary",
   "icons": [
     {
