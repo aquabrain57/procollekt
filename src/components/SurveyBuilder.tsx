@@ -4,8 +4,10 @@ import {
   Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star,
   AlignLeft, Mail, Phone, Clock, Image, Video, Mic, QrCode, FileText,
   ToggleLeft, Calculator, Layers, SlidersHorizontal, CheckCircle, File,
-  PenTool, List, Eye as EyeIcon, Grid, Minus, Square, MessageSquare
+  PenTool, List, Eye as EyeIcon, Grid, Minus, Square, MessageSquare, Palette
 } from 'lucide-react';
+import { FormDesignSelector } from '@/components/FormDesignSelector';
+import { FormDesignTemplate, FORM_DESIGN_TEMPLATES } from '@/data/formDesignTemplates';
 import { DbSurvey, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -258,7 +260,7 @@ const FieldEditor = ({
             </div>
 
             {/* Placeholder for text fields */}
-            {(field.field_type === 'text' || field.field_type === 'number') && (
+            {(field.field_type === 'text' || field.field_type === 'number' || field.field_type === 'textarea' || field.field_type === 'email' || field.field_type === 'phone' || field.field_type === 'decimal' || field.field_type === 'barcode') && (
               <div className="space-y-2">
                 <Label>Texte d'aide (placeholder)</Label>
                 <Input
@@ -268,13 +270,18 @@ const FieldEditor = ({
                     setLocalPlaceholder(next);
                     debouncedUpdate({ placeholder: next });
                   }}
-                  placeholder="Ex: Entrez votre réponse ici..."
+                  placeholder={
+                    field.field_type === 'email' ? 'Ex: exemple@email.com' :
+                    field.field_type === 'phone' ? 'Ex: +241 XX XX XX XX' :
+                    field.field_type === 'barcode' ? 'Ex: Code-barres ou QR code' :
+                    'Ex: Entrez votre réponse ici...'
+                  }
                 />
               </div>
             )}
 
-            {/* Options for select/multiselect */}
-            {(field.field_type === 'select' || field.field_type === 'multiselect') && (
+            {/* Options for select/multiselect/ranking */}
+            {(field.field_type === 'select' || field.field_type === 'multiselect' || field.field_type === 'ranking') && (
               <div className="space-y-2">
                 <Label>Options (une par ligne)</Label>
                 <Textarea
@@ -287,13 +294,34 @@ const FieldEditor = ({
                 <p className="text-xs text-muted-foreground">
                   {field.field_type === 'multiselect'
                     ? 'Les répondants pourront sélectionner plusieurs options'
+                    : field.field_type === 'ranking'
+                    ? 'Les répondants classeront ces options par ordre de préférence'
                     : 'Les répondants devront choisir une seule option'}
                 </p>
               </div>
             )}
 
-            {/* Min/Max for number and rating */}
-            {(field.field_type === 'number' || field.field_type === 'rating') && (
+            {/* Placeholder for consent and note */}
+            {(field.field_type === 'consent' || field.field_type === 'note') && (
+              <div className="space-y-2">
+                <Label>{field.field_type === 'consent' ? 'Texte de consentement' : 'Contenu de la note'}</Label>
+                <Textarea
+                  value={localPlaceholder}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setLocalPlaceholder(next);
+                    debouncedUpdate({ placeholder: next });
+                  }}
+                  placeholder={field.field_type === 'consent' 
+                    ? "J'accepte les conditions générales..." 
+                    : "Information importante à afficher..."}
+                  rows={3}
+                />
+              </div>
+            )}
+
+            {/* Min/Max for number, rating, and range */}
+            {(field.field_type === 'number' || field.field_type === 'rating' || field.field_type === 'range' || field.field_type === 'decimal') && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Valeur minimum</Label>
@@ -347,19 +375,53 @@ const FieldEditor = ({
 export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderProps) => {
   const { fields, loading, addField, updateField, deleteField, reorderFields } = useSurveyFields(survey.id);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
+  const [selectedDesign, setSelectedDesign] = useState<string>('modern-blue');
+
+  const handleDesignSelect = (template: FormDesignTemplate) => {
+    setSelectedDesign(template.id);
+  };
 
   const handleAddField = async (type: string) => {
     const fieldType = FIELD_TYPES.find(t => t.value === type);
+    
+    // Configuration par défaut selon le type
+    let defaultOptions = null;
+    let defaultMin = null;
+    let defaultMax = null;
+    
+    if (type === 'select' || type === 'multiselect' || type === 'ranking') {
+      defaultOptions = [
+        { value: 'option1', label: 'Option 1' }, 
+        { value: 'option2', label: 'Option 2' },
+        { value: 'option3', label: 'Option 3' }
+      ];
+    } else if (type === 'matrix') {
+      defaultOptions = [
+        { value: 'row_1', label: 'Ligne 1' },
+        { value: 'row_2', label: 'Ligne 2' },
+        { value: 'col_1', label: 'Colonne 1' },
+        { value: 'col_2', label: 'Colonne 2' },
+        { value: 'col_3', label: 'Colonne 3' },
+      ];
+    }
+    
+    if (type === 'rating') {
+      defaultMin = 1;
+      defaultMax = 5;
+    } else if (type === 'range') {
+      defaultMin = 1;
+      defaultMax = 10;
+    }
+
     const newField = await addField({
       field_type: type as DbSurveyField['field_type'],
       label: `Nouvelle question ${fieldType?.label || ''}`,
-      placeholder: '',
+      placeholder: type === 'consent' ? 'J\'accepte les conditions' : 
+                   type === 'note' ? 'Information importante...' : '',
       required: false,
-      options: type === 'select' || type === 'multiselect' 
-        ? [{ value: 'option1', label: 'Option 1' }, { value: 'option2', label: 'Option 2' }] 
-        : null,
-      min_value: type === 'rating' ? 1 : null,
-      max_value: type === 'rating' ? 5 : null,
+      options: defaultOptions,
+      min_value: defaultMin,
+      max_value: defaultMax,
       conditional_on: null,
       field_order: fields.length,
     });
@@ -421,6 +483,10 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
           )}
         </div>
         <div className="flex gap-2 flex-wrap">
+          <FormDesignSelector 
+            selectedTemplate={selectedDesign} 
+            onSelect={handleDesignSelect} 
+          />
           {survey.status === 'active' && (
             <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} />
           )}

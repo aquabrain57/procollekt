@@ -733,8 +733,9 @@ const SurveyFormField = ({
         return null;
 
       case 'matrix':
-        const matrixRows = field.options?.filter((o: any) => o.type === 'row') || [];
-        const matrixCols = field.options?.filter((o: any) => o.type === 'column') || [];
+        // Support both formats: { type: 'row' } or { value: 'row_X' }
+        const matrixRows = field.options?.filter((o: any) => o.type === 'row' || o.value?.startsWith('row_')) || [];
+        const matrixCols = field.options?.filter((o: any) => o.type === 'column' || o.value?.startsWith('col_')) || [];
         const matrixValues = value || {};
         
         if (matrixRows.length === 0 || matrixCols.length === 0) {

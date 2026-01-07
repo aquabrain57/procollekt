@@ -87,11 +87,11 @@ const Index = () => {
     if (surveyView === 'fill' && selectedSurvey) return selectedSurvey.title;
     if (surveyView === 'responses' && selectedSurvey) return 'Réponses';
     switch (activeTab) {
-      case 'home': return 'FieldCollect';
+      case 'home': return 'WooCollekt IA';
       case 'surveys': return 'Enquêtes';
       case 'data': return 'Données';
       case 'settings': return 'Paramètres';
-      default: return 'FieldCollect';
+      default: return 'WooCollekt IA';
     }
   };
 
