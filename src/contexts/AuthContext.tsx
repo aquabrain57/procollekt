@@ -35,21 +35,56 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const ensureProfile = async (u: User) => {
+    try {
+      const meta = (u.user_metadata || {}) as Record<string, any>;
+      const fullName = typeof meta.full_name === 'string' ? meta.full_name : null;
+      const organization = typeof meta.organization === 'string' ? meta.organization : null;
+      const phone = typeof meta.phone === 'string' ? meta.phone : null;
+
+      // Upsert is safe; RLS requires auth.uid() = user_id, so only run when session exists.
+      await supabase.from('profiles').upsert(
+        {
+          user_id: u.id,
+          full_name: fullName,
+          organization,
+          phone,
+        },
+        { onConflict: 'user_id' }
+      );
+    } catch {
+      // Do not block auth flows if profile write fails
+    }
+  };
+
   useEffect(() => {
     // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      setLoading(false);
+
+      // Defer profile creation/update to avoid auth deadlocks.
+      if (session?.user) {
+        setTimeout(() => {
+          ensureProfile(session.user);
+        }, 0);
       }
-    );
+    });
 
     // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+
+      if (session?.user) {
+        setTimeout(() => {
+          ensureProfile(session.user);
+        }, 0);
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -75,23 +110,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       },
     });
 
-    // Create / update a profile row so the app can store user info like KoboCollect.
-    // Only runs when a session exists (auto-confirm enabled in backend).
-    if (!error && data?.user) {
-      const { error: profileError } = await supabase.from('profiles').upsert(
-        {
-          user_id: data.user.id,
-          full_name: profile.fullName,
-          organization: profile.organization ?? null,
-          phone: profile.phone ?? null,
-        },
-        { onConflict: 'user_id' }
-      );
+    if (error) return { error };
 
-      if (profileError) return { error: profileError };
+    // IMPORTANT: Only write to profiles when a session exists.
+    // Otherwise (email confirmation flows), auth.uid() is null and RLS will reject the upsert.
+    if (data?.session?.user) {
+      await ensureProfile(data.session.user);
     }
 
-    return { error };
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {

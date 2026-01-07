@@ -200,7 +200,7 @@ export const useSurveyFields = (surveyId: string | null) => {
       return data as DbSurveyField;
     } catch (error: any) {
       console.error('Error adding field:', error);
-      toast.error('Erreur lors de l\'ajout du champ');
+      toast.error(error?.message ? `Erreur lors de l'ajout: ${error.message}` : "Erreur lors de l'ajout du champ");
       return null;
     }
   };

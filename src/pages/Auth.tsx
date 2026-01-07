@@ -94,10 +94,13 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await signIn(formData.email, formData.password);
         if (error) {
-          if (String(error.message || '').includes('Invalid login credentials')) {
+          const msg = String(error.message || '');
+          if (msg.includes('Invalid login credentials')) {
             toast.error('Email ou mot de passe incorrect');
+          } else if (msg.toLowerCase().includes('email not confirmed')) {
+            toast.error("Email non confirmé. Ouvrez votre email ou utilisez 'Mot de passe oublié ?'.");
           } else {
-            toast.error(error.message);
+            toast.error(msg || 'Erreur de connexion');
           }
           return;
         }
