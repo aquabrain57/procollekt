@@ -108,12 +108,12 @@ const Auth = () => {
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-8 slide-up">
-          <div className="p-3 rounded-2xl bg-primary/10">
-            <ClipboardList className="h-8 w-8 text-primary" />
+          <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
+            <ClipboardList className="h-8 w-8 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">FieldCollect</h1>
-            <p className="text-sm text-muted-foreground">Collecte de données terrain</p>
+            <h1 className="text-2xl font-bold text-foreground">WooCollekt IA</h1>
+            <p className="text-sm text-muted-foreground">Collecte de données intelligente</p>
           </div>
         </div>
 
@@ -235,7 +235,7 @@ const Auth = () => {
 
       {/* Footer */}
       <div className="p-6 text-center text-sm text-muted-foreground">
-        <p>Application de collecte de données terrain</p>
+        <p>WooCollekt IA - Collecte de données intelligente</p>
         <p>Mode hors ligne compatible</p>
       </div>
     </div>
