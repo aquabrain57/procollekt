@@ -6,8 +6,13 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
+  signUp: (
+    email: string,
+    password: string,
+    profile: { fullName: string; organization?: string; phone?: string }
+  ) => Promise<{ error: any }>;
+  signIn: (email: string, password: string) => Promise<{ error: any }>; 
+  resetPassword: (email: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -50,19 +55,42 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    profile: { fullName: string; organization?: string; phone?: string }
+  ) => {
     const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
+
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          full_name: fullName,
+          full_name: profile.fullName,
+          organization: profile.organization,
+          phone: profile.phone,
         },
       },
     });
+
+    // Create / update a profile row so the app can store user info like KoboCollect.
+    // Only runs when a session exists (auto-confirm enabled in backend).
+    if (!error && data?.user) {
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        {
+          user_id: data.user.id,
+          full_name: profile.fullName,
+          organization: profile.organization ?? null,
+          phone: profile.phone ?? null,
+        },
+        { onConflict: 'user_id' }
+      );
+
+      if (profileError) return { error: profileError };
+    }
+
     return { error };
   };
 
@@ -70,6 +98,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
+    });
+    return { error };
+  };
+
+  const resetPassword = async (email: string) => {
+    const redirectUrl = `${window.location.origin}/auth`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectUrl,
     });
     return { error };
   };
@@ -84,6 +120,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     loading,
     signUp,
     signIn,
+    resetPassword,
     signOut,
   };
 

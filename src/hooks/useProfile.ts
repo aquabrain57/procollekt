@@ -52,10 +52,16 @@ export const useProfile = () => {
   const updateProfile = async (updates: Partial<Profile>) => {
     if (!user) return { error: new Error('Not authenticated') };
 
+    // Upsert to ensure a profile row exists even if it wasn't created at signup.
     const { error } = await supabase
       .from('profiles')
-      .update(updates)
-      .eq('user_id', user.id);
+      .upsert(
+        {
+          user_id: user.id,
+          ...updates,
+        },
+        { onConflict: 'user_id' }
+      );
 
     if (!error) {
       await fetchProfile();
