@@ -49,7 +49,7 @@ export const useSurveys = () => {
     try {
       const { data, error } = await supabase
         .from('surveys')
-        .select('*')
+        .select('id, title, description, status, created_at, updated_at')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
