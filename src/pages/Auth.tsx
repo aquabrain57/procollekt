@@ -14,7 +14,7 @@ import {
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import authBg from '@/assets/auth-bg.jpg';
+import authBg from '@/assets/auth-collage-bg.jpg';
 import { useAuth } from '@/contexts/AuthContext';
 
 const emailSchema = z.object({
