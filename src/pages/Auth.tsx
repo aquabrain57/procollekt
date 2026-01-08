@@ -14,7 +14,7 @@ import {
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import authBg from '@/assets/auth-collage-bg.jpg';
+import authBg from '@/assets/auth-collage-grid.jpg';
 import { useAuth } from '@/contexts/AuthContext';
 
 const emailSchema = z.object({
@@ -59,7 +59,7 @@ const Auth = () => {
     password: '',
     fullName: '',
     organization: '',
-    phone: '',
+    phone: '+228', // Default Togo country code
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
