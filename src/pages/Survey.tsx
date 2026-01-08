@@ -1070,72 +1070,79 @@ const Survey = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <h1 className="font-bold text-foreground truncate">{survey?.title}</h1>
-          <div className="flex items-center gap-2">
-            {isOnline ? (
-              <span className="flex items-center gap-1 text-xs text-green-600">
-                <Wifi className="h-3 w-3" />
-                En ligne
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs text-orange-600">
-                <WifiOff className="h-3 w-3" />
-                Hors ligne
-              </span>
-            )}
-            {pendingResponses.length > 0 && (
-              <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
-                {pendingResponses.length} en attente
-              </span>
-            )}
+    <>
+      {/* Dynamic OG meta tags for shared survey */}
+      <title>{survey?.title || 'Enquête'} | WooCollekt IA</title>
+      <meta name="description" content={survey?.description || 'Répondez à cette enquête'} />
+
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
+          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-foreground truncate">{survey?.title}</h1>
+              {survey?.description && (
+                <p className="text-xs text-muted-foreground truncate">{survey.description}</p>
+              )}
+            </div>
+            <div className="flex items-center gap-2 ml-2">
+              {isOnline ? (
+                <span className="flex items-center gap-1 text-xs text-green-600">
+                  <Wifi className="h-3 w-3" />
+                  En ligne
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 text-xs text-orange-600">
+                  <WifiOff className="h-3 w-3" />
+                  Hors ligne
+                </span>
+              )}
+              {pendingResponses.length > 0 && (
+                <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
+                  {pendingResponses.length} en attente
+                </span>
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Form */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        {survey?.description && (
-          <p className="text-muted-foreground mb-6">{survey.description}</p>
-        )}
+        {/* Form */}
+        <main className="max-w-2xl mx-auto px-4 py-6">
+          <div className="space-y-4">
+            {fields.map((field) => (
+              <SurveyFormField
+                key={field.id}
+                field={field}
+                value={formData[field.id]}
+                onChange={(value) => handleFieldChange(field.id, value)}
+                autoDetectedLocation={autoDetectedLocation}
+              />
+            ))}
+          </div>
 
-        <div className="space-y-4">
-          {fields.map((field) => (
-            <SurveyFormField
-              key={field.id}
-              field={field}
-              value={formData[field.id]}
-              onChange={(value) => handleFieldChange(field.id, value)}
-              autoDetectedLocation={autoDetectedLocation}
-            />
-          ))}
-        </div>
+          {/* Submit button */}
+          <div className="mt-8 pb-8">
+            <Button
+              onClick={handleSubmit}
+              disabled={submitting}
+              className="w-full py-6 text-lg"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Envoi en cours...
+                </>
+              ) : (
+                'Soumettre la réponse'
+              )}
+            </Button>
+          </div>
+        </main>
 
-        {/* Submit button */}
-        <div className="mt-8 pb-8">
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full py-6 text-lg"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Envoi en cours...
-              </>
-            ) : (
-              'Soumettre la réponse'
-            )}
-          </Button>
-        </div>
-      </main>
-
-      {/* PWA Install Banner */}
-      <PWAInstallBanner />
-    </div>
+        {/* PWA Install Banner */}
+        <PWAInstallBanner />
+      </div>
+    </>
   );
 };
 
