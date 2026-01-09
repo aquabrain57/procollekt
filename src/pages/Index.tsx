@@ -443,7 +443,7 @@ const Index = () => {
 
       case 'settings':
         return (
-          <div className="p-4 pb-24">
+          <div className="p-4 pb-24 w-full">
             <SettingsPanel
               syncStatus={syncStatus}
               onSync={handleSync}

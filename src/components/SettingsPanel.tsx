@@ -1,19 +1,20 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { 
-  RefreshCw, Trash2, Download, Upload, Smartphone, Globe, LogOut,
-  Settings, Shield, Bell, Palette, FileSpreadsheet, FileText, 
-  ChevronRight, Database, HardDrive, Cloud
+  RefreshCw, Trash2, Download, Upload, LogOut,
+  Settings, Shield, ChevronRight, Database, Cloud,
+  Sun, Moon, Monitor, Globe, Languages
 } from 'lucide-react';
 import { SyncStatus } from '@/types/survey';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import { useTheme } from '@/contexts/ThemeContext';
 import { ProfileEditor } from './ProfileEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
@@ -28,10 +29,17 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
+import { fr, enUS } from 'date-fns/locale';
 
 interface SettingsPanelProps {
   syncStatus: SyncStatus;
@@ -41,12 +49,16 @@ interface SettingsPanelProps {
 }
 
 export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }: SettingsPanelProps) => {
+  const { t, i18n } = useTranslation();
   const { signOut, user } = useAuth();
   const { profile } = useProfile();
+  const { theme, setTheme } = useTheme();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['profile']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['profile', 'appearance']));
+
+  const dateLocale = i18n.language === 'fr' ? fr : enUS;
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
@@ -65,7 +77,6 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
     
     setIsExporting(true);
     try {
-      // Fetch all user's surveys
       const { data: surveys, error: surveyError } = await supabase
         .from('surveys')
         .select('*')
@@ -73,7 +84,6 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
 
       if (surveyError) throw surveyError;
 
-      // Fetch all responses for user's surveys
       const { data: responses, error: responseError } = await supabase
         .from('survey_responses')
         .select('*')
@@ -81,7 +91,6 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
 
       if (responseError) throw responseError;
 
-      // Fetch all survey fields
       const surveyIds = surveys?.map(s => s.id) || [];
       const { data: fields, error: fieldsError } = await supabase
         .from('survey_fields')
@@ -91,24 +100,21 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
 
       if (fieldsError) throw fieldsError;
 
-      // Create Excel workbook
       const wb = XLSX.utils.book_new();
 
-      // Surveys sheet
       if (surveys && surveys.length > 0) {
         const surveysData = surveys.map(s => ({
           'ID': s.id,
           'Titre': s.title,
           'Description': s.description || '',
           'Statut': s.status === 'active' ? 'Publié' : s.status === 'draft' ? 'Brouillon' : s.status,
-          'Date de création': format(new Date(s.created_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
-          'Dernière modification': format(new Date(s.updated_at), 'dd/MM/yyyy HH:mm', { locale: fr }),
+          'Date de création': format(new Date(s.created_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale }),
+          'Dernière modification': format(new Date(s.updated_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale }),
         }));
         const surveysWs = XLSX.utils.json_to_sheet(surveysData);
         XLSX.utils.book_append_sheet(wb, surveysWs, 'Enquêtes');
       }
 
-      // Create a sheet for each survey with its responses
       for (const survey of (surveys || [])) {
         const surveyFields = fields?.filter(f => f.survey_id === survey.id) || [];
         const surveyResponses = responses?.filter(r => r.survey_id === survey.id) || [];
@@ -118,8 +124,8 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
             const loc = r.location as { latitude?: number; longitude?: number } | null;
             const row: Record<string, any> = {
               '#': index + 1,
-              'Date': format(new Date(r.created_at), 'dd/MM/yyyy', { locale: fr }),
-              'Heure': format(new Date(r.created_at), 'HH:mm:ss', { locale: fr }),
+              'Date': format(new Date(r.created_at), 'dd/MM/yyyy', { locale: dateLocale }),
+              'Heure': format(new Date(r.created_at), 'HH:mm:ss', { locale: dateLocale }),
               'Latitude': loc?.latitude || '',
               'Longitude': loc?.longitude || '',
             };
@@ -138,17 +144,15 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
             return row;
           });
 
-          // Truncate sheet name to 31 chars (Excel limit)
           const sheetName = survey.title.slice(0, 28) + (survey.title.length > 28 ? '...' : '');
           const ws = XLSX.utils.json_to_sheet(responseData);
           XLSX.utils.book_append_sheet(wb, ws, sheetName);
         }
       }
 
-      // Summary sheet
       const summaryData = [
         ['EXPORT DE DONNÉES WOOCOLLEKT IA'],
-        [`Exporté le ${format(new Date(), 'dd MMMM yyyy à HH:mm', { locale: fr })}`],
+        [`Exporté le ${format(new Date(), 'dd MMMM yyyy à HH:mm', { locale: dateLocale })}`],
         [`Utilisateur: ${user.email}`],
         [],
         ['RÉSUMÉ'],
@@ -162,7 +166,6 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
       const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(wb, summaryWs, 'Résumé');
 
-      // Download
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
       saveAs(new Blob([wbout]), `WooCollekt_Export_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 
@@ -226,8 +229,95 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
     toast.success('Déconnexion réussie');
   };
 
+  const handleLanguageChange = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
+
   return (
-    <div className="space-y-4 max-w-2xl mx-auto">
+    <div className="space-y-4 w-full">
+      {/* Appearance Section */}
+      <Card className="border-border">
+        <Collapsible open={expandedSections.has('appearance')} onOpenChange={() => toggleSection('appearance')}>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-orange-500/10 rounded-lg">
+                    <Sun className="h-5 w-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">{t('settings.appearance')}</CardTitle>
+                    <CardDescription className="text-xs">{t('settings.appearanceDesc')}</CardDescription>
+                  </div>
+                </div>
+                <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has('appearance') ? 'rotate-90' : ''}`} />
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0 space-y-4">
+              {/* Theme */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  {theme === 'dark' ? <Moon className="h-4 w-4" /> : theme === 'light' ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
+                  <span className="text-sm font-medium">{t('settings.theme')}</span>
+                </div>
+                <Select value={theme} onValueChange={(v: 'light' | 'dark' | 'system') => setTheme(v)}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">
+                      <div className="flex items-center gap-2">
+                        <Sun className="h-4 w-4" />
+                        {t('settings.lightMode')}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="dark">
+                      <div className="flex items-center gap-2">
+                        <Moon className="h-4 w-4" />
+                        {t('settings.darkMode')}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="system">
+                      <div className="flex items-center gap-2">
+                        <Monitor className="h-4 w-4" />
+                        {t('settings.systemMode')}
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Language */}
+              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-3">
+                  <Languages className="h-4 w-4" />
+                  <span className="text-sm font-medium">{t('settings.language')}</span>
+                </div>
+                <Select value={i18n.language} onValueChange={handleLanguageChange}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fr">
+                      <div className="flex items-center gap-2">
+                        🇫🇷 {t('settings.french')}
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="en">
+                      <div className="flex items-center gap-2">
+                        🇬🇧 {t('settings.english')}
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Collapsible>
+      </Card>
+
       {/* Profile Section */}
       <Card className="border-border">
         <Collapsible open={expandedSections.has('profile')} onOpenChange={() => toggleSection('profile')}>
@@ -239,8 +329,8 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                     <Settings className="h-5 w-5 text-primary" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Profil</CardTitle>
-                    <CardDescription className="text-xs">Gérer vos informations personnelles</CardDescription>
+                    <CardTitle className="text-base">{t('settings.profile')}</CardTitle>
+                    <CardDescription className="text-xs">{t('settings.profileDesc')}</CardDescription>
                   </div>
                 </div>
                 <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has('profile') ? 'rotate-90' : ''}`} />
@@ -266,10 +356,10 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                     <Cloud className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Synchronisation</CardTitle>
+                    <CardTitle className="text-base">{t('settings.sync')}</CardTitle>
                     <CardDescription className="text-xs">
-                      {syncStatus.isOnline ? 'Connecté' : 'Hors ligne'}
-                      {pendingCount > 0 && ` • ${pendingCount} en attente`}
+                      {syncStatus.isOnline ? t('settings.connected') : t('settings.offline')}
+                      {pendingCount > 0 && ` • ${pendingCount} ${t('settings.pending')}`}
                     </CardDescription>
                   </div>
                 </div>
@@ -284,21 +374,21 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
             <CardContent className="pt-0 space-y-4">
               <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                 <div>
-                  <p className="font-medium text-sm">Statut de connexion</p>
+                  <p className="font-medium text-sm">{t('settings.connectionStatus')}</p>
                   <p className="text-xs text-muted-foreground">
-                    {syncStatus.isOnline ? 'Vos données sont synchronisées' : 'Les modifications seront synchronisées plus tard'}
+                    {syncStatus.isOnline ? t('settings.dataSynced') : t('settings.dataWillSync')}
                   </p>
                 </div>
                 <Badge variant={syncStatus.isOnline ? 'default' : 'secondary'}>
-                  {syncStatus.isOnline ? 'En ligne' : 'Hors ligne'}
+                  {syncStatus.isOnline ? t('settings.online') : t('settings.offline')}
                 </Badge>
               </div>
 
               {pendingCount > 0 && (
                 <div className="flex items-center justify-between p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
                   <div>
-                    <p className="font-medium text-sm text-orange-700">Réponses en attente</p>
-                    <p className="text-xs text-orange-600">{pendingCount} réponse{pendingCount > 1 ? 's' : ''} à synchroniser</p>
+                    <p className="font-medium text-sm text-orange-700">{t('settings.pendingResponses')}</p>
+                    <p className="text-xs text-orange-600">{pendingCount} {t('settings.toSync')}</p>
                   </div>
                   <Badge variant="outline" className="border-orange-500 text-orange-600">
                     {pendingCount}
@@ -312,7 +402,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                 className="w-full"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${syncStatus.isSyncing ? 'animate-spin' : ''}`} />
-                {syncStatus.isSyncing ? 'Synchronisation...' : 'Synchroniser maintenant'}
+                {syncStatus.isSyncing ? t('settings.syncing') : t('settings.syncNow')}
               </Button>
             </CardContent>
           </CollapsibleContent>
@@ -330,8 +420,8 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                     <Database className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Gestion des données</CardTitle>
-                    <CardDescription className="text-xs">Exporter, importer et gérer vos données</CardDescription>
+                    <CardTitle className="text-base">{t('settings.dataManagement')}</CardTitle>
+                    <CardDescription className="text-xs">{t('settings.dataManagementDesc')}</CardDescription>
                   </div>
                 </div>
                 <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has('data') ? 'rotate-90' : ''}`} />
@@ -346,7 +436,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                 onClick={() => setShowExportDialog(true)}
               >
                 <Download className="h-4 w-4 mr-3" />
-                Exporter toutes les données
+                {t('settings.exportAll')}
                 <Badge variant="secondary" className="ml-auto">Excel / CSV</Badge>
               </Button>
 
@@ -356,7 +446,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                 onClick={() => setShowImportDialog(true)}
               >
                 <Upload className="h-4 w-4 mr-3" />
-                Importer des enquêtes
+                {t('settings.importSurveys')}
                 <Badge variant="outline" className="ml-auto">Bientôt</Badge>
               </Button>
 
@@ -373,7 +463,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                 }}
               >
                 <Trash2 className="h-4 w-4 mr-3" />
-                Effacer les données locales
+                {t('settings.clearLocalData')}
               </Button>
             </CardContent>
           </CollapsibleContent>
@@ -391,7 +481,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                     <Shield className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
-                    <CardTitle className="text-base">Compte</CardTitle>
+                    <CardTitle className="text-base">{t('settings.account')}</CardTitle>
                     <CardDescription className="text-xs">{user?.email}</CardDescription>
                   </div>
                 </div>
@@ -403,11 +493,11 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
             <CardContent className="pt-0 space-y-4">
               <div className="grid gap-3">
                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-sm text-muted-foreground">Email</span>
+                  <span className="text-sm text-muted-foreground">{t('settings.email')}</span>
                   <span className="text-sm font-medium">{user?.email}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                  <span className="text-sm text-muted-foreground">Version de l'app</span>
+                  <span className="text-sm text-muted-foreground">{t('settings.appVersion')}</span>
                   <Badge variant="outline">1.0.0</Badge>
                 </div>
               </div>
@@ -418,7 +508,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                 onClick={handleLogout}
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Se déconnecter
+                {t('settings.logout')}
               </Button>
             </CardContent>
           </CollapsibleContent>
@@ -429,7 +519,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
       <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Exporter les données</DialogTitle>
+            <DialogTitle>{t('settings.exportAll')}</DialogTitle>
             <DialogDescription>
               Exportez toutes vos enquêtes et réponses dans un fichier
             </DialogDescription>
@@ -437,32 +527,26 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
           <div className="space-y-3 py-4">
             <Button
               variant="outline"
-              className="w-full justify-start h-auto py-3"
+              className="w-full justify-start"
               onClick={handleExportAllData}
               disabled={isExporting}
             >
-              <FileSpreadsheet className="h-5 w-5 mr-3 text-green-600" />
-              <div className="text-left">
-                <p className="font-medium">Excel (.xlsx)</p>
-                <p className="text-xs text-muted-foreground">Export complet avec feuilles par enquête</p>
-              </div>
+              <Download className="h-4 w-4 mr-3 text-green-600" />
+              Excel (.xlsx) - Complet avec feuilles séparées
             </Button>
             <Button
               variant="outline"
-              className="w-full justify-start h-auto py-3"
+              className="w-full justify-start"
               onClick={handleExportCSV}
               disabled={isExporting}
             >
-              <FileText className="h-5 w-5 mr-3 text-blue-600" />
-              <div className="text-left">
-                <p className="font-medium">CSV (.csv)</p>
-                <p className="text-xs text-muted-foreground">Format universel pour tableurs</p>
-              </div>
+              <Download className="h-4 w-4 mr-3 text-blue-600" />
+              CSV (.csv) - Format simplifié
             </Button>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowExportDialog(false)}>
-              Annuler
+            <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+              {t('common.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -472,20 +556,14 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
       <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Importer des enquêtes</DialogTitle>
+            <DialogTitle>{t('settings.importSurveys')}</DialogTitle>
             <DialogDescription>
               Cette fonctionnalité sera disponible prochainement
             </DialogDescription>
           </DialogHeader>
-          <div className="py-8 text-center">
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">
-              L'import d'enquêtes depuis des fichiers Excel ou CSV arrivera dans une prochaine mise à jour.
-            </p>
-          </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setShowImportDialog(false)}>
-              Fermer
+            <Button variant="outline" onClick={() => setShowImportDialog(false)}>
+              {t('common.cancel')}
             </Button>
           </DialogFooter>
         </DialogContent>
