@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -16,6 +16,32 @@ import { toast } from 'sonner';
 
 import authBg from '@/assets/auth-collage-grid.jpg';
 import { useAuth } from '@/contexts/AuthContext';
+
+// Country codes mapping
+const COUNTRY_CODES: Record<string, string> = {
+  TG: '+228', // Togo
+  FR: '+33',  // France
+  CI: '+225', // Côte d'Ivoire
+  SN: '+221', // Sénégal
+  BJ: '+229', // Bénin
+  BF: '+226', // Burkina Faso
+  ML: '+223', // Mali
+  NE: '+227', // Niger
+  GN: '+224', // Guinée
+  CM: '+237', // Cameroun
+  CD: '+243', // RD Congo
+  CG: '+242', // Congo
+  GA: '+241', // Gabon
+  MG: '+261', // Madagascar
+  MA: '+212', // Maroc
+  DZ: '+213', // Algérie
+  TN: '+216', // Tunisie
+  BE: '+32',  // Belgique
+  CH: '+41',  // Suisse
+  CA: '+1',   // Canada
+  US: '+1',   // USA
+  GB: '+44',  // UK
+};
 
 const emailSchema = z.object({
   email: z.string().trim().email({ message: 'Email invalide' }),
@@ -53,6 +79,7 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [countryDetected, setCountryDetected] = useState(false);
 
   const [formData, setFormData] = useState<FormData>({
     email: '',
@@ -65,6 +92,37 @@ const Auth = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const activeSchema = useMemo(() => (isLogin ? loginSchema : signupSchema), [isLogin]);
+
+  // Auto-detect country code via IP geolocation
+  const detectCountryCode = useCallback(async () => {
+    if (countryDetected) return;
+    
+    try {
+      const response = await fetch('https://ipapi.co/json/', { 
+        signal: AbortSignal.timeout(5000) 
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const countryCode = data.country_code;
+        
+        if (countryCode && COUNTRY_CODES[countryCode]) {
+          setFormData(prev => ({ 
+            ...prev, 
+            phone: COUNTRY_CODES[countryCode] 
+          }));
+          setCountryDetected(true);
+        }
+      }
+    } catch {
+      // Silently fail - keep default +228
+      console.log('Could not detect country, using default +228');
+    }
+  }, [countryDetected]);
+
+  useEffect(() => {
+    detectCountryCode();
+  }, [detectCountryCode]);
 
   useEffect(() => {
     if (user && !loading) navigate('/');
