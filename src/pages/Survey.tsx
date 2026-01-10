@@ -831,6 +831,8 @@ const Survey = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
+  const { t, i18n } = useTranslation();
+  const { resolvedTheme, setTheme } = useTheme();
   const [pendingResponses, setPendingResponses] = useLocalStorage<PendingResponse[]>('pending_responses', []);
   
   const [survey, setSurvey] = useState<DbSurvey | null>(null);
@@ -842,6 +844,14 @@ const Survey = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [autoDetectedLocation, setAutoDetectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [cachedSurvey, setCachedSurvey] = useLocalStorage<{ survey: DbSurvey; fields: DbSurveyField[] } | null>(`survey_cache_${id}`, null);
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
 
   // Auto-detect location on mount
   useEffect(() => {
@@ -1077,17 +1087,6 @@ const Survey = () => {
       </div>
     );
   }
-
-  const { t, i18n } = useTranslation();
-  const { resolvedTheme, setTheme } = useTheme();
-
-  const toggleTheme = () => {
-    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
-  };
-
-  const changeLanguage = (lang: string) => {
-    i18n.changeLanguage(lang);
-  };
 
   return (
     <>

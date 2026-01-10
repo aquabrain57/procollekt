@@ -64,9 +64,11 @@ export const Header = ({
           ) : (
             <img src={logo} alt="Youcollect" className="h-8 w-auto" />
           )}
-          <h1 className="font-semibold text-lg text-foreground truncate">
-            {showBack ? title : ''}
-          </h1>
+          {showBack && (
+            <h1 className="font-semibold text-lg text-foreground truncate">
+              {title}
+            </h1>
+          )}
         </div>
 
         {/* Desktop Navigation */}
