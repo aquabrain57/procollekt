@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
-  ClipboardList,
   Eye,
   EyeOff,
   Loader2,
@@ -14,7 +13,8 @@ import {
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import authBg from '@/assets/auth-collage-grid.jpg';
+import authBg from '@/assets/auth-bg-field.jpg';
+import logo from '@/assets/youcollect-logo.png';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Country codes mapping
@@ -217,22 +217,21 @@ const Auth = () => {
         backgroundPosition: 'center',
       }}
     >
-      <div className="min-h-screen bg-background/70 backdrop-blur-sm flex flex-col">
+      <div className="min-h-screen bg-background/60 backdrop-blur-md flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-8 slide-up">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg">
-              <ClipboardList className="h-8 w-8 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">WooCollekt IA</h1>
-              <p className="text-sm text-muted-foreground">Collecte de données intelligente</p>
-            </div>
+          <div className="flex flex-col items-center gap-3 mb-8 slide-up">
+            <img 
+              src={logo} 
+              alt="Youcollect" 
+              className="h-24 w-auto drop-shadow-lg"
+            />
+            <p className="text-sm text-muted-foreground">Collecte de données intelligente</p>
           </div>
 
           {/* Form Card */}
           <div
-            className="w-full max-w-sm bg-card rounded-2xl border border-border p-6 shadow-lg slide-up"
+            className="w-full max-w-sm bg-card/95 backdrop-blur rounded-2xl border border-border p-6 shadow-lg slide-up"
             style={{ animationDelay: '100ms' }}
           >
             <h2 className="text-xl font-semibold text-foreground mb-2 text-center">
@@ -388,7 +387,7 @@ const Auth = () => {
         </div>
 
         <div className="p-6 text-center text-sm text-muted-foreground">
-          <p>WooCollekt IA - Collecte de données intelligente</p>
+          <p>Youcollect - Collecte de données intelligente</p>
           <p>Mode hors ligne compatible</p>
         </div>
       </div>

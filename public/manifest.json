@@ -1,6 +1,6 @@
 {
-  "name": "WooCollekt IA",
-  "short_name": "WooCollekt",
+  "name": "Youcollect",
+  "short_name": "Youcollect",
   "description": "Application professionnelle de collecte de données terrain avec IA",
   "start_url": "/",
   "display": "standalone",
@@ -9,9 +9,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }

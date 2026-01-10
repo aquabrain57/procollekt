@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DbSurvey, DbSurveyField } from '@/hooks/useSurveys';
-import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff, Globe, Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -10,6 +10,15 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { cn } from '@/lib/utils';
 import { PWAInstallBanner } from '@/components/PWAInstallBanner';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/contexts/ThemeContext';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import logo from '@/assets/youcollect-logo.png';
 
 interface PendingResponse {
   id: string;
@@ -1069,37 +1078,88 @@ const Survey = () => {
     );
   }
 
+  const { t, i18n } = useTranslation();
+  const { resolvedTheme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+  };
+
+  const changeLanguage = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
+
   return (
     <>
-      {/* Dynamic OG meta tags for shared survey */}
-      <title>{survey?.title || 'Enquête'} | WooCollekt IA</title>
+      {/* Dynamic SEO meta tags for shared survey */}
+      <title>{survey?.title || 'Enquête'} | Youcollect</title>
       <meta name="description" content={survey?.description || 'Répondez à cette enquête'} />
 
       <div className="min-h-screen bg-background">
         {/* Header */}
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
           <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-foreground truncate">{survey?.title}</h1>
-              {survey?.description && (
-                <p className="text-xs text-muted-foreground truncate">{survey.description}</p>
-              )}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <img src={logo} alt="Youcollect" className="h-8 w-auto" />
+              <div className="min-w-0">
+                <h1 className="font-bold text-foreground truncate text-sm">{survey?.title}</h1>
+                {survey?.description && (
+                  <p className="text-xs text-muted-foreground truncate">{survey.description}</p>
+                )}
+              </div>
             </div>
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-1 ml-2">
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
+              >
+                {resolvedTheme === 'dark' ? (
+                  <Sun className="h-4 w-4 text-foreground" />
+                ) : (
+                  <Moon className="h-4 w-4 text-foreground" />
+                )}
+              </button>
+
+              {/* Language Selector */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1">
+                    <Globe className="h-4 w-4 text-foreground" />
+                    <span className="text-xs font-medium uppercase text-foreground">
+                      {i18n.language}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => changeLanguage('fr')}
+                    className={cn(i18n.language === 'fr' && 'bg-primary/10')}
+                  >
+                    🇫🇷 Français
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => changeLanguage('en')}
+                    className={cn(i18n.language === 'en' && 'bg-primary/10')}
+                  >
+                    🇬🇧 English
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               {isOnline ? (
-                <span className="flex items-center gap-1 text-xs text-green-600">
+                <span className="flex items-center gap-1 text-xs text-green-600 ml-1">
                   <Wifi className="h-3 w-3" />
-                  En ligne
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs text-orange-600">
+                <span className="flex items-center gap-1 text-xs text-orange-600 ml-1">
                   <WifiOff className="h-3 w-3" />
-                  Hors ligne
                 </span>
               )}
               {pendingResponses.length > 0 && (
                 <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
-                  {pendingResponses.length} en attente
+                  {pendingResponses.length}
                 </span>
               )}
             </div>
@@ -1130,10 +1190,10 @@ const Survey = () => {
               {submitting ? (
                 <>
                   <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  Envoi en cours...
+                  {t('form.submitting')}
                 </>
               ) : (
-                'Soumettre la réponse'
+                t('form.submit')
               )}
             </Button>
           </div>
