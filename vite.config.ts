@@ -15,10 +15,10 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'placeholder.svg'],
+      includeAssets: ['favicon.png', 'placeholder.svg'],
       manifest: {
-        name: 'WooCollekt IA - Collecte de données terrain',
-        short_name: 'WooCollekt',
+        name: 'Youcollect - Collecte de données terrain',
+        short_name: 'Youcollect',
         description: 'Application professionnelle de collecte de données terrain avec IA',
         theme_color: '#6366f1',
         background_color: '#0a0a0a',
@@ -28,14 +28,9 @@ export default defineConfig(({ mode }) => ({
         scope: '/',
         icons: [
           {
-            src: 'favicon.ico',
-            sizes: '64x64 32x32 24x24 16x16',
-            type: 'image/x-icon'
-          },
-          {
-            src: 'placeholder.svg',
-            sizes: '192x192',
-            type: 'image/svg+xml',
+            src: 'favicon.png',
+            sizes: '512x512',
+            type: 'image/png',
             purpose: 'any maskable'
           }
         ]

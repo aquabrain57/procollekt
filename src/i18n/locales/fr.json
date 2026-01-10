@@ -11,7 +11,8 @@
     "actions": "Actions",
     "yes": "Oui",
     "no": "Non",
-    "all": "Tous"
+    "all": "Tous",
+    "back": "Retour"
   },
   "nav": {
     "home": "Accueil",
@@ -106,7 +107,7 @@
   "form": {
     "required": "Requis",
     "optional": "Optionnel",
-    "submit": "Soumettre",
+    "submit": "Soumettre la réponse",
     "clear": "Effacer",
     "submitting": "Envoi en cours...",
     "successTitle": "Réponse enregistrée !",
@@ -154,5 +155,13 @@
     "createAccount": "Créer un compte",
     "alreadyHaveAccount": "Déjà un compte ?",
     "noAccount": "Pas de compte ?"
+  },
+  "survey": {
+    "online": "En ligne",
+    "offline": "Hors ligne",
+    "pending": "en attente",
+    "thankYou": "Merci !",
+    "responseRecorded": "Votre réponse a été enregistrée avec succès.",
+    "newResponse": "Nouvelle réponse"
   }
 }
