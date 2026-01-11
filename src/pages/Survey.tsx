@@ -18,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import logo from '@/assets/youcollect-logo.png';
+
 
 interface PendingResponse {
   id: string;
@@ -877,6 +877,21 @@ const Survey = () => {
     }
   }, [id]);
 
+  // SEO (SPA): update <title> + meta description in <head>
+  useEffect(() => {
+    const pageTitle = `${survey?.title || t('nav.surveys')} | Youcollect`;
+    document.title = pageTitle;
+
+    const description = survey?.description || "Répondez à cette enquête";
+    let meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.name = 'description';
+      document.head.appendChild(meta);
+    }
+    meta.content = description;
+  }, [survey, t]);
+
   const loadSurvey = async () => {
     try {
       // Try to load from cache first if offline
@@ -1089,119 +1104,113 @@ const Survey = () => {
   }
 
   return (
-    <>
-      {/* Dynamic SEO meta tags for shared survey */}
-      <title>{survey?.title || 'Enquête'} | Youcollect</title>
-      <meta name="description" content={survey?.description || 'Répondez à cette enquête'} />
-
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
-          <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <img src={logo} alt="Youcollect" className="h-8 w-auto" />
-              <div className="min-w-0">
-                <h1 className="font-bold text-foreground truncate text-sm">{survey?.title}</h1>
-                {survey?.description && (
-                  <p className="text-xs text-muted-foreground truncate">{survey.description}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-1 ml-2">
-              {/* Theme Toggle */}
-              <button
-                onClick={toggleTheme}
-                className="p-2 rounded-lg hover:bg-muted transition-colors"
-                aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
-              >
-                {resolvedTheme === 'dark' ? (
-                  <Sun className="h-4 w-4 text-foreground" />
-                ) : (
-                  <Moon className="h-4 w-4 text-foreground" />
-                )}
-              </button>
-
-              {/* Language Selector */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1">
-                    <Globe className="h-4 w-4 text-foreground" />
-                    <span className="text-xs font-medium uppercase text-foreground">
-                      {i18n.language}
-                    </span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem 
-                    onClick={() => changeLanguage('fr')}
-                    className={cn(i18n.language === 'fr' && 'bg-primary/10')}
-                  >
-                    🇫🇷 Français
-                  </DropdownMenuItem>
-                  <DropdownMenuItem 
-                    onClick={() => changeLanguage('en')}
-                    className={cn(i18n.language === 'en' && 'bg-primary/10')}
-                  >
-                    🇬🇧 English
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {isOnline ? (
-                <span className="flex items-center gap-1 text-xs text-green-600 ml-1">
-                  <Wifi className="h-3 w-3" />
-                </span>
-              ) : (
-                <span className="flex items-center gap-1 text-xs text-orange-600 ml-1">
-                  <WifiOff className="h-3 w-3" />
-                </span>
-              )}
-              {pendingResponses.length > 0 && (
-                <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
-                  {pendingResponses.length}
-                </span>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="min-w-0">
+              <p className="font-bold text-foreground truncate text-sm">Youcollect</p>
+              <h1 className="text-xs text-muted-foreground truncate">{survey?.title}</h1>
+              {survey?.description && (
+                <p className="text-xs text-muted-foreground/80 truncate">{survey.description}</p>
               )}
             </div>
           </div>
-        </header>
-
-        {/* Form */}
-        <main className="max-w-2xl mx-auto px-4 py-6">
-          <div className="space-y-4">
-            {fields.map((field) => (
-              <SurveyFormField
-                key={field.id}
-                field={field}
-                value={formData[field.id]}
-                onChange={(value) => handleFieldChange(field.id, value)}
-                autoDetectedLocation={autoDetectedLocation}
-              />
-            ))}
-          </div>
-
-          {/* Submit button */}
-          <div className="mt-8 pb-8">
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting}
-              className="w-full py-6 text-lg"
+          <div className="flex items-center gap-1 ml-2">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
             >
-              {submitting ? (
-                <>
-                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                  {t('form.submitting')}
-                </>
+              {resolvedTheme === 'dark' ? (
+                <Sun className="h-4 w-4 text-foreground" />
               ) : (
-                t('form.submit')
+                <Moon className="h-4 w-4 text-foreground" />
               )}
-            </Button>
-          </div>
-        </main>
+            </button>
 
-        {/* PWA Install Banner */}
-        <PWAInstallBanner />
-      </div>
-    </>
+            {/* Language Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1">
+                  <Globe className="h-4 w-4 text-foreground" />
+                  <span className="text-xs font-medium uppercase text-foreground">
+                    {i18n.language}
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => changeLanguage('fr')}
+                  className={cn(i18n.language === 'fr' && 'bg-primary/10')}
+                >
+                  🇫🇷 Français
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => changeLanguage('en')}
+                  className={cn(i18n.language === 'en' && 'bg-primary/10')}
+                >
+                  🇬🇧 English
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {isOnline ? (
+              <span className="flex items-center gap-1 text-xs text-green-600 ml-1">
+                <Wifi className="h-3 w-3" />
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-xs text-orange-600 ml-1">
+                <WifiOff className="h-3 w-3" />
+              </span>
+            )}
+            {pendingResponses.length > 0 && (
+              <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
+                {pendingResponses.length}
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Form */}
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        <div className="space-y-4">
+          {fields.map((field) => (
+            <SurveyFormField
+              key={field.id}
+              field={field}
+              value={formData[field.id]}
+              onChange={(value) => handleFieldChange(field.id, value)}
+              autoDetectedLocation={autoDetectedLocation}
+            />
+          ))}
+        </div>
+
+        {/* Submit button */}
+        <div className="mt-8 pb-8">
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="w-full py-6 text-lg"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                {t('form.submitting')}
+              </>
+            ) : (
+              t('form.submit')
+            )}
+          </Button>
+        </div>
+      </main>
+
+      {/* PWA Install Banner */}
+      <PWAInstallBanner />
+    </div>
   );
 };
 

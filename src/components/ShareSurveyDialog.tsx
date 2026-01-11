@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Share2, Copy, Check, Link2, QrCode, ExternalLink } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Share2, Copy, Check, Link2, ExternalLink } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,8 +21,8 @@ interface ShareSurveyDialogProps {
 
 export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: ShareSurveyDialogProps) => {
   const [copied, setCopied] = useState(false);
-  
-  const surveyUrl = `${window.location.origin}/survey/${surveyId}`;
+
+  const surveyUrl = useMemo(() => `${window.location.origin}/survey/${surveyId}`, [surveyId]);
 
   const handleCopy = async () => {
     try {
@@ -76,11 +77,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: 
 
         <div className="space-y-4 py-4">
           <div className="flex items-center gap-2">
-            <Input
-              value={surveyUrl}
-              readOnly
-              className="font-mono text-sm"
-            />
+            <Input value={surveyUrl} readOnly className="font-mono text-sm" />
             <Button size="icon" variant="outline" onClick={handleCopy}>
               {copied ? (
                 <Check className="h-4 w-4 text-success" />
@@ -99,6 +96,18 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: 
               <ExternalLink className="h-4 w-4 mr-2" />
               Ouvrir
             </Button>
+          </div>
+
+          <div className="rounded-lg border border-border bg-muted/30 p-4">
+            <p className="text-sm font-medium text-foreground mb-3">QR code</p>
+            <div className="flex items-center justify-center">
+              <div className="rounded-md bg-background p-3">
+                <QRCodeCanvas value={surveyUrl} size={180} includeMargin />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              Scannez pour ouvrir l'enquête.
+            </p>
           </div>
 
           <div className="bg-muted/50 rounded-lg p-4 text-sm">
