@@ -211,7 +211,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-2">
           <Label className="flex items-center gap-1.5">
             <Briefcase className="h-3.5 w-3.5" />
@@ -267,7 +267,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           Créer une enquête
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-xl max-w-[95vw] max-h-[90vh] overflow-y-auto mx-auto">
         <DialogHeader>
           <DialogTitle>Nouvelle enquête</DialogTitle>
           <DialogDescription>
@@ -276,22 +276,26 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="manual" className="text-xs">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 gap-1">
+            <TabsTrigger value="manual" className="text-xs px-2">
               <Plus className="h-3 w-3 mr-1" />
-              Manuel
+              <span className="hidden sm:inline">Manuel</span>
+              <span className="sm:hidden">Manuel</span>
             </TabsTrigger>
-            <TabsTrigger value="template" className="text-xs">
+            <TabsTrigger value="template" className="text-xs px-2">
               <LayoutTemplate className="h-3 w-3 mr-1" />
-              Modèle
+              <span className="hidden sm:inline">Modèle</span>
+              <span className="sm:hidden">Modèle</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="text-xs">
+            <TabsTrigger value="ai" className="text-xs px-2">
               <Sparkles className="h-3 w-3 mr-1" />
-              IA
+              <span className="hidden sm:inline">IA</span>
+              <span className="sm:hidden">IA</span>
             </TabsTrigger>
-            <TabsTrigger value="import" className="text-xs">
+            <TabsTrigger value="import" className="text-xs px-2">
               <Upload className="h-3 w-3 mr-1" />
-              Import
+              <span className="hidden sm:inline">Import</span>
+              <span className="sm:hidden">Import</span>
             </TabsTrigger>
           </TabsList>
 

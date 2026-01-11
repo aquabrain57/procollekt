@@ -113,7 +113,11 @@
     "successTitle": "Réponse enregistrée !",
     "successDesc": "Votre réponse a été sauvegardée avec succès",
     "newResponse": "Nouvelle réponse",
-    "selectLanguage": "Langue du formulaire"
+    "selectLanguage": "Langue du formulaire",
+    "thankYou": "Merci !",
+    "submitted": "Votre réponse a été enregistrée avec succès.",
+    "responseRecorded": "réponse enregistrée sur cet appareil",
+    "responsesRecorded": "réponses enregistrées sur cet appareil"
   },
   "premium": {
     "title": "Rapport Premium",

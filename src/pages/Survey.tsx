@@ -1083,6 +1083,9 @@ const Survey = () => {
   }
 
   if (submitted) {
+    // Count pending + this one
+    const myResponseCount = pendingResponses.filter(r => r.survey_id === survey?.id).length;
+    
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -1090,12 +1093,17 @@ const Survey = () => {
             <div className="bg-green-500/10 p-4 rounded-full w-fit mx-auto mb-4">
               <CheckCircle className="h-12 w-12 text-green-500" />
             </div>
-            <h2 className="text-xl font-bold text-foreground mb-2">Merci !</h2>
-            <p className="text-muted-foreground mb-6">
-              Votre réponse a été enregistrée avec succès.
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('form.thankYou')}</h2>
+            <p className="text-muted-foreground mb-2">
+              {t('form.submitted')}
             </p>
+            {myResponseCount > 0 && (
+              <p className="text-sm text-primary font-medium mb-6">
+                📊 {myResponseCount} {myResponseCount === 1 ? t('form.responseRecorded') : t('form.responsesRecorded')}
+              </p>
+            )}
             <Button onClick={handleNewResponse} className="w-full">
-              Nouvelle réponse
+              {t('form.newResponse')}
             </Button>
           </CardContent>
         </Card>

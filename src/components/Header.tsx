@@ -52,20 +52,20 @@ export const Header = ({
   return (
     <header className="sticky top-0 z-50 glass-card border-b border-border/50 safe-area-top">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {showBack ? (
             <button
               onClick={onBack}
-              className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors touch-target"
+              className="p-2 -ml-2 rounded-lg hover:bg-muted transition-colors touch-target flex-shrink-0"
               aria-label={t('common.back')}
             >
               <ArrowLeft className="h-5 w-5 text-foreground" />
             </button>
           ) : (
-            <span className="font-bold text-lg text-foreground tracking-tight">Youcollect</span>
+            <span className="font-bold text-lg text-foreground tracking-tight hidden sm:block">Youcollect</span>
           )}
           {showBack && (
-            <h1 className="font-semibold text-lg text-foreground truncate">
+            <h1 className="font-semibold text-lg text-foreground truncate max-w-[150px] sm:max-w-none">
               {title}
             </h1>
           )}

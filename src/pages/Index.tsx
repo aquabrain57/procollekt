@@ -74,6 +74,12 @@ const Index = () => {
     fields: [],
   }));
 
+  // Calculate response counts per survey
+  const responseCounts: Record<string, number> = {};
+  allResponses.forEach(r => {
+    responseCounts[r.survey_id] = (responseCounts[r.survey_id] || 0) + 1;
+  });
+
   const mySurveys = surveys.filter(s => s.user_id === user?.id);
   const activeSurveys = surveys.filter(s => s.status === 'active');
 
@@ -375,6 +381,7 @@ const Index = () => {
                 ) : (
                   <MySurveysList
                     surveys={mySurveys}
+                    responseCounts={responseCounts}
                     onEdit={handleEditSurvey}
                     onDelete={deleteSurvey}
                     onPublish={publishSurvey}

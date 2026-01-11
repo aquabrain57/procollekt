@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { FileEdit, Eye, Trash2, Send, MoreVertical, Users } from 'lucide-react';
-import { DbSurvey } from '@/hooks/useSurveys';
+import { FileEdit, Eye, Trash2, Send, MoreVertical, Users, MessageSquare } from 'lucide-react';
+import { DbSurvey, DbSurveyResponse } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -24,6 +24,7 @@ import {
 
 interface MySurveysListProps {
   surveys: DbSurvey[];
+  responseCounts: Record<string, number>;
   onEdit: (survey: DbSurvey) => void;
   onDelete: (id: string) => void;
   onPublish: (id: string) => void;
@@ -33,6 +34,7 @@ interface MySurveysListProps {
 
 export const MySurveysList = ({
   surveys,
+  responseCounts,
   onEdit,
   onDelete,
   onPublish,
@@ -75,9 +77,13 @@ export const MySurveysList = ({
                   {survey.description}
                 </p>
               )}
-              <p className="text-xs text-muted-foreground">
-                Créé le {format(new Date(survey.created_at), 'dd MMM yyyy', { locale: fr })}
-              </p>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <span>Créé le {format(new Date(survey.created_at), 'dd MMM yyyy', { locale: fr })}</span>
+                <span className="flex items-center gap-1 text-primary font-medium">
+                  <MessageSquare className="h-3 w-3" />
+                  {responseCounts[survey.id] || 0} réponse{(responseCounts[survey.id] || 0) !== 1 ? 's' : ''}
+                </span>
+              </div>
             </div>
 
             <DropdownMenu>
