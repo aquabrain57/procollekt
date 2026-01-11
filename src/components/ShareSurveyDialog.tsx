@@ -61,15 +61,15 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: 
           Partager
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-w-[95vw] mx-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-primary" />
-            Partager l'enquête
+            <Link2 className="h-5 w-5 text-primary flex-shrink-0" />
+            <span className="truncate">Partager l'enquête</span>
           </DialogTitle>
           <DialogDescription>
             {surveyDescription ? (
-              <span className="block mb-2">{surveyDescription}</span>
+              <span className="block mb-2 line-clamp-2">{surveyDescription}</span>
             ) : null}
             Partagez ce lien avec vos enquêteurs de terrain pour qu'ils puissent collecter des données.
           </DialogDescription>
@@ -77,8 +77,8 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: 
 
         <div className="space-y-4 py-4">
           <div className="flex items-center gap-2">
-            <Input value={surveyUrl} readOnly className="font-mono text-sm" />
-            <Button size="icon" variant="outline" onClick={handleCopy}>
+            <Input value={surveyUrl} readOnly className="font-mono text-xs sm:text-sm flex-1 min-w-0" />
+            <Button size="icon" variant="outline" onClick={handleCopy} className="flex-shrink-0">
               {copied ? (
                 <Check className="h-4 w-4 text-success" />
               ) : (
@@ -87,33 +87,34 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: 
             </Button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button onClick={handleShare} className="w-full">
-              <Share2 className="h-4 w-4 mr-2" />
-              Partager
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
+            <Button onClick={handleShare} className="w-full text-sm">
+              <Share2 className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="truncate">Partager</span>
             </Button>
-            <Button variant="outline" onClick={() => window.open(surveyUrl, '_blank')}>
-              <ExternalLink className="h-4 w-4 mr-2" />
-              Ouvrir
+            <Button variant="outline" onClick={() => window.open(surveyUrl, '_blank')} className="text-sm">
+              <ExternalLink className="h-4 w-4 mr-1 sm:mr-2" />
+              <span className="truncate">Ouvrir</span>
             </Button>
           </div>
 
-          <div className="rounded-lg border border-border bg-muted/30 p-4">
+          <div className="rounded-lg border border-border bg-muted/30 p-3 sm:p-4">
             <p className="text-sm font-medium text-foreground mb-3">QR code</p>
             <div className="flex items-center justify-center">
-              <div className="rounded-md bg-background p-3">
-                <QRCodeCanvas value={surveyUrl} size={180} includeMargin />
+              <div className="rounded-md bg-background p-2 sm:p-3">
+                <QRCodeCanvas value={surveyUrl} size={140} includeMargin className="sm:hidden" />
+                <QRCodeCanvas value={surveyUrl} size={180} includeMargin className="hidden sm:block" />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-xs text-muted-foreground mt-3 text-center">
               Scannez pour ouvrir l'enquête.
             </p>
           </div>
 
-          <div className="bg-muted/50 rounded-lg p-4 text-sm">
+          <div className="bg-muted/50 rounded-lg p-3 sm:p-4 text-sm">
             <p className="font-medium text-foreground mb-1">💡 Astuce</p>
-            <p className="text-muted-foreground">
-              Cette application fonctionne hors-ligne ! Les enquêteurs peuvent collecter des données même sans connexion internet. Les réponses seront synchronisées automatiquement.
+            <p className="text-muted-foreground text-xs sm:text-sm">
+              Cette application fonctionne hors-ligne ! Les enquêteurs peuvent collecter des données même sans connexion internet.
             </p>
           </div>
         </div>

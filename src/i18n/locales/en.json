@@ -113,7 +113,11 @@
     "successTitle": "Response saved!",
     "successDesc": "Your response has been saved successfully",
     "newResponse": "New response",
-    "selectLanguage": "Form language"
+    "selectLanguage": "Form language",
+    "thankYou": "Thank you!",
+    "submitted": "Your response has been recorded successfully.",
+    "responseRecorded": "response recorded on this device",
+    "responsesRecorded": "responses recorded on this device"
   },
   "premium": {
     "title": "Premium Report",

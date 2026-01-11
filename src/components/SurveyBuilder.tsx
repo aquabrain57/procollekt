@@ -490,13 +490,14 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
           {survey.status === 'active' && (
             <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} />
           )}
-          <Button variant="outline" size="sm" onClick={onPreview}>
+          <Button variant="outline" size="sm" onClick={onPreview} className="text-xs sm:text-sm">
             <Eye className="h-4 w-4 mr-1" />
-            Aperçu
+            <span className="hidden sm:inline">Aperçu</span>
           </Button>
-          <Button size="sm" onClick={onPublish}>
+          <Button size="sm" onClick={onPublish} className="text-xs sm:text-sm">
             <Send className="h-4 w-4 mr-1" />
-            {survey.status === 'active' ? 'Dépublier' : 'Publier'}
+            <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Publier'}</span>
+            <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : 'Go'}</span>
           </Button>
         </div>
       </div>
@@ -563,7 +564,7 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
       <div className="space-y-4">
         <h3 className="font-semibold text-foreground">Ajouter une question</h3>
         <div className="bg-card border border-border rounded-xl p-4">
-          <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
             {FIELD_TYPES.map((type) => (
               <button
                 key={type.value}
