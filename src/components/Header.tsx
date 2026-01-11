@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import logo from '@/assets/youcollect-logo.png';
+
 
 type Tab = 'home' | 'surveys' | 'data' | 'settings';
 
@@ -62,7 +62,7 @@ export const Header = ({
               <ArrowLeft className="h-5 w-5 text-foreground" />
             </button>
           ) : (
-            <img src={logo} alt="Youcollect" className="h-8 w-auto" />
+            <span className="font-bold text-lg text-foreground tracking-tight">Youcollect</span>
           )}
           {showBack && (
             <h1 className="font-semibold text-lg text-foreground truncate">
@@ -110,7 +110,7 @@ export const Header = ({
             <DropdownMenuTrigger asChild>
               <button className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1">
                 <Globe className="h-5 w-5 text-foreground" />
-                <span className="text-xs font-medium uppercase text-foreground hidden sm:inline">
+                <span className="text-xs font-medium uppercase text-foreground">
                   {i18n.language}
                 </span>
               </button>
