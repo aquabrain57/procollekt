@@ -487,17 +487,15 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
             selectedTemplate={selectedDesign} 
             onSelect={handleDesignSelect} 
           />
-          {survey.status === 'active' && (
-            <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} />
-          )}
+          <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} />
           <Button variant="outline" size="sm" onClick={onPreview} className="text-xs sm:text-sm">
             <Eye className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Aperçu</span>
           </Button>
           <Button size="sm" onClick={onPublish} className="text-xs sm:text-sm">
             <Send className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Publier'}</span>
-            <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : 'Go'}</span>
+            <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Déployer sur serveur'}</span>
+            <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : 'Déployer'}</span>
           </Button>
         </div>
       </div>

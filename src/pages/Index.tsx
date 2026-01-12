@@ -250,7 +250,7 @@ const Index = () => {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="p-4 space-y-6 pb-24">
+          <div className="px-2 sm:px-4 py-4 space-y-4 pb-24">
             {/* Welcome Section */}
             <div className="slide-up">
               <h2 className="text-2xl font-bold text-foreground mb-1">

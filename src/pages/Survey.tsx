@@ -357,39 +357,87 @@ const SurveyFormField = ({
         );
 
       case 'date':
+        // Auto-fill with today's date if empty
+        const todayDate = new Date().toISOString().split('T')[0];
+        const displayDate = value || todayDate;
+        
+        // Auto-set if not already set
+        if (!value) {
+          // Schedule update to avoid state update during render
+          setTimeout(() => onChange(todayDate), 0);
+        }
+        
         return (
-          <div className="relative">
-            <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <input
-              type="date"
-              value={value || ''}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <input
+                type="date"
+                value={displayDate}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Check className="h-3 w-3 text-green-500" />
+              Date remplie automatiquement
+            </p>
           </div>
         );
 
       case 'time':
+        // Auto-fill with current time if empty
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        const displayTime = value || currentTime;
+        
+        // Auto-set if not already set
+        if (!value) {
+          setTimeout(() => onChange(currentTime), 0);
+        }
+        
         return (
-          <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <input
-              type="time"
-              value={value || ''}
-              onChange={(e) => onChange(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
-            />
+          <div className="space-y-2">
+            <div className="relative">
+              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <input
+                type="time"
+                value={displayTime}
+                onChange={(e) => onChange(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Check className="h-3 w-3 text-green-500" />
+              Heure remplie automatiquement (modifiable)
+            </p>
           </div>
         );
 
       case 'datetime':
+        // Auto-fill with current datetime if empty
+        const nowDt = new Date();
+        const currentDateTime = nowDt.toISOString().slice(0, 16);
+        const displayDateTime = value || currentDateTime;
+        
+        // Auto-set if not already set
+        if (!value) {
+          setTimeout(() => onChange(currentDateTime), 0);
+        }
+        
         return (
-          <input
-            type="datetime-local"
-            value={value || ''}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
+          <div className="space-y-2">
+            <input
+              type="datetime-local"
+              value={displayDateTime}
+              onChange={(e) => onChange(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Check className="h-3 w-3 text-green-500" />
+              Date et heure remplies automatiquement
+            </p>
+          </div>
         );
 
       case 'location':
@@ -1118,8 +1166,7 @@ const Survey = () => {
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="min-w-0">
-              <p className="font-bold text-foreground truncate text-sm">Youcollect</p>
-              <h1 className="text-xs text-muted-foreground truncate">{survey?.title}</h1>
+              <h1 className="font-bold text-foreground truncate text-sm">{survey?.title}</h1>
               {survey?.description && (
                 <p className="text-xs text-muted-foreground/80 truncate">{survey.description}</p>
               )}
