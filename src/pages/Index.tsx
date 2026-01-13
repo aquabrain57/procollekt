@@ -37,7 +37,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const { surveys, loading: surveysLoading, createSurvey, deleteSurvey, publishSurvey, unpublishSurvey } = useSurveys();
+  const { surveys, loading: surveysLoading, createSurvey, updateSurvey, deleteSurvey, publishSurvey, unpublishSurvey } = useSurveys();
   const { responses: allResponses, loading: responsesLoading } = useSurveyResponses();
   const { responses, loading: selectedResponsesLoading } = useSurveyResponses(selectedSurvey?.id);
 
@@ -164,6 +164,16 @@ const Index = () => {
 
     const { error } = await supabase.from('survey_fields').insert(rows);
     if (error) throw error;
+  };
+
+  const handleCreateSurveyWithImage = async (title: string, description: string, coverImageUrl?: string) => {
+    const survey = await createSurvey(title, description);
+    if (survey && coverImageUrl) {
+      // Update survey with cover image
+      await updateSurvey(survey.id, { cover_image_url: coverImageUrl } as any);
+      return { ...survey, cover_image_url: coverImageUrl };
+    }
+    return survey;
   };
 
   const handleSurveyCreated = async (survey: DbSurvey, fieldsToAdd?: unknown[]) => {
@@ -372,7 +382,7 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="my-surveys" className="mt-4 space-y-4">
-                <CreateSurveyDialog onSubmit={createSurvey} onSurveyCreated={handleSurveyCreated} />
+                <CreateSurveyDialog onSubmit={handleCreateSurveyWithImage} onSurveyCreated={handleSurveyCreated} />
                 
                 {surveysLoading ? (
                   <div className="text-center py-8 text-muted-foreground">

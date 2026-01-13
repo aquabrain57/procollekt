@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, memo } from 'react';
-import { Plus, ArrowRight, LayoutTemplate, Sparkles, Globe, Briefcase, Upload, Link } from 'lucide-react';
+import { Plus, ArrowRight, LayoutTemplate, Sparkles, Globe, Briefcase, Upload, Link, Image, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +28,7 @@ import { SurveyTemplate } from '@/data/surveyTemplates';
 import { SURVEY_SECTORS, COUNTRIES } from '@/data/surveyConfig';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { supabase } from '@/integrations/supabase/client';
 
 const surveySchema = z.object({
   title: z.string().min(3, 'Le titre doit contenir au moins 3 caractères').max(100),
@@ -37,7 +38,7 @@ const surveySchema = z.object({
 });
 
 interface CreateSurveyDialogProps {
-  onSubmit: (title: string, description: string) => Promise<DbSurvey | null>;
+  onSubmit: (title: string, description: string, coverImageUrl?: string) => Promise<DbSurvey | null>;
   onSurveyCreated?: (survey: DbSurvey, fieldsToAdd?: any[]) => void;
 }
 
@@ -52,10 +53,14 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
   const [xlsUrl, setXlsUrl] = useState('');
   const [activeTab, setActiveTab] = useState('manual');
   const [canSubmit, setCanSubmit] = useState(false);
+  const [coverImage, setCoverImage] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   // Use refs for fast input without re-renders
   const titleRef = useRef<HTMLInputElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -70,12 +75,66 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
       setXlsUrl('');
       setActiveTab('manual');
       setCanSubmit(false);
+      setCoverImage(null);
+      setCoverImagePreview(null);
     }
   }, [open]);
 
   const checkCanSubmit = () => {
     const title = titleRef.current?.value.trim() || '';
     setCanSubmit(title.length >= 3 && sector !== '' && country !== '');
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('L\'image ne doit pas dépasser 5 Mo');
+        return;
+      }
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeCoverImage = () => {
+    setCoverImage(null);
+    setCoverImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadCoverImage = async (): Promise<string | null> => {
+    if (!coverImage) return null;
+    
+    setIsUploadingImage(true);
+    try {
+      const fileExt = coverImage.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('survey-covers')
+        .upload(fileName, coverImage);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('survey-covers')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error: any) {
+      console.error('Error uploading image:', error);
+      toast.error('Erreur lors du téléversement de l\'image');
+      return null;
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -100,13 +159,20 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
 
     setIsSubmitting(true);
     
+    // Upload cover image if present
+    let coverImageUrl: string | undefined;
+    if (coverImage) {
+      const url = await uploadCoverImage();
+      if (url) coverImageUrl = url;
+    }
+    
     // Build description with sector and country
     const sectorLabel = SURVEY_SECTORS.find(s => s.value === sector)?.label;
     const countryLabel = COUNTRIES.find(c => c.value === country)?.label;
     const meta = [sectorLabel, countryLabel].filter(Boolean).join(' - ');
     const fullDescription = meta + (description ? `\n${description}` : '');
     
-    const survey = await onSubmit(title, fullDescription);
+    const survey = await onSubmit(title, fullDescription, coverImageUrl);
     setIsSubmitting(false);
 
     if (survey) {
@@ -209,6 +275,52 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         {errors.description && (
           <p className="text-sm text-destructive">{errors.description}</p>
         )}
+      </div>
+
+      {/* Cover Image Upload */}
+      <div className="space-y-2">
+        <Label className="flex items-center gap-1.5">
+          <Image className="h-3.5 w-3.5" />
+          Image illustrative (optionnel)
+        </Label>
+        {coverImagePreview ? (
+          <div className="relative w-full h-32 rounded-lg border overflow-hidden bg-muted">
+            <img 
+              src={coverImagePreview} 
+              alt="Aperçu" 
+              className="w-full h-full object-cover"
+            />
+            <Button
+              type="button"
+              variant="destructive"
+              size="icon"
+              className="absolute top-2 right-2 h-6 w-6"
+              onClick={removeCoverImage}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        ) : (
+          <div 
+            className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <Image className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+            <p className="text-xs text-muted-foreground">
+              Cliquez pour ajouter une image
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-1">
+              PNG, JPG jusqu'à 5 Mo
+            </p>
+          </div>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -407,9 +519,9 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           </Button>
           <Button 
             onClick={handleSubmit} 
-            disabled={isSubmitting || !canSubmit}
+            disabled={isSubmitting || !canSubmit || isUploadingImage}
           >
-            {isSubmitting ? 'Création...' : (
+            {isSubmitting || isUploadingImage ? 'Création...' : (
               <>
                 Créer le projet
                 <ArrowRight className="h-4 w-4 ml-2" />

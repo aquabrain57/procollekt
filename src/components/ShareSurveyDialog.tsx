@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef } from 'react';
-import { Share2, Copy, Check, Link2, ExternalLink, Download, QrCode } from 'lucide-react';
+import { Share2, Copy, Check, Link2, ExternalLink, Download, QrCode, Image } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,9 +17,10 @@ interface ShareSurveyDialogProps {
   surveyId: string;
   surveyTitle: string;
   surveyDescription?: string | null;
+  coverImageUrl?: string | null;
 }
 
-export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: ShareSurveyDialogProps) => {
+export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, coverImageUrl }: ShareSurveyDialogProps) => {
   const [copied, setCopied] = useState(false);
   const [showQROnly, setShowQROnly] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
@@ -162,6 +163,26 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription }: 
         </DialogHeader>
 
         <div className="space-y-3 py-2">
+          {/* Cover Image Thumbnail */}
+          {coverImageUrl && (
+            <div className="rounded-lg overflow-hidden border border-border bg-muted">
+              <div className="flex items-center gap-3 p-2">
+                <img 
+                  src={coverImageUrl} 
+                  alt="Aperçu" 
+                  className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-md flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate text-foreground">{surveyTitle}</p>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                    <Image className="h-3 w-3" />
+                    Image illustrative incluse
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* URL Copy */}
           <div className="flex items-center gap-2">
             <Input 
