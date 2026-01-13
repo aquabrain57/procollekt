@@ -1,5 +1,5 @@
 import { useMemo, useState, useRef } from 'react';
-import { Share2, Copy, Check, Link2, ExternalLink, Download, QrCode, Image } from 'lucide-react';
+import { Share2, Copy, Check, Link2, ExternalLink, Download, QrCode, Image, Maximize2 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,9 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
+import { getShareBaseUrl, APP_CONFIG } from '@/config/app';
+import logoImage from '@/assets/youcollect-logo.png';
 
 interface ShareSurveyDialogProps {
   surveyId: string;
@@ -21,20 +24,24 @@ interface ShareSurveyDialogProps {
 }
 
 export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, coverImageUrl }: ShareSurveyDialogProps) => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [showQROnly, setShowQROnly] = useState(false);
+  const [showFullScreenQR, setShowFullScreenQR] = useState(false);
   const qrRef = useRef<HTMLDivElement>(null);
+  const fullScreenQrRef = useRef<HTMLDivElement>(null);
 
-  const surveyUrl = useMemo(() => `${window.location.origin}/survey/${surveyId}`, [surveyId]);
+  // Use production URL for sharing
+  const surveyUrl = useMemo(() => `${getShareBaseUrl()}/survey/${surveyId}`, [surveyId]);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(surveyUrl);
       setCopied(true);
-      toast.success('Lien copié dans le presse-papiers');
+      toast.success(t('share.linkCopied', 'Lien copié dans le presse-papiers'));
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      toast.error('Erreur lors de la copie');
+      toast.error(t('share.copyError', 'Erreur lors de la copie'));
     }
   };
 
@@ -43,7 +50,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
       try {
         await navigator.share({
           title: surveyTitle,
-          text: surveyDescription || `Répondez à l'enquête: ${surveyTitle}`,
+          text: surveyDescription || `${t('share.respondTo', "Répondez à l'enquête")}: ${surveyTitle}`,
           url: surveyUrl,
         });
       } catch (err) {
@@ -56,19 +63,19 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
     }
   };
 
-  const handleDownloadQR = () => {
-    const canvas = qrRef.current?.querySelector('canvas');
+  const handleDownloadQR = (ref: React.RefObject<HTMLDivElement>) => {
+    const canvas = ref.current?.querySelector('canvas');
     if (canvas) {
       const link = document.createElement('a');
       link.download = `qr-${surveyTitle.replace(/\s+/g, '-').toLowerCase()}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      toast.success('QR code téléchargé');
+      toast.success(t('share.qrDownloaded', 'QR code téléchargé'));
     }
   };
 
-  const handleShareQR = async () => {
-    const canvas = qrRef.current?.querySelector('canvas');
+  const handleShareQR = async (ref: React.RefObject<HTMLDivElement>) => {
+    const canvas = ref.current?.querySelector('canvas');
     if (canvas) {
       try {
         canvas.toBlob(async (blob) => {
@@ -79,14 +86,82 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
               files: [file],
             });
           } else {
-            handleDownloadQR();
+            handleDownloadQR(ref);
           }
         }, 'image/png');
       } catch (err) {
-        handleDownloadQR();
+        handleDownloadQR(ref);
       }
     }
   };
+
+  // Full screen QR code dialog
+  if (showFullScreenQR) {
+    return (
+      <Dialog open={showFullScreenQR} onOpenChange={setShowFullScreenQR}>
+        <DialogContent className="max-w-[95vw] sm:max-w-lg mx-auto p-4 sm:p-6">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="text-center text-lg sm:text-xl font-bold">
+              {t('share.scanToAccess', 'Scanner pour accéder')}
+            </DialogTitle>
+            <DialogDescription className="text-center text-sm line-clamp-2">
+              {surveyTitle}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col items-center py-4 sm:py-6" ref={fullScreenQrRef}>
+            <div className="bg-white p-4 sm:p-6 rounded-2xl shadow-xl relative">
+              <QRCodeCanvas 
+                value={surveyUrl} 
+                size={280}
+                includeMargin 
+                level="H"
+                imageSettings={{
+                  src: logoImage,
+                  height: 50,
+                  width: 50,
+                  excavate: true,
+                }}
+              />
+              {/* Brand name below QR */}
+              <div className="absolute bottom-2 left-0 right-0 text-center">
+                <span className="text-xs font-bold text-primary tracking-wider uppercase bg-white px-2">
+                  {APP_CONFIG.appName}
+                </span>
+              </div>
+            </div>
+            
+            {/* URL display */}
+            <div className="mt-4 text-center">
+              <p className="text-xs text-muted-foreground break-all max-w-[250px] mx-auto">
+                {surveyUrl}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Button onClick={() => handleDownloadQR(fullScreenQrRef)} variant="outline" className="text-sm">
+              <Download className="h-4 w-4 mr-2" />
+              {t('share.download', 'Télécharger')}
+            </Button>
+            <Button onClick={() => handleShareQR(fullScreenQrRef)} className="text-sm">
+              <Share2 className="h-4 w-4 mr-2" />
+              {t('share.share', 'Partager')}
+            </Button>
+          </div>
+
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setShowFullScreenQR(false)}
+            className="w-full mt-2 text-xs"
+          >
+            ← {t('share.backToOptions', 'Retour aux options')}
+          </Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   if (showQROnly) {
     return (
@@ -94,36 +169,47 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="text-xs sm:text-sm">
             <Share2 className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden xs:inline">Partager</span>
+            <span className="hidden xs:inline">{t('share.share', 'Partager')}</span>
           </Button>
         </DialogTrigger>
         <DialogContent className="max-w-xs sm:max-w-sm mx-auto p-4 sm:p-6">
           <DialogHeader className="pb-2">
-            <DialogTitle className="text-center text-base sm:text-lg">Scanner pour accéder</DialogTitle>
+            <DialogTitle className="text-center text-base sm:text-lg">
+              {t('share.scanToAccess', 'Scanner pour accéder')}
+            </DialogTitle>
             <DialogDescription className="text-center text-xs sm:text-sm line-clamp-2">
               {surveyTitle}
             </DialogDescription>
           </DialogHeader>
           
           <div className="flex flex-col items-center py-4" ref={qrRef}>
-            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-lg">
+            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-lg relative">
               <QRCodeCanvas 
                 value={surveyUrl} 
                 size={200}
                 includeMargin 
                 level="H"
+                imageSettings={{
+                  src: logoImage,
+                  height: 40,
+                  width: 40,
+                  excavate: true,
+                }}
               />
             </div>
+            <span className="mt-2 text-xs font-bold text-primary tracking-wider uppercase">
+              {APP_CONFIG.appName}
+            </span>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <Button onClick={handleDownloadQR} variant="outline" size="sm" className="text-xs sm:text-sm">
+            <Button onClick={() => handleDownloadQR(qrRef)} variant="outline" size="sm" className="text-xs sm:text-sm">
               <Download className="h-4 w-4 mr-1" />
-              Télécharger
+              {t('share.download', 'Télécharger')}
             </Button>
-            <Button onClick={handleShareQR} size="sm" className="text-xs sm:text-sm">
+            <Button onClick={() => handleShareQR(qrRef)} size="sm" className="text-xs sm:text-sm">
               <Share2 className="h-4 w-4 mr-1" />
-              Partager
+              {t('share.share', 'Partager')}
             </Button>
           </div>
 
@@ -133,7 +219,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
             onClick={() => setShowQROnly(false)}
             className="w-full mt-2 text-xs"
           >
-            ← Retour aux options
+            ← {t('share.backToOptions', 'Retour aux options')}
           </Button>
         </DialogContent>
       </Dialog>
@@ -145,20 +231,20 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="text-xs sm:text-sm">
           <Share2 className="h-4 w-4 mr-1 sm:mr-2" />
-          <span className="hidden xs:inline">Partager</span>
+          <span className="hidden xs:inline">{t('share.share', 'Partager')}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[92vw] sm:max-w-md mx-auto p-4 sm:p-6">
         <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Link2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary flex-shrink-0" />
-            <span className="truncate">Partager l'enquête</span>
+            <span className="truncate">{t('share.shareSurvey', "Partager l'enquête")}</span>
           </DialogTitle>
           <DialogDescription className="text-xs sm:text-sm">
             {surveyDescription ? (
               <span className="block mb-1 line-clamp-2">{surveyDescription}</span>
             ) : null}
-            Partagez ce lien avec vos enquêteurs.
+            {t('share.shareWithEnumerators', 'Partagez ce lien avec vos enquêteurs.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -176,7 +262,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
                   <p className="font-medium text-sm truncate text-foreground">{surveyTitle}</p>
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
                     <Image className="h-3 w-3" />
-                    Image illustrative incluse
+                    {t('share.illustrativeImage', 'Image illustrative incluse')}
                   </p>
                 </div>
               </div>
@@ -203,11 +289,11 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
           <div className="grid grid-cols-2 gap-2">
             <Button onClick={handleShare} size="sm" className="text-xs sm:text-sm h-9">
               <Share2 className="h-4 w-4 mr-1" />
-              Partager
+              {t('share.share', 'Partager')}
             </Button>
             <Button variant="outline" onClick={() => window.open(surveyUrl, '_blank')} size="sm" className="text-xs sm:text-sm h-9">
               <ExternalLink className="h-4 w-4 mr-1" />
-              Ouvrir
+              {t('share.open', 'Ouvrir')}
             </Button>
           </div>
 
@@ -218,49 +304,67 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setShowQROnly(true)}
+                onClick={() => setShowFullScreenQR(true)}
                 className="text-xs h-7 px-2"
               >
-                <QrCode className="h-3 w-3 mr-1" />
-                Plein écran
+                <Maximize2 className="h-3 w-3 mr-1" />
+                {t('share.fullscreen', 'Plein écran')}
               </Button>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3" ref={qrRef}>
-              <div className="bg-white p-2 rounded-lg shadow-sm">
+              <div className="bg-white p-2 rounded-lg shadow-sm relative">
                 <QRCodeCanvas 
                   value={surveyUrl} 
                   size={100}
                   includeMargin 
                   level="H"
+                  imageSettings={{
+                    src: logoImage,
+                    height: 20,
+                    width: 20,
+                    excavate: true,
+                  }}
                 />
               </div>
               <div className="flex sm:flex-col gap-2 w-full sm:w-auto">
                 <Button 
-                  onClick={handleDownloadQR} 
+                  onClick={() => handleDownloadQR(qrRef)} 
                   variant="outline" 
                   size="sm" 
                   className="flex-1 sm:flex-none text-xs h-8"
                 >
                   <Download className="h-3 w-3 mr-1" />
-                  Télécharger
+                  {t('share.download', 'Télécharger')}
                 </Button>
                 <Button 
-                  onClick={handleShareQR} 
+                  onClick={() => handleShareQR(qrRef)} 
                   variant="outline"
                   size="sm" 
                   className="flex-1 sm:flex-none text-xs h-8"
                 >
                   <Share2 className="h-3 w-3 mr-1" />
-                  Partager QR
+                  {t('share.shareQR', 'Partager QR')}
                 </Button>
               </div>
             </div>
+            {/* Brand name */}
+            <p className="text-center mt-2 text-xs font-bold text-primary tracking-wider uppercase">
+              {APP_CONFIG.appName}
+            </p>
+          </div>
+
+          {/* Production URL note */}
+          <div className="bg-primary/5 rounded-lg p-2 sm:p-3 border border-primary/10">
+            <p className="text-primary text-[10px] sm:text-xs flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              {t('share.productionUrl', 'Lien optimisé pour le partage (youcollect.netlify.app)')}
+            </p>
           </div>
 
           {/* Tip */}
           <div className="bg-muted/50 rounded-lg p-2 sm:p-3">
             <p className="text-muted-foreground text-[10px] sm:text-xs">
-              💡 Cette application fonctionne hors-ligne ! Les enquêteurs peuvent collecter des données sans connexion.
+              💡 {t('share.offlineTip', "Cette application fonctionne hors-ligne ! Les enquêteurs peuvent collecter des données sans connexion.")}
             </p>
           </div>
         </div>
