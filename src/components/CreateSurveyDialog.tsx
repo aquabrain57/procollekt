@@ -114,8 +114,16 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
     
     setIsUploadingImage(true);
     try {
+      // Get user ID for folder-based ownership
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Vous devez être connecté pour téléverser une image');
+        return null;
+      }
+      
       const fileExt = coverImage.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      // Store in user-specific folder to match RLS policies
+      const fileName = `${user.id}/${crypto.randomUUID()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('survey-covers')
