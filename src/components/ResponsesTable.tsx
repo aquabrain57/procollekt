@@ -61,11 +61,59 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
   const [selectedResponse, setSelectedResponse] = useState<DbSurveyResponse | null>(null);
   const [filterField, setFilterField] = useState<string>('all');
   const [filterValue, setFilterValue] = useState('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [enumeratorTerm, setEnumeratorTerm] = useState<string>('');
+  const [zoneTerm, setZoneTerm] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Sort and filter responses
   const processedResponses = useMemo(() => {
     let result = [...responses];
+
+    const asDay = (d: string) => {
+      // d is YYYY-MM-DD
+      const [y, m, day] = d.split('-').map(Number);
+      return new Date(y, (m || 1) - 1, day || 1);
+    };
+
+    // Advanced: date range filter (created_at)
+    if (dateFrom) {
+      const from = asDay(dateFrom).getTime();
+      result = result.filter(r => new Date(r.created_at).getTime() >= from);
+    }
+    if (dateTo) {
+      const to = asDay(dateTo);
+      to.setHours(23, 59, 59, 999);
+      const toMs = to.getTime();
+      result = result.filter(r => new Date(r.created_at).getTime() <= toMs);
+    }
+
+    // Auto-detect "enquêteur" and "zone" fields by label, fallback to global search
+    const enumeratorFieldId = fields.find(f => /enqu[êe]teur|agent|interview/i.test(f.label))?.id;
+    const zoneFieldId = fields.find(f => /zone|quartier|village|localit/i.test(f.label))?.id;
+
+    if (enumeratorTerm) {
+      const q = enumeratorTerm.toLowerCase();
+      result = result.filter(r => {
+        const v = enumeratorFieldId ? r.data[enumeratorFieldId] : Object.values(r.data);
+        const hay = Array.isArray(v) ? v.join(' ') : typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+        return hay.toLowerCase().includes(q);
+      });
+    }
+
+    if (zoneTerm) {
+      const q = zoneTerm.toLowerCase();
+      result = result.filter(r => {
+        // Try zone field first
+        const v = zoneFieldId ? r.data[zoneFieldId] : '';
+        const zoneHay = Array.isArray(v) ? v.join(' ') : typeof v === 'object' ? JSON.stringify(v) : String(v ?? '');
+
+        // Also allow matching GPS string
+        const gpsHay = r.location ? `${r.location.latitude.toFixed(4)}, ${r.location.longitude.toFixed(4)}` : '';
+        return zoneHay.toLowerCase().includes(q) || gpsHay.toLowerCase().includes(q);
+      });
+    }
 
     // Search filter
     if (searchTerm) {
@@ -92,7 +140,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     if (sortColumn && sortDirection) {
       result.sort((a, b) => {
         let aVal: any, bVal: any;
-        
+
         if (sortColumn === 'date') {
           aVal = new Date(a.created_at).getTime();
           bVal = new Date(b.created_at).getTime();
@@ -113,7 +161,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     }
 
     return result;
-  }, [responses, searchTerm, sortColumn, sortDirection, filterField, filterValue]);
+  }, [responses, searchTerm, sortColumn, sortDirection, filterField, filterValue, dateFrom, dateTo, enumeratorTerm, zoneTerm, fields]);
 
   // Pagination
   const totalPages = Math.ceil(processedResponses.length / pageSize);
@@ -337,9 +385,9 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
       {/* Filters */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             {/* Global search */}
-            <div className="relative flex-1">
+            <div className="relative md:col-span-6">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Rechercher dans toutes les colonnes..."
@@ -352,37 +400,93 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
               />
             </div>
 
-            {/* Field filter */}
-            <Select value={filterField} onValueChange={(v) => {
-              setFilterField(v);
-              setFilterValue('');
-              setCurrentPage(1);
-            }}>
-              <SelectTrigger className="w-[180px]">
-                <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Filtrer par..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Tous les champs</SelectItem>
-                {fields.map(field => (
-                  <SelectItem key={field.id} value={field.id}>
-                    {field.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {filterField !== 'all' && (
+            {/* Date from */}
+            <div className="md:col-span-2">
               <Input
-                placeholder={`Valeur pour ${fields.find(f => f.id === filterField)?.label}...`}
-                value={filterValue}
+                type="date"
+                value={dateFrom}
                 onChange={(e) => {
-                  setFilterValue(e.target.value);
+                  setDateFrom(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-[200px]"
+                aria-label="Date début"
               />
-            )}
+            </div>
+
+            {/* Date to */}
+            <div className="md:col-span-2">
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => {
+                  setDateTo(e.target.value);
+                  setCurrentPage(1);
+                }}
+                aria-label="Date fin"
+              />
+            </div>
+
+            {/* Advanced quick filters */}
+            <div className="md:col-span-2 flex gap-2">
+              <Input
+                placeholder="Enquêteur"
+                value={enumeratorTerm}
+                onChange={(e) => {
+                  setEnumeratorTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+                className="min-w-0"
+              />
+            </div>
+
+            <div className="md:col-span-12 grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div className="md:col-span-4">
+                <Input
+                  placeholder="Zone (quartier/village)"
+                  value={zoneTerm}
+                  onChange={(e) => {
+                    setZoneTerm(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                />
+              </div>
+
+              {/* Field filter */}
+              <div className="md:col-span-4">
+                <Select value={filterField} onValueChange={(v) => {
+                  setFilterField(v);
+                  setFilterValue('');
+                  setCurrentPage(1);
+                }}>
+                  <SelectTrigger className="w-full">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filtrer par..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les champs</SelectItem>
+                    {fields.map(field => (
+                      <SelectItem key={field.id} value={field.id}>
+                        {field.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="md:col-span-4">
+                <Input
+                  placeholder={filterField !== 'all'
+                    ? `Valeur pour ${fields.find(f => f.id === filterField)?.label}...`
+                    : 'Valeur (optionnel)'}
+                  value={filterValue}
+                  onChange={(e) => {
+                    setFilterValue(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  disabled={filterField === 'all'}
+                />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

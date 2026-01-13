@@ -477,26 +477,30 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
       {/* Header */}
       <div className="flex flex-col gap-3">
         <div>
-          <h2 className="text-lg sm:text-xl font-bold text-foreground line-clamp-2">{survey.title}</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-foreground line-clamp-2 break-words">{survey.title}</h2>
           {survey.description && (
-            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{survey.description}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 break-words">{survey.description}</p>
           )}
         </div>
-        <div className="flex gap-1.5 sm:gap-2 flex-wrap">
-          <FormDesignSelector 
-            selectedTemplate={selectedDesign} 
-            onSelect={handleDesignSelect} 
-          />
-          <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} coverImageUrl={survey.cover_image_url} />
-          <Button variant="outline" size="sm" onClick={onPreview} className="text-[10px] sm:text-xs h-8 px-2 sm:px-3">
-            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
-            <span className="hidden xs:inline">Aperçu</span>
-          </Button>
-          <Button size="sm" onClick={onPublish} className="text-[10px] sm:text-xs h-8 px-2 sm:px-3">
-            <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
-            <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Déployer'}</span>
-            <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : '🚀'}</span>
-          </Button>
+
+        {/* Action bar: scrollable on mobile to avoid overflow */}
+        <div className="-mx-1 px-1">
+          <div className="flex gap-1.5 sm:gap-2 flex-nowrap overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <FormDesignSelector 
+              selectedTemplate={selectedDesign} 
+              onSelect={handleDesignSelect} 
+            />
+            <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} coverImageUrl={survey.cover_image_url} />
+            <Button variant="outline" size="sm" onClick={onPreview} className="text-[10px] sm:text-xs h-8 px-2 sm:px-3">
+              <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+              <span className="hidden xs:inline">Aperçu</span>
+            </Button>
+            <Button size="sm" onClick={onPublish} className="text-[10px] sm:text-xs h-8 px-2 sm:px-3">
+              <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+              <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Déployer'}</span>
+              <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : '🚀'}</span>
+            </Button>
+          </div>
         </div>
       </div>
 
