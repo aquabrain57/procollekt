@@ -487,7 +487,7 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
             selectedTemplate={selectedDesign} 
             onSelect={handleDesignSelect} 
           />
-          <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} />
+          <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} coverImageUrl={survey.cover_image_url} />
           <Button variant="outline" size="sm" onClick={onPreview} className="text-xs sm:text-sm">
             <Eye className="h-4 w-4 mr-1" />
             <span className="hidden sm:inline">Aperçu</span>

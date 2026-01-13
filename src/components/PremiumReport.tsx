@@ -4,7 +4,8 @@ import { fr } from 'date-fns/locale';
 import { 
   Download, FileSpreadsheet, FileText, File, Crown, Sparkles,
   TrendingUp, Users, MapPin, Target, BarChart3, PieChart,
-  Lightbulb, AlertTriangle, CheckCircle, HelpCircle, Edit3
+  Lightbulb, AlertTriangle, CheckCircle, HelpCircle, Edit3,
+  Presentation, FileImage, Table as TableIcon
 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -26,17 +28,19 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart as RechartsPieChart, Pie, Cell, Legend
+  PieChart as RechartsPieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, PageBreak } from 'docx';
+import { toast } from 'sonner';
 
 interface PremiumReportProps {
   survey: DbSurvey;
@@ -52,6 +56,8 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
   const [reportSubtitle, setReportSubtitle] = useState('Étude de marché et analyse des données');
   const [companyName, setCompanyName] = useState('');
   const [customNotes, setCustomNotes] = useState('');
+  const [authorName, setAuthorName] = useState('');
+  const [activeExportTab, setActiveExportTab] = useState('pdf');
 
   // Compute analytics per field
   const fieldAnalytics = useMemo(() => {
@@ -64,7 +70,6 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
         values.forEach(v => {
           if (Array.isArray(v)) {
             v.forEach(item => {
-              // Use the actual value as label
               const label = String(item);
               optionCounts[label] = (optionCounts[label] || 0) + 1;
             });
@@ -124,194 +129,487 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
       });
     }).length;
 
+    // Time-based analysis
+    const dateGroups: Record<string, number> = {};
+    responses.forEach(r => {
+      const date = format(new Date(r.created_at), 'yyyy-MM-dd');
+      dateGroups[date] = (dateGroups[date] || 0) + 1;
+    });
+
+    const timelineData = Object.entries(dateGroups)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
     return {
       total,
       withLocation,
       locationRate: total > 0 ? Math.round((withLocation / total) * 100) : 0,
       completionRate: total > 0 ? Math.round((complete / total) * 100) : 0,
+      timelineData,
     };
   }, [responses, fields]);
 
-  // Export to premium PDF
-  const exportPremiumPDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    
-    // Header with branding
-    doc.setFillColor(99, 102, 241);
-    doc.rect(0, 0, pageWidth, 45, 'F');
-    
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(8);
-    doc.text(companyName || 'RAPPORT PREMIUM', pageWidth / 2, 12, { align: 'center' });
-    
-    doc.setFontSize(20);
-    doc.text(reportTitle, pageWidth / 2, 25, { align: 'center' });
-    
-    doc.setFontSize(11);
-    doc.text(reportSubtitle, pageWidth / 2, 33, { align: 'center' });
-    
-    doc.setFontSize(9);
-    doc.text(`${format(new Date(), 'MMMM yyyy', { locale: fr })}`, pageWidth / 2, 41, { align: 'center' });
+  // Generate key insights
+  const insights = useMemo(() => {
+    const result: { type: 'success' | 'warning' | 'info'; text: string }[] = [];
 
-    doc.setTextColor(0, 0, 0);
-    let yPos = 55;
+    if (globalStats.total >= 100) {
+      result.push({ type: 'success', text: `Échantillon statistiquement significatif (${globalStats.total} répondants)` });
+    } else if (globalStats.total >= 30) {
+      result.push({ type: 'info', text: `Échantillon acceptable mais pourrait être élargi (${globalStats.total} répondants)` });
+    } else if (globalStats.total > 0) {
+      result.push({ type: 'warning', text: `Échantillon insuffisant pour des conclusions fiables (${globalStats.total} répondants)` });
+    }
 
-    // Executive Summary
-    doc.setFontSize(14);
-    doc.text('RÉSUMÉ EXÉCUTIF', 14, yPos);
-    yPos += 8;
+    if (globalStats.completionRate >= 90) {
+      result.push({ type: 'success', text: `Excellent taux de complétion (${globalStats.completionRate}%)` });
+    } else if (globalStats.completionRate < 70) {
+      result.push({ type: 'warning', text: `Taux de complétion à améliorer (${globalStats.completionRate}%)` });
+    }
 
-    autoTable(doc, {
-      startY: yPos,
-      head: [['Indicateur', 'Valeur', 'Interprétation']],
-      body: [
-        ['Échantillon total', `${globalStats.total} répondants`, globalStats.total >= 100 ? 'Représentatif' : globalStats.total >= 30 ? 'Significatif' : 'À compléter'],
-        ['Taux de complétion', `${globalStats.completionRate}%`, globalStats.completionRate >= 80 ? 'Excellent' : 'À améliorer'],
-        ['Couverture géographique', `${globalStats.locationRate}%`, globalStats.locationRate >= 70 ? 'Bonne' : 'Limitée'],
-      ],
-      theme: 'grid',
-      headStyles: { fillColor: [99, 102, 241], fontSize: 9 },
-      bodyStyles: { fontSize: 9 },
+    // Dominant responses
+    fieldAnalytics.forEach(fa => {
+      if (fa.type === 'categorical' && fa.data && fa.data.length > 0) {
+        const top = fa.data[0];
+        if (top.percentage >= 60) {
+          result.push({ type: 'info', text: `"${top.name}" domine pour "${fa.field.label}" (${top.percentage}%)` });
+        }
+      }
     });
 
-    yPos = (doc as any).lastAutoTable.finalY + 15;
+    return result.slice(0, 6);
+  }, [globalStats, fieldAnalytics]);
 
-    // Analysis by question
+  // Export to Premium PDF with full analysis
+  const exportPremiumPDF = (mode: 'standard' | 'presentation' = 'standard') => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    
+    // Cover page
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.text(companyName || 'RAPPORT D\'ANALYSE', pageWidth / 2, 50, { align: 'center' });
+    
+    doc.setFontSize(28);
+    doc.text(reportTitle, pageWidth / 2, 90, { align: 'center' });
+    
     doc.setFontSize(14);
-    doc.text('ANALYSE PAR QUESTION', 14, yPos);
+    doc.text(reportSubtitle, pageWidth / 2, 110, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`${globalStats.total} répondants analysés`, pageWidth / 2, 140, { align: 'center' });
+    doc.text(`Taux de complétion: ${globalStats.completionRate}%`, pageWidth / 2, 155, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(format(new Date(), 'MMMM yyyy', { locale: fr }), pageWidth / 2, 200, { align: 'center' });
+    if (authorName) {
+      doc.text(`Préparé par: ${authorName}`, pageWidth / 2, 215, { align: 'center' });
+    }
+
+    // Page 2: Executive Summary
+    doc.addPage();
+    doc.setTextColor(0, 0, 0);
+    
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text('RÉSUMÉ EXÉCUTIF', pageWidth / 2, 22, { align: 'center' });
+    
+    doc.setTextColor(0, 0, 0);
+    let yPos = 50;
+
+    // Key metrics table
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Indicateur clé', 'Valeur', 'Évaluation']],
+      body: [
+        ['Échantillon total', `${globalStats.total} répondants`, globalStats.total >= 100 ? '✓ Représentatif' : globalStats.total >= 30 ? '○ Significatif' : '✗ À compléter'],
+        ['Taux de complétion', `${globalStats.completionRate}%`, globalStats.completionRate >= 80 ? '✓ Excellent' : '○ À améliorer'],
+        ['Couverture GPS', `${globalStats.locationRate}%`, globalStats.locationRate >= 70 ? '✓ Bonne' : '○ Limitée'],
+        ['Questions analysées', `${fields.length}`, '—'],
+      ],
+      theme: 'grid',
+      headStyles: { fillColor: [99, 102, 241], fontSize: 10, fontStyle: 'bold' },
+      bodyStyles: { fontSize: 9 },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        2: { halign: 'center' }
+      }
+    });
+
+    yPos = (doc as any).lastAutoTable.finalY + 20;
+
+    // Key insights
+    doc.setFontSize(12);
+    doc.setFont(undefined, 'bold');
+    doc.text('Points clés à retenir', 14, yPos);
+    doc.setFont(undefined, 'normal');
     yPos += 10;
 
+    insights.forEach((insight, idx) => {
+      const icon = insight.type === 'success' ? '✓' : insight.type === 'warning' ? '!' : '•';
+      doc.setFontSize(9);
+      doc.text(`${icon} ${insight.text}`, 18, yPos);
+      yPos += 7;
+    });
+
+    // Page 3+: Detailed Analysis
+    doc.addPage();
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(16);
+    doc.text('ANALYSE DÉTAILLÉE PAR QUESTION', pageWidth / 2, 22, { align: 'center' });
+    
+    doc.setTextColor(0, 0, 0);
+    yPos = 50;
+
     fieldAnalytics.forEach((fa, index) => {
-      if (yPos > 250) {
+      if (yPos > 230) {
         doc.addPage();
         yPos = 20;
       }
 
       doc.setFontSize(11);
       doc.setFont(undefined, 'bold');
-      doc.text(`${index + 1}. ${fa.field.label}`, 14, yPos);
+      doc.text(`Q${index + 1}. ${fa.field.label}`, 14, yPos);
       doc.setFont(undefined, 'normal');
-      yPos += 6;
+      yPos += 8;
 
       if (fa.type === 'categorical' && fa.data && fa.data.length > 0) {
-        const tableData = fa.data.slice(0, 8).map(d => [
-          d.name,
+        const tableData = fa.data.slice(0, 10).map((d, i) => [
+          `${i + 1}`,
+          d.name.substring(0, 40),
           `${d.value}`,
-          `${d.percentage}%`
+          `${d.percentage}%`,
+          d.percentage >= 50 ? '★ Dominant' : d.percentage >= 25 ? '○ Significatif' : ''
         ]);
 
         autoTable(doc, {
           startY: yPos,
-          head: [['Option', 'Réponses', 'Pourcentage']],
+          head: [['#', 'Option', 'Réponses', '%', 'Observation']],
           body: tableData,
           theme: 'striped',
-          headStyles: { fillColor: [99, 102, 241], fontSize: 8 },
+          headStyles: { fillColor: [99, 102, 241], fontSize: 8, fontStyle: 'bold' },
           bodyStyles: { fontSize: 8 },
           margin: { left: 18 },
           tableWidth: pageWidth - 36,
+          columnStyles: {
+            0: { cellWidth: 10 },
+            4: { fontStyle: 'italic', textColor: [100, 100, 100] }
+          }
         });
 
-        yPos = (doc as any).lastAutoTable.finalY + 10;
+        yPos = (doc as any).lastAutoTable.finalY + 12;
 
-        // Add insight
+        // Insight for this question
         const topOption = fa.data[0];
-        if (topOption && topOption.percentage > 50) {
+        if (topOption.percentage > 40) {
           doc.setFontSize(8);
           doc.setTextColor(99, 102, 241);
-          doc.text(`💡 Insight: "${topOption.name}" domine avec ${topOption.percentage}% des réponses.`, 18, yPos);
+          doc.text(`→ Insight: "${topOption.name}" représente la majorité des réponses (${topOption.percentage}%)`, 18, yPos);
           doc.setTextColor(0, 0, 0);
-          yPos += 8;
+          yPos += 10;
         }
       } else if (fa.type === 'numeric' && fa.stats) {
-        doc.setFontSize(9);
-        doc.text(`Moyenne: ${fa.stats.avg.toFixed(1)} | Min: ${fa.stats.min} | Max: ${fa.stats.max} | Répondants: ${fa.stats.count}`, 18, yPos);
-        yPos += 10;
+        autoTable(doc, {
+          startY: yPos,
+          head: [['Moyenne', 'Min', 'Max', 'Répondants']],
+          body: [[fa.stats.avg.toFixed(2), fa.stats.min, fa.stats.max, fa.stats.count]],
+          theme: 'grid',
+          headStyles: { fillColor: [99, 102, 241], fontSize: 8 },
+          bodyStyles: { fontSize: 9, halign: 'center' },
+          margin: { left: 18 },
+          tableWidth: 100,
+        });
+        yPos = (doc as any).lastAutoTable.finalY + 12;
       } else {
         doc.setFontSize(9);
-        doc.text(`${fa.count || 0} réponses textuelles`, 18, yPos);
-        yPos += 10;
+        doc.text(`${fa.count || 0} réponses textuelles collectées`, 18, yPos);
+        yPos += 12;
       }
     });
 
-    // Custom notes
+    // Recommendations page
     if (customNotes) {
-      if (yPos > 240) {
-        doc.addPage();
-        yPos = 20;
-      }
-      doc.setFontSize(14);
-      doc.text('NOTES ET OBSERVATIONS', 14, yPos);
-      yPos += 8;
-      doc.setFontSize(9);
+      doc.addPage();
+      doc.setFillColor(99, 102, 241);
+      doc.rect(0, 0, pageWidth, 35, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(16);
+      doc.text('RECOMMANDATIONS & OBSERVATIONS', pageWidth / 2, 22, { align: 'center' });
+      
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
       const lines = doc.splitTextToSize(customNotes, pageWidth - 28);
-      doc.text(lines, 14, yPos);
+      doc.text(lines, 14, 50);
     }
 
-    doc.save(`${reportTitle.replace(/\s+/g, '_')}_Premium.pdf`);
+    doc.save(`${reportTitle.replace(/\s+/g, '_')}_Premium_${mode === 'presentation' ? 'Slides' : 'Report'}.pdf`);
+    toast.success('Rapport PDF généré avec succès');
+  };
+
+  // Export to PowerPoint-style PDF (one question per page)
+  const exportPresentationPDF = () => {
+    const doc = new jsPDF('landscape');
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
+    
+    // Title slide
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8);
+    doc.text(companyName || 'PRÉSENTATION ANALYTIQUE', pageWidth / 2, 30, { align: 'center' });
+    
+    doc.setFontSize(36);
+    doc.text(reportTitle, pageWidth / 2, 70, { align: 'center' });
+    
+    doc.setFontSize(18);
+    doc.text(reportSubtitle, pageWidth / 2, 95, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.text(`${globalStats.total} répondants | ${globalStats.completionRate}% complétion`, pageWidth / 2, 130, { align: 'center' });
+    
+    doc.setFontSize(10);
+    doc.text(format(new Date(), 'dd MMMM yyyy', { locale: fr }), pageWidth / 2, 180, { align: 'center' });
+
+    // Summary slide
+    doc.addPage('landscape');
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(24);
+    doc.text('Résumé exécutif', 20, 30);
+    
+    doc.setFontSize(12);
+    let y = 50;
+    
+    doc.setFillColor(99, 102, 241);
+    doc.roundedRect(20, y, 80, 40, 5, 5, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(24);
+    doc.text(`${globalStats.total}`, 60, y + 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('Répondants', 60, y + 32, { align: 'center' });
+
+    doc.setFillColor(34, 197, 94);
+    doc.roundedRect(110, y, 80, 40, 5, 5, 'F');
+    doc.setFontSize(24);
+    doc.text(`${globalStats.completionRate}%`, 150, y + 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('Complétion', 150, y + 32, { align: 'center' });
+
+    doc.setFillColor(245, 158, 11);
+    doc.roundedRect(200, y, 80, 40, 5, 5, 'F');
+    doc.setFontSize(24);
+    doc.text(`${globalStats.locationRate}%`, 240, y + 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text('Géolocalisés', 240, y + 32, { align: 'center' });
+
+    // One slide per question
+    fieldAnalytics.forEach((fa, index) => {
+      doc.addPage('landscape');
+      
+      // Header bar
+      doc.setFillColor(99, 102, 241);
+      doc.rect(0, 0, pageWidth, 25, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(10);
+      doc.text(`Question ${index + 1} / ${fieldAnalytics.length}`, 20, 16);
+      doc.text(reportTitle, pageWidth - 20, 16, { align: 'right' });
+
+      // Question title
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(20);
+      doc.text(fa.field.label, 20, 45);
+
+      if (fa.type === 'categorical' && fa.data && fa.data.length > 0) {
+        // Draw horizontal bar chart style
+        let barY = 60;
+        const maxWidth = 180;
+        
+        fa.data.slice(0, 8).forEach((d, i) => {
+          const barWidth = (d.percentage / 100) * maxWidth;
+          
+          doc.setFillColor(...(CHART_COLORS[i % CHART_COLORS.length].match(/\w\w/g)?.map(x => parseInt(x, 16)) as [number, number, number] || [99, 102, 241]));
+          doc.roundedRect(20, barY, barWidth, 12, 2, 2, 'F');
+          
+          doc.setTextColor(0, 0, 0);
+          doc.setFontSize(10);
+          doc.text(d.name.substring(0, 30), 210, barY + 9);
+          doc.text(`${d.percentage}% (${d.value})`, 260, barY + 9);
+          
+          barY += 18;
+        });
+
+        // Top insight
+        const top = fa.data[0];
+        if (top.percentage >= 40) {
+          doc.setFillColor(240, 240, 255);
+          doc.roundedRect(20, 180, pageWidth - 40, 20, 3, 3, 'F');
+          doc.setTextColor(99, 102, 241);
+          doc.setFontSize(11);
+          doc.text(`💡 "${top.name}" représente ${top.percentage}% des réponses`, 30, 193);
+        }
+      } else if (fa.type === 'numeric' && fa.stats) {
+        // Big number display
+        doc.setFillColor(240, 240, 255);
+        doc.roundedRect(20, 60, 70, 60, 5, 5, 'F');
+        doc.setTextColor(99, 102, 241);
+        doc.setFontSize(32);
+        doc.text(fa.stats.avg.toFixed(1), 55, 95, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Moyenne', 55, 110, { align: 'center' });
+
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(100, 60, 50, 60, 5, 5, 'F');
+        doc.setTextColor(100, 100, 100);
+        doc.setFontSize(20);
+        doc.text(`${fa.stats.min}`, 125, 90, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Min', 125, 110, { align: 'center' });
+
+        doc.roundedRect(160, 60, 50, 60, 5, 5, 'F');
+        doc.setFontSize(20);
+        doc.text(`${fa.stats.max}`, 185, 90, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Max', 185, 110, { align: 'center' });
+
+        doc.roundedRect(220, 60, 50, 60, 5, 5, 'F');
+        doc.setFontSize(20);
+        doc.text(`${fa.stats.count}`, 245, 90, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text('Réponses', 245, 110, { align: 'center' });
+      } else {
+        doc.setFontSize(14);
+        doc.text(`${fa.count || 0} réponses textuelles collectées`, 20, 80);
+      }
+    });
+
+    // Thank you slide
+    doc.addPage('landscape');
+    doc.setFillColor(99, 102, 241);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(32);
+    doc.text('Merci !', pageWidth / 2, 80, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Pour toute question, contactez-nous', pageWidth / 2, 110, { align: 'center' });
+    if (authorName) {
+      doc.setFontSize(12);
+      doc.text(authorName, pageWidth / 2, 140, { align: 'center' });
+    }
+
+    doc.save(`${reportTitle.replace(/\s+/g, '_')}_Presentation.pdf`);
+    toast.success('Présentation PDF générée avec succès');
   };
 
   // Export to Word
   const exportToWord = async () => {
     const children: any[] = [];
 
-    // Title
+    // Title page content
     children.push(
       new Paragraph({
-        text: companyName || 'RAPPORT D\'ÉTUDE',
+        text: companyName || 'RAPPORT D\'ANALYSE',
         heading: HeadingLevel.HEADING_1,
-        spacing: { after: 100 },
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 400 },
       }),
       new Paragraph({
         text: reportTitle,
-        heading: HeadingLevel.HEADING_1,
+        heading: HeadingLevel.TITLE,
+        alignment: AlignmentType.CENTER,
         spacing: { after: 200 },
       }),
       new Paragraph({
         text: reportSubtitle,
-        spacing: { after: 100 },
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
+      }),
+      new Paragraph({
+        text: `${globalStats.total} répondants | ${globalStats.completionRate}% complétion | ${globalStats.locationRate}% géolocalisés`,
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 200 },
       }),
       new Paragraph({
         text: `Généré le ${format(new Date(), 'dd MMMM yyyy', { locale: fr })}`,
-        spacing: { after: 400 },
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 100 },
+      }),
+      new Paragraph({
+        children: [new PageBreak()],
       })
     );
 
-    // Summary
+    // Executive Summary
     children.push(
       new Paragraph({
         text: 'RÉSUMÉ EXÉCUTIF',
-        heading: HeadingLevel.HEADING_2,
+        heading: HeadingLevel.HEADING_1,
         spacing: { before: 400, after: 200 },
-      }),
+      })
+    );
+
+    // Stats
+    children.push(
       new Paragraph({
         children: [
-          new TextRun({ text: `• Échantillon total: `, bold: true }),
+          new TextRun({ text: '• Échantillon total: ', bold: true }),
           new TextRun({ text: `${globalStats.total} répondants` }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
-          new TextRun({ text: `• Taux de complétion: `, bold: true }),
+          new TextRun({ text: '• Taux de complétion: ', bold: true }),
           new TextRun({ text: `${globalStats.completionRate}%` }),
         ],
         spacing: { after: 100 },
       }),
       new Paragraph({
         children: [
-          new TextRun({ text: `• Couverture géographique: `, bold: true }),
+          new TextRun({ text: '• Couverture géographique: ', bold: true }),
           new TextRun({ text: `${globalStats.locationRate}%` }),
         ],
-        spacing: { after: 400 },
+        spacing: { after: 200 },
       })
     );
 
-    // Analysis per field
+    // Key insights
     children.push(
       new Paragraph({
-        text: 'ANALYSE PAR QUESTION',
+        text: 'Points clés',
         heading: HeadingLevel.HEADING_2,
+        spacing: { before: 200, after: 100 },
+      })
+    );
+
+    insights.forEach(insight => {
+      children.push(
+        new Paragraph({
+          text: `• ${insight.text}`,
+          spacing: { after: 50 },
+        })
+      );
+    });
+
+    children.push(
+      new Paragraph({
+        children: [new PageBreak()],
+      })
+    );
+
+    // Detailed Analysis
+    children.push(
+      new Paragraph({
+        text: 'ANALYSE DÉTAILLÉE PAR QUESTION',
+        heading: HeadingLevel.HEADING_1,
         spacing: { before: 400, after: 200 },
       })
     );
@@ -319,18 +617,18 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
     fieldAnalytics.forEach((fa, index) => {
       children.push(
         new Paragraph({
-          text: `${index + 1}. ${fa.field.label}`,
-          heading: HeadingLevel.HEADING_3,
+          text: `Q${index + 1}. ${fa.field.label}`,
+          heading: HeadingLevel.HEADING_2,
           spacing: { before: 300, after: 100 },
         })
       );
 
       if (fa.type === 'categorical' && fa.data && fa.data.length > 0) {
-        fa.data.slice(0, 5).forEach(d => {
+        fa.data.slice(0, 8).forEach((d, i) => {
           children.push(
             new Paragraph({
               children: [
-                new TextRun({ text: `• ${d.name}: ` }),
+                new TextRun({ text: `${i + 1}. ${d.name}: ` }),
                 new TextRun({ text: `${d.value} réponses (${d.percentage}%)`, bold: true }),
               ],
               spacing: { after: 50 },
@@ -340,7 +638,14 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
       } else if (fa.type === 'numeric' && fa.stats) {
         children.push(
           new Paragraph({
-            text: `Moyenne: ${fa.stats.avg.toFixed(1)} | Min: ${fa.stats.min} | Max: ${fa.stats.max}`,
+            text: `Moyenne: ${fa.stats.avg.toFixed(2)} | Min: ${fa.stats.min} | Max: ${fa.stats.max} | ${fa.stats.count} réponses`,
+            spacing: { after: 100 },
+          })
+        );
+      } else {
+        children.push(
+          new Paragraph({
+            text: `${fa.count || 0} réponses textuelles`,
             spacing: { after: 100 },
           })
         );
@@ -351,8 +656,11 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
     if (customNotes) {
       children.push(
         new Paragraph({
-          text: 'NOTES ET OBSERVATIONS',
-          heading: HeadingLevel.HEADING_2,
+          children: [new PageBreak()],
+        }),
+        new Paragraph({
+          text: 'RECOMMANDATIONS & OBSERVATIONS',
+          heading: HeadingLevel.HEADING_1,
           spacing: { before: 400, after: 200 },
         }),
         new Paragraph({
@@ -368,6 +676,76 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
 
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `${reportTitle.replace(/\s+/g, '_')}_Premium.docx`);
+    toast.success('Rapport Word généré avec succès');
+  };
+
+  // Export to Excel with multiple sheets
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Summary sheet
+    const summaryData = [
+      ['RAPPORT D\'ANALYSE', reportTitle],
+      ['Date de génération', format(new Date(), 'dd/MM/yyyy HH:mm')],
+      ['', ''],
+      ['STATISTIQUES GLOBALES', ''],
+      ['Nombre total de répondants', globalStats.total],
+      ['Taux de complétion', `${globalStats.completionRate}%`],
+      ['Couverture géographique', `${globalStats.locationRate}%`],
+      ['Nombre de questions', fields.length],
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Résumé');
+
+    // Per question analysis
+    fieldAnalytics.forEach((fa, index) => {
+      if (fa.type === 'categorical' && fa.data) {
+        const sheetData = [
+          [`Q${index + 1}: ${fa.field.label}`],
+          ['Option', 'Réponses', 'Pourcentage'],
+          ...fa.data.map(d => [d.name, d.value, `${d.percentage}%`])
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        XLSX.utils.book_append_sheet(wb, ws, `Q${index + 1}`.substring(0, 31));
+      } else if (fa.type === 'numeric' && fa.stats) {
+        const sheetData = [
+          [`Q${index + 1}: ${fa.field.label}`],
+          ['Métrique', 'Valeur'],
+          ['Moyenne', fa.stats.avg.toFixed(2)],
+          ['Minimum', fa.stats.min],
+          ['Maximum', fa.stats.max],
+          ['Nombre de réponses', fa.stats.count],
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        XLSX.utils.book_append_sheet(wb, ws, `Q${index + 1}`.substring(0, 31));
+      }
+    });
+
+    // Raw data sheet
+    const headers = ['#', 'Date', 'Heure', 'Latitude', 'Longitude', ...fields.map(f => f.label)];
+    const rows = responses.map((response, idx) => {
+      const fieldValues = fields.map(field => {
+        const value = response.data[field.id];
+        if (Array.isArray(value)) return value.join('; ');
+        return value?.toString() || '';
+      });
+
+      return [
+        idx + 1,
+        format(new Date(response.created_at), 'dd/MM/yyyy'),
+        format(new Date(response.created_at), 'HH:mm:ss'),
+        response.location?.latitude || '',
+        response.location?.longitude || '',
+        ...fieldValues,
+      ];
+    });
+
+    const wsData = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    XLSX.utils.book_append_sheet(wb, wsData, 'Données brutes');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    saveAs(new Blob([wbout]), `${reportTitle.replace(/\s+/g, '_')}_Premium.xlsx`);
+    toast.success('Rapport Excel généré avec succès');
   };
 
   if (responses.length === 0) {
@@ -392,7 +770,7 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
             <div className="flex items-center gap-2 mb-2">
               <Crown className="h-5 w-5" />
               <Badge variant="secondary" className="bg-white/20 text-white border-0">
-                Rapport Premium
+                Rapport Premium Avancé
               </Badge>
             </div>
             
@@ -430,18 +808,74 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
                 Exporter
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={exportPremiumPDF}>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onClick={() => exportPremiumPDF('standard')}>
                 <File className="h-4 w-4 mr-2 text-red-600" />
-                PDF Premium
+                PDF Rapport détaillé
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportPresentationPDF}>
+                <Presentation className="h-4 w-4 mr-2 text-orange-600" />
+                PDF Présentation (slides)
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={exportToWord}>
                 <FileText className="h-4 w-4 mr-2 text-blue-600" />
                 Word (.docx)
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                Excel multi-feuilles (.xlsx)
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+
+        {/* Key Insights */}
+        {insights.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Lightbulb className="h-5 w-5 text-yellow-500" />
+                Points clés
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {insights.map((insight, idx) => (
+                <div key={idx} className="flex items-start gap-2 text-sm">
+                  {insight.type === 'success' && <CheckCircle className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />}
+                  {insight.type === 'warning' && <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />}
+                  {insight.type === 'info' && <HelpCircle className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />}
+                  <span className="text-foreground">{insight.text}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Timeline Chart */}
+        {globalStats.timelineData.length > 1 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-primary" />
+                Évolution des réponses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[200px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={globalStats.timelineData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10 }} />
+                    <YAxis tick={{ fontSize: 10 }} />
+                    <Tooltip />
+                    <Area type="monotone" dataKey="count" stroke="#6366f1" fill="#6366f1" fillOpacity={0.3} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Field Analysis */}
         <div className="space-y-4">
@@ -595,7 +1029,16 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Notes et observations</label>
+                <label className="text-sm font-medium">Auteur / Responsable</label>
+                <Input 
+                  placeholder="Ex: Jean Dupont, Équipe Data..."
+                  value={authorName}
+                  onChange={(e) => setAuthorName(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Notes et recommandations</label>
                 <Textarea 
                   placeholder="Ajoutez vos observations, conclusions ou recommandations..."
                   value={customNotes}

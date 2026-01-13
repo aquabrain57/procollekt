@@ -4,7 +4,7 @@ import { fr } from 'date-fns/locale';
 import { 
   Download, Filter, Search, ArrowUpDown, ArrowUp, ArrowDown,
   MapPin, Clock, Eye, FileSpreadsheet, FileText, File,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2
 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
@@ -57,10 +57,11 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
   const [sortColumn, setSortColumn] = useState<SortColumn>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(25);
   const [selectedResponse, setSelectedResponse] = useState<DbSurveyResponse | null>(null);
   const [filterField, setFilterField] = useState<string>('all');
   const [filterValue, setFilterValue] = useState('');
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Sort and filter responses
   const processedResponses = useMemo(() => {
@@ -137,10 +138,6 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     return <ArrowUpDown className="h-4 w-4" />;
   };
 
-  // Get visible fields (first 5)
-  const visibleFields = fields.slice(0, 5);
-  const hasMoreFields = fields.length > 5;
-
   // Format cell value for display
   const formatCellValue = (value: any, field: DbSurveyField) => {
     if (value === undefined || value === null || value === '') return '—';
@@ -150,7 +147,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
       return JSON.stringify(value);
     }
     const strValue = String(value);
-    return strValue.length > 30 ? strValue.slice(0, 30) + '...' : strValue;
+    return strValue.length > 50 ? strValue.slice(0, 50) + '...' : strValue;
   };
 
   // Export functions
@@ -209,6 +206,96 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     saveAs(new Blob([wbout]), `${survey.title}_reponses.xlsx`);
   };
 
+  const tableContent = (
+    <div className="overflow-auto" style={{ maxHeight: isFullscreen ? 'calc(100vh - 180px)' : '600px' }}>
+      <Table>
+        <TableHeader className="sticky top-0 bg-card z-10">
+          <TableRow>
+            <TableHead className="w-[50px] sticky left-0 bg-card z-20">#</TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 min-w-[120px]"
+              onClick={() => handleSort('date')}
+            >
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                Date
+                {getSortIcon('date')}
+              </div>
+            </TableHead>
+            <TableHead 
+              className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
+              onClick={() => handleSort('location')}
+            >
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                GPS
+                {getSortIcon('location')}
+              </div>
+            </TableHead>
+            {fields.map(field => (
+              <TableHead 
+                key={field.id}
+                className="cursor-pointer hover:bg-muted/50 min-w-[150px] max-w-[300px]"
+                onClick={() => handleSort(field.id)}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="truncate">{field.label}</span>
+                  {getSortIcon(field.id)}
+                </div>
+              </TableHead>
+            ))}
+            <TableHead className="w-[80px] text-center sticky right-0 bg-card z-20">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {paginatedResponses.map((response, index) => (
+            <TableRow key={response.id} className="hover:bg-muted/30">
+              <TableCell className="font-mono text-muted-foreground sticky left-0 bg-card">
+                {(currentPage - 1) * pageSize + index + 1}
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {format(new Date(response.created_at), 'dd/MM/yyyy')}
+                  </div>
+                  <div className="text-muted-foreground text-xs">
+                    {format(new Date(response.created_at), 'HH:mm')}
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                {response.location ? (
+                  <LocationBadge 
+                    latitude={response.location.latitude} 
+                    longitude={response.location.longitude} 
+                  />
+                ) : (
+                  <span className="text-muted-foreground">—</span>
+                )}
+              </TableCell>
+              {fields.map(field => (
+                <TableCell key={field.id} className="min-w-[150px] max-w-[300px]">
+                  <span className="block whitespace-normal break-words">
+                    {formatCellValue(response.data[field.id], field)}
+                  </span>
+                </TableCell>
+              ))}
+              <TableCell className="text-center sticky right-0 bg-card">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => setSelectedResponse(response)}
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -221,24 +308,30 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
           </p>
         </div>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Download className="h-4 w-4 mr-2" />
-              Exporter
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={exportToCSV}>
-              <FileText className="h-4 w-4 mr-2" />
-              CSV (.csv)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportToExcel}>
-              <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
-              Excel (.xlsx)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setIsFullscreen(true)}>
+            <Maximize2 className="h-4 w-4 mr-2" />
+            Plein écran
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-2" />
+                Exporter
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportToCSV}>
+                <FileText className="h-4 w-4 mr-2" />
+                CSV (.csv)
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={exportToExcel}>
+                <FileSpreadsheet className="h-4 w-4 mr-2 text-green-600" />
+                Excel (.xlsx)
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Filters */}
@@ -306,95 +399,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
       ) : (
         <>
           <Card className="overflow-hidden">
-            <ScrollArea className="w-full" style={{ maxHeight: 'calc(100vh - 350px)', minHeight: '400px' }}>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="sticky top-0 bg-card z-10">
-                    <TableRow>
-                      <TableHead className="w-[50px]">#</TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('date')}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          Date
-                          {getSortIcon('date')}
-                        </div>
-                      </TableHead>
-                      <TableHead 
-                        className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => handleSort('location')}
-                      >
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-4 w-4" />
-                          GPS
-                          {getSortIcon('location')}
-                        </div>
-                      </TableHead>
-                      {fields.map(field => (
-                        <TableHead 
-                          key={field.id}
-                          className="cursor-pointer hover:bg-muted/50 min-w-[150px] max-w-[250px]"
-                          onClick={() => handleSort(field.id)}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="truncate">{field.label}</span>
-                            {getSortIcon(field.id)}
-                          </div>
-                        </TableHead>
-                      ))}
-                      <TableHead className="w-[80px] text-center sticky right-0 bg-card">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedResponses.map((response, index) => (
-                      <TableRow key={response.id} className="hover:bg-muted/30">
-                        <TableCell className="font-mono text-muted-foreground">
-                          {(currentPage - 1) * pageSize + index + 1}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm">
-                            <div className="font-medium">
-                              {format(new Date(response.created_at), 'dd/MM/yyyy')}
-                            </div>
-                            <div className="text-muted-foreground text-xs">
-                              {format(new Date(response.created_at), 'HH:mm')}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {response.location ? (
-                            <LocationBadge 
-                              latitude={response.location.latitude} 
-                              longitude={response.location.longitude} 
-                            />
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        {fields.map(field => (
-                          <TableCell key={field.id} className="min-w-[150px] max-w-[250px]">
-                            <span className="truncate block">
-                              {formatCellValue(response.data[field.id], field)}
-                            </span>
-                          </TableCell>
-                        ))}
-                        <TableCell className="text-center sticky right-0 bg-card">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => setSelectedResponse(response)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </ScrollArea>
+            {tableContent}
           </Card>
 
           {/* Pagination */}
@@ -416,13 +421,14 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                   <SelectItem value="25">25</SelectItem>
                   <SelectItem value="50">50</SelectItem>
                   <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                Page {currentPage} sur {totalPages || 1}
+                Page {currentPage} sur {totalPages || 1} ({processedResponses.length} total)
               </span>
               <div className="flex gap-1">
                 <Button 
@@ -462,6 +468,64 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
           </div>
         </>
       )}
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-[95vw] max-h-[95vh] w-full h-full">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{survey.title} - Table complète</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {processedResponses.length} réponses
+              </span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden">
+            {tableContent}
+          </div>
+          <div className="flex justify-between items-center pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Lignes par page:</span>
+              <Select 
+                value={String(pageSize)} 
+                onValueChange={(v) => {
+                  setPageSize(Number(v));
+                  setCurrentPage(1);
+                }}
+              >
+                <SelectTrigger className="w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} / {totalPages || 1}
+              </span>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>
+                  <ChevronsLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setCurrentPage(totalPages)} disabled={currentPage >= totalPages}>
+                  <ChevronsRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Response detail dialog */}
       <Dialog open={!!selectedResponse} onOpenChange={() => setSelectedResponse(null)}>
