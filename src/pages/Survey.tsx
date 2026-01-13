@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DbSurvey, DbSurveyField } from '@/hooks/useSurveys';
-import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff, Globe, Moon, Sun } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff, Globe, Moon, Sun, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { PWAInstallBanner } from '@/components/PWAInstallBanner';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
+import { Progress } from '@/components/ui/progress';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,6 +72,7 @@ const TextInput = ({
   type = 'text',
   min,
   max,
+  fieldMode = false,
 }: { 
   value: string; 
   onChange: (value: string) => void; 
@@ -78,6 +80,7 @@ const TextInput = ({
   type?: string;
   min?: number;
   max?: number;
+  fieldMode?: boolean;
 }) => {
   const [localValue, setLocalValue] = useState(value);
   const timeoutRef = useRef<NodeJS.Timeout>();
@@ -107,7 +110,12 @@ const TextInput = ({
       onChange={handleChange}
       min={min}
       max={max}
-      className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
+      className={cn(
+        "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors",
+        fieldMode 
+          ? "px-4 py-4 text-lg sm:text-xl" 
+          : "px-4 py-3 text-base"
+      )}
     />
   );
 };
@@ -117,10 +125,12 @@ const LocationFieldWithAutoDetect = ({
   value,
   onChange,
   autoDetectedLocation,
+  fieldMode = false,
 }: {
   value: any;
   onChange: (value: any) => void;
   autoDetectedLocation: { lat: number; lng: number } | null;
+  fieldMode?: boolean;
 }) => {
   const displayValue = value || autoDetectedLocation;
   const { locationName, loading: geoLoading } = useReverseGeocode(
@@ -162,31 +172,32 @@ const LocationFieldWithAutoDetect = ({
         type="button"
         onClick={handleCapture}
         className={cn(
-          'w-full px-4 py-4 rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
+          'w-full rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
           displayValue
             ? 'border-green-500 bg-green-500/5 text-foreground'
-            : 'border-border bg-background text-muted-foreground hover:border-primary/50'
+            : 'border-border bg-background text-muted-foreground hover:border-primary/50',
+          fieldMode ? 'px-4 py-5' : 'px-4 py-4'
         )}
       >
-        <MapPin className={cn('h-5 w-5', displayValue ? 'text-green-500' : 'text-muted-foreground')} />
-        <div className="flex-1">
+        <MapPin className={cn(displayValue ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-6 w-6' : 'h-5 w-5')} />
+        <div className="flex-1 min-w-0">
           {displayValue ? (
             <div>
               {geoLoading ? (
-                <span className="text-sm text-muted-foreground">Chargement...</span>
+                <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>Chargement...</span>
               ) : locationName ? (
-                <span className="text-sm font-medium">{locationName}</span>
+                <span className={cn("font-medium", fieldMode ? "text-base" : "text-sm")}>{locationName}</span>
               ) : (
-                <span className="text-sm">
+                <span className={cn(fieldMode ? "text-base" : "text-sm")}>
                   {(displayValue.latitude || displayValue.lat)?.toFixed(4)}, {(displayValue.longitude || displayValue.lng)?.toFixed(4)}
                 </span>
               )}
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className={cn("text-muted-foreground mt-1", fieldMode ? "text-sm" : "text-xs")}>
                 GPS: {(displayValue.latitude || displayValue.lat)?.toFixed(6)}, {(displayValue.longitude || displayValue.lng)?.toFixed(6)}
               </p>
             </div>
           ) : (
-            <span>Capturer la position GPS</span>
+            <span className={fieldMode ? "text-base" : "text-sm"}>Capturer la position GPS</span>
           )}
         </div>
       </button>
@@ -200,11 +211,15 @@ const SurveyFormField = ({
   value, 
   onChange,
   autoDetectedLocation,
+  fieldMode = false,
+  t,
 }: { 
   field: DbSurveyField; 
   value: any; 
   onChange: (value: any) => void;
   autoDetectedLocation: { lat: number; lng: number } | null;
+  fieldMode?: boolean;
+  t: (key: string) => string;
 }) => {
   const renderField = () => {
     switch (field.field_type) {
@@ -213,7 +228,8 @@ const SurveyFormField = ({
           <TextInput
             value={value || ''}
             onChange={onChange}
-            placeholder={field.placeholder || ''}
+            placeholder={field.placeholder || t('form.enterText')}
+            fieldMode={fieldMode}
           />
         );
 
@@ -222,9 +238,14 @@ const SurveyFormField = ({
           <textarea
             value={value || ''}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={field.placeholder || ''}
-            rows={4}
-            className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+            placeholder={field.placeholder || t('form.enterText')}
+            rows={fieldMode ? 5 : 4}
+            className={cn(
+              "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none",
+              fieldMode 
+                ? "px-4 py-4 text-lg sm:text-xl" 
+                : "px-4 py-3 text-base"
+            )}
           />
         );
 
@@ -235,9 +256,10 @@ const SurveyFormField = ({
             type="number"
             value={value?.toString() || ''}
             onChange={(v) => onChange(v ? Number(v) : '')}
-            placeholder={field.placeholder || ''}
+            placeholder={field.placeholder || t('form.enterNumber')}
             min={field.min_value || undefined}
             max={field.max_value || undefined}
+            fieldMode={fieldMode}
           />
         );
 
@@ -247,7 +269,8 @@ const SurveyFormField = ({
             type="email"
             value={value || ''}
             onChange={onChange}
-            placeholder={field.placeholder || 'email@example.com'}
+            placeholder={field.placeholder || t('form.enterEmail')}
+            fieldMode={fieldMode}
           />
         );
 
@@ -257,7 +280,8 @@ const SurveyFormField = ({
             type="tel"
             value={value || ''}
             onChange={onChange}
-            placeholder={field.placeholder || '+241 XX XX XX XX'}
+            placeholder={field.placeholder || t('form.enterPhone')}
+            fieldMode={fieldMode}
           />
         );
 
@@ -270,14 +294,15 @@ const SurveyFormField = ({
                 type="button"
                 onClick={() => onChange(option.value)}
                 className={cn(
-                  'w-full px-4 py-3 rounded-lg border text-left transition-all duration-200 flex items-center justify-between',
+                  'w-full rounded-lg border text-left transition-all duration-200 flex items-center justify-between',
                   value === option.value
                     ? 'border-primary bg-primary/5 text-foreground'
-                    : 'border-border bg-background text-foreground hover:border-primary/50'
+                    : 'border-border bg-background text-foreground hover:border-primary/50',
+                  fieldMode ? 'px-4 py-4' : 'px-4 py-3'
                 )}
               >
-                <span>{option.label}</span>
-                {value === option.value && <Check className="h-4 w-4 text-primary" />}
+                <span className={fieldMode ? "text-lg" : "text-base"}>{option.label}</span>
+                {value === option.value && <Check className={cn("text-primary", fieldMode ? "h-5 w-5" : "h-4 w-4")} />}
               </button>
             ))}
           </div>
@@ -301,14 +326,15 @@ const SurveyFormField = ({
                     }
                   }}
                   className={cn(
-                    'w-full px-4 py-3 rounded-lg border text-left transition-all duration-200 flex items-center justify-between',
+                    'w-full rounded-lg border text-left transition-all duration-200 flex items-center justify-between',
                     isSelected
                       ? 'border-primary bg-primary/5 text-foreground'
-                      : 'border-border bg-background text-foreground hover:border-primary/50'
+                      : 'border-border bg-background text-foreground hover:border-primary/50',
+                    fieldMode ? 'px-4 py-4' : 'px-4 py-3'
                   )}
                 >
-                  <span>{option.label}</span>
-                  {isSelected && <Check className="h-4 w-4 text-primary" />}
+                  <span className={fieldMode ? "text-lg" : "text-base"}>{option.label}</span>
+                  {isSelected && <Check className={cn("text-primary", fieldMode ? "h-5 w-5" : "h-4 w-4")} />}
                 </button>
               );
             })}
@@ -318,20 +344,21 @@ const SurveyFormField = ({
       case 'rating':
         const maxRating = field.max_value || 5;
         return (
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap justify-center">
             {Array.from({ length: maxRating }, (_, i) => i + 1).map((rating) => (
               <button
                 key={rating}
                 type="button"
                 onClick={() => onChange(rating)}
                 className={cn(
-                  'p-3 rounded-lg border transition-all duration-200',
+                  'rounded-lg border transition-all duration-200',
                   (value || 0) >= rating
                     ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500'
-                    : 'border-border bg-background text-muted-foreground hover:border-yellow-500/50'
+                    : 'border-border bg-background text-muted-foreground hover:border-yellow-500/50',
+                  fieldMode ? 'p-4' : 'p-3'
                 )}
               >
-                <Star className={cn('h-6 w-6', (value || 0) >= rating && 'fill-current')} />
+                <Star className={cn((value || 0) >= rating && 'fill-current', fieldMode ? 'h-8 w-8' : 'h-6 w-6')} />
               </button>
             ))}
           </div>
@@ -346,11 +373,11 @@ const SurveyFormField = ({
               max={field.max_value || 100}
               value={value || field.min_value || 0}
               onChange={(e) => onChange(parseInt(e.target.value))}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              className="w-full h-3 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
             />
-            <div className="flex justify-between text-sm text-muted-foreground">
+            <div className={cn("flex justify-between text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
               <span>{field.min_value || 0}</span>
-              <span className="font-medium text-foreground">{value || field.min_value || 0}</span>
+              <span className={cn("font-bold text-foreground", fieldMode ? "text-2xl" : "text-lg")}>{value || field.min_value || 0}</span>
               <span>{field.max_value || 100}</span>
             </div>
           </div>
@@ -370,17 +397,22 @@ const SurveyFormField = ({
         return (
           <div className="space-y-2">
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Calendar className={cn("absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground", fieldMode ? "h-6 w-6" : "h-5 w-5")} />
               <input
                 type="date"
                 value={displayDate}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className={cn(
+                  "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  fieldMode 
+                    ? "pl-12 pr-4 py-4 text-lg" 
+                    : "pl-10 pr-4 py-3 text-base"
+                )}
               />
             </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className={cn("text-muted-foreground flex items-center gap-1", fieldMode ? "text-sm" : "text-xs")}>
               <Check className="h-3 w-3 text-green-500" />
-              Date remplie automatiquement
+              {t('form.autoFilled')}
             </p>
           </div>
         );
@@ -399,17 +431,22 @@ const SurveyFormField = ({
         return (
           <div className="space-y-2">
             <div className="relative">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Clock className={cn("absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground", fieldMode ? "h-6 w-6" : "h-5 w-5")} />
               <input
                 type="time"
                 value={displayTime}
                 onChange={(e) => onChange(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+                className={cn(
+                  "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  fieldMode 
+                    ? "pl-12 pr-4 py-4 text-lg" 
+                    : "pl-10 pr-4 py-3 text-base"
+                )}
               />
             </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className={cn("text-muted-foreground flex items-center gap-1", fieldMode ? "text-sm" : "text-xs")}>
               <Check className="h-3 w-3 text-green-500" />
-              Heure remplie automatiquement (modifiable)
+              {t('form.autoFilled')}
             </p>
           </div>
         );
@@ -431,11 +468,16 @@ const SurveyFormField = ({
               type="datetime-local"
               value={displayDateTime}
               onChange={(e) => onChange(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-border bg-background text-foreground text-base focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className={cn(
+                "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50",
+                fieldMode 
+                  ? "px-4 py-4 text-lg" 
+                  : "px-4 py-3 text-base"
+              )}
             />
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <p className={cn("text-muted-foreground flex items-center gap-1", fieldMode ? "text-sm" : "text-xs")}>
               <Check className="h-3 w-3 text-green-500" />
-              Date et heure remplies automatiquement
+              {t('form.autoFilled')}
             </p>
           </div>
         );
@@ -446,6 +488,7 @@ const SurveyFormField = ({
             value={value}
             onChange={onChange}
             autoDetectedLocation={autoDetectedLocation}
+            fieldMode={fieldMode}
           />
         );
 
@@ -491,12 +534,12 @@ const SurveyFormField = ({
               )}
             >
               {value ? (
-                <img src={value} alt="Captured" className="w-full h-48 object-cover rounded-lg" />
+                <img src={value} alt="Captured" className={cn("w-full object-cover rounded-lg", fieldMode ? "h-56" : "h-48")} />
               ) : (
-                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                  <Camera className="h-8 w-8 mb-2" />
-                  <span className="text-sm">Prendre une photo</span>
-                  <span className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP (max 5MB)</span>
+                <div className={cn("flex flex-col items-center justify-center text-muted-foreground", fieldMode ? "py-12" : "py-8")}>
+                  <Camera className={cn("mb-2", fieldMode ? "h-10 w-10" : "h-8 w-8")} />
+                  <span className={fieldMode ? "text-base" : "text-sm"}>{t('form.takePhoto')}</span>
+                  <span className={cn("text-muted-foreground mt-1", fieldMode ? "text-sm" : "text-xs")}>JPEG, PNG, WebP (max 5MB)</span>
                 </div>
               )}
             </label>
@@ -509,25 +552,27 @@ const SurveyFormField = ({
             type="button"
             onClick={() => onChange(!value)}
             className={cn(
-              'w-full px-4 py-4 rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
+              'w-full rounded-lg border text-left transition-all duration-200 flex items-center gap-3',
               value
                 ? 'border-green-500 bg-green-500/5 text-foreground'
-                : 'border-border bg-background text-muted-foreground hover:border-primary/50'
+                : 'border-border bg-background text-muted-foreground hover:border-primary/50',
+              fieldMode ? 'px-4 py-5' : 'px-4 py-4'
             )}
           >
             <div className={cn(
-              'w-5 h-5 rounded border-2 flex items-center justify-center transition-colors',
-              value ? 'border-green-500 bg-green-500' : 'border-muted-foreground'
+              'rounded border-2 flex items-center justify-center transition-colors',
+              value ? 'border-green-500 bg-green-500' : 'border-muted-foreground',
+              fieldMode ? 'w-6 h-6' : 'w-5 h-5'
             )}>
-              {value && <Check className="h-3 w-3 text-white" />}
+              {value && <Check className={cn("text-white", fieldMode ? "h-4 w-4" : "h-3 w-3")} />}
             </div>
-            <span>Je donne mon consentement</span>
+            <span className={fieldMode ? "text-lg" : "text-base"}>Je donne mon consentement</span>
           </button>
         );
 
       case 'note':
         return (
-          <div className="p-4 bg-muted/50 rounded-lg text-muted-foreground">
+          <div className={cn("bg-muted/50 rounded-lg text-muted-foreground", fieldMode ? "p-5 text-base" : "p-4 text-sm")}>
             {field.placeholder || 'Information'}
           </div>
         );
@@ -537,17 +582,18 @@ const SurveyFormField = ({
         const rankings = Array.isArray(value) ? value : [];
         return (
           <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Ordonnez les éléments par ordre de préférence</p>
+            <p className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>Ordonnez les éléments par ordre de préférence</p>
             {rankItems.map((option, idx) => {
               const currentRank = rankings.indexOf(option.value) + 1;
               return (
                 <div
                   key={option.value}
                   className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-all',
+                    'flex items-center gap-3 rounded-lg border cursor-pointer transition-all',
                     currentRank > 0
                       ? 'border-primary bg-primary/5'
-                      : 'border-border bg-background hover:border-primary/50'
+                      : 'border-border bg-background hover:border-primary/50',
+                    fieldMode ? 'px-4 py-4' : 'px-4 py-3'
                   )}
                   onClick={() => {
                     if (currentRank > 0) {
@@ -558,13 +604,14 @@ const SurveyFormField = ({
                   }}
                 >
                   <div className={cn(
-                    'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold',
-                    currentRank > 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    'rounded-full flex items-center justify-center font-bold',
+                    currentRank > 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                    fieldMode ? 'w-8 h-8 text-base' : 'w-6 h-6 text-xs'
                   )}>
                     {currentRank > 0 ? currentRank : idx + 1}
                   </div>
-                  <GripVertical className="h-4 w-4 text-muted-foreground" />
-                  <span className="flex-1 text-foreground">{option.label}</span>
+                  <GripVertical className={cn("text-muted-foreground", fieldMode ? "h-5 w-5" : "h-4 w-4")} />
+                  <span className={cn("flex-1 text-foreground", fieldMode ? "text-lg" : "text-base")}>{option.label}</span>
                 </div>
               );
             })}
@@ -597,12 +644,13 @@ const SurveyFormField = ({
             <label
               htmlFor={`audio-${field.id}`}
               className={cn(
-                'flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all',
-                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+                'flex flex-col items-center justify-center rounded-lg border-2 border-dashed cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50',
+                fieldMode ? 'py-12' : 'py-8'
               )}
             >
-              <Mic className={cn('h-8 w-8 mb-2', value ? 'text-green-500' : 'text-muted-foreground')} />
-              <span className="text-sm text-muted-foreground">
+              <Mic className={cn('mb-2', value ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-10 w-10' : 'h-8 w-8')} />
+              <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
                 {value ? 'Audio enregistré ✓' : 'Enregistrer un audio'}
               </span>
             </label>
@@ -638,12 +686,13 @@ const SurveyFormField = ({
             <label
               htmlFor={`video-${field.id}`}
               className={cn(
-                'flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all',
-                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+                'flex flex-col items-center justify-center rounded-lg border-2 border-dashed cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50',
+                fieldMode ? 'py-12' : 'py-8'
               )}
             >
-              <Video className={cn('h-8 w-8 mb-2', value ? 'text-green-500' : 'text-muted-foreground')} />
-              <span className="text-sm text-muted-foreground">
+              <Video className={cn('mb-2', value ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-10 w-10' : 'h-8 w-8')} />
+              <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
                 {value ? 'Vidéo capturée ✓' : 'Capturer une vidéo'}
               </span>
             </label>
@@ -682,15 +731,16 @@ const SurveyFormField = ({
             <label
               htmlFor={`file-${field.id}`}
               className={cn(
-                'flex flex-col items-center justify-center py-8 rounded-lg border-2 border-dashed cursor-pointer transition-all',
-                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+                'flex flex-col items-center justify-center rounded-lg border-2 border-dashed cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50',
+                fieldMode ? 'py-12' : 'py-8'
               )}
             >
-              <File className={cn('h-8 w-8 mb-2', value ? 'text-green-500' : 'text-muted-foreground')} />
-              <span className="text-sm text-muted-foreground">
+              <File className={cn('mb-2', value ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-10 w-10' : 'h-8 w-8')} />
+              <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
                 {value ? `${value.name} ✓` : 'Téléverser un fichier'}
               </span>
-              <span className="text-xs text-muted-foreground mt-1">Maximum 10MB</span>
+              <span className={cn("text-muted-foreground mt-1", fieldMode ? "text-sm" : "text-xs")}>Maximum 10MB</span>
             </label>
           </div>
         );
@@ -698,20 +748,21 @@ const SurveyFormField = ({
       case 'line':
       case 'area':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg text-center">
-            <div className="flex items-center justify-center gap-2 text-muted-foreground mb-2">
-              {field.field_type === 'line' ? <Minus className="h-5 w-5" /> : <Square className="h-5 w-5" />}
-              <span className="text-sm font-medium">
+          <div className={cn("bg-muted/30 rounded-lg text-center", fieldMode ? "p-5" : "p-4")}>
+            <div className={cn("flex items-center justify-center gap-2 text-muted-foreground mb-2", fieldMode ? "text-base" : "text-sm")}>
+              {field.field_type === 'line' ? <Minus className={fieldMode ? "h-6 w-6" : "h-5 w-5"} /> : <Square className={fieldMode ? "h-6 w-6" : "h-5 w-5"} />}
+              <span className="font-medium">
                 {field.field_type === 'line' ? 'Tracer une ligne' : 'Délimiter une zone'}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground">
+            <p className={cn("text-muted-foreground", fieldMode ? "text-sm" : "text-xs")}>
               Fonctionnalité cartographique avancée (disponible sur tablette)
             </p>
             <LocationFieldWithAutoDetect
               value={value}
               onChange={onChange}
               autoDetectedLocation={autoDetectedLocation}
+              fieldMode={fieldMode}
             />
           </div>
         );
@@ -723,10 +774,11 @@ const SurveyFormField = ({
               value={value || ''}
               onChange={onChange}
               placeholder="Code-barres ou QR code"
+              fieldMode={fieldMode}
             />
-            <div className="p-4 bg-muted/30 rounded-lg text-center">
-              <QrCode className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground">
+            <div className={cn("bg-muted/30 rounded-lg text-center", fieldMode ? "p-5" : "p-4")}>
+              <QrCode className={cn("mx-auto mb-2 text-muted-foreground", fieldMode ? "h-10 w-10" : "h-8 w-8")} />
+              <p className={cn("text-muted-foreground", fieldMode ? "text-sm" : "text-xs")}>
                 Entrez le code manuellement ou utilisez un scanner externe
               </p>
             </div>
@@ -738,8 +790,9 @@ const SurveyFormField = ({
           <div className="space-y-3">
             <div
               className={cn(
-                'h-32 rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all',
-                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50'
+                'rounded-lg border-2 border-dashed flex flex-col items-center justify-center cursor-pointer transition-all',
+                value ? 'border-green-500 bg-green-500/5' : 'border-border hover:border-primary/50',
+                fieldMode ? 'h-40' : 'h-32'
               )}
               onClick={() => {
                 if (!value) {
@@ -751,13 +804,13 @@ const SurveyFormField = ({
             >
               {value ? (
                 <div className="text-center">
-                  <PenTool className="h-8 w-8 mx-auto mb-2 text-green-500" />
-                  <span className="text-sm text-green-600">Signature validée ✓</span>
+                  <PenTool className={cn("mx-auto mb-2 text-green-500", fieldMode ? "h-10 w-10" : "h-8 w-8")} />
+                  <span className={cn("text-green-600", fieldMode ? "text-base" : "text-sm")}>Signature validée ✓</span>
                 </div>
               ) : (
                 <div className="text-center text-muted-foreground">
-                  <PenTool className="h-8 w-8 mx-auto mb-2" />
-                  <span className="text-sm">Touchez pour signer</span>
+                  <PenTool className={cn("mx-auto mb-2", fieldMode ? "h-10 w-10" : "h-8 w-8")} />
+                  <span className={fieldMode ? "text-base" : "text-sm"}>Touchez pour signer</span>
                 </div>
               )}
             </div>
@@ -765,7 +818,7 @@ const SurveyFormField = ({
               <button
                 type="button"
                 onClick={() => onChange(null)}
-                className="text-xs text-destructive hover:underline"
+                className={cn("text-destructive hover:underline", fieldMode ? "text-sm" : "text-xs")}
               >
                 Effacer la signature
               </button>
@@ -775,13 +828,13 @@ const SurveyFormField = ({
 
       case 'calculate':
         return (
-          <div className="p-4 bg-muted/30 rounded-lg">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Calculator className="h-5 w-5" />
-              <span className="text-sm">Valeur calculée automatiquement</span>
+          <div className={cn("bg-muted/30 rounded-lg", fieldMode ? "p-5" : "p-4")}>
+            <div className={cn("flex items-center gap-2 text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
+              <Calculator className={fieldMode ? "h-6 w-6" : "h-5 w-5"} />
+              <span>Valeur calculée automatiquement</span>
             </div>
             {value !== undefined && value !== '' && (
-              <p className="mt-2 text-lg font-semibold text-foreground">{value}</p>
+              <p className={cn("mt-2 font-semibold text-foreground", fieldMode ? "text-2xl" : "text-lg")}>{value}</p>
             )}
           </div>
         );
@@ -797,16 +850,16 @@ const SurveyFormField = ({
         
         if (matrixRows.length === 0 || matrixCols.length === 0) {
           return (
-            <div className="p-4 bg-muted/30 rounded-lg text-center">
-              <Grid className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">Grille de questions (configuration requise)</p>
+            <div className={cn("bg-muted/30 rounded-lg text-center", fieldMode ? "p-5" : "p-4")}>
+              <Grid className={cn("mx-auto mb-2 text-muted-foreground", fieldMode ? "h-10 w-10" : "h-8 w-8")} />
+              <p className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>Grille de questions (configuration requise)</p>
             </div>
           );
         }
 
         return (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-2 px-2">
+            <table className={cn("w-full", fieldMode ? "text-base" : "text-sm")}>
               <thead>
                 <tr>
                   <th className="p-2"></th>
@@ -820,7 +873,7 @@ const SurveyFormField = ({
               <tbody>
                 {matrixRows.map((row: any) => (
                   <tr key={row.value} className="border-t border-border">
-                    <td className="p-2 font-medium text-foreground">{row.label}</td>
+                    <td className={cn("p-2 font-medium text-foreground", fieldMode ? "text-base" : "text-sm")}>{row.label}</td>
                     {matrixCols.map((col: any) => (
                       <td key={col.value} className="p-2 text-center">
                         <button
@@ -832,14 +885,15 @@ const SurveyFormField = ({
                             });
                           }}
                           className={cn(
-                            'w-6 h-6 rounded-full border-2 transition-all',
+                            'rounded-full border-2 transition-all',
                             matrixValues[row.value] === col.value
                               ? 'border-primary bg-primary'
-                              : 'border-muted-foreground hover:border-primary'
+                              : 'border-muted-foreground hover:border-primary',
+                            fieldMode ? 'w-8 h-8' : 'w-6 h-6'
                           )}
                         >
                           {matrixValues[row.value] === col.value && (
-                            <Check className="h-3 w-3 text-white mx-auto" />
+                            <Check className={cn("text-white mx-auto", fieldMode ? "h-4 w-4" : "h-3 w-3")} />
                           )}
                         </button>
                       </td>
@@ -857,21 +911,20 @@ const SurveyFormField = ({
             value={value || ''}
             onChange={onChange}
             placeholder={field.placeholder || ''}
+            fieldMode={fieldMode}
           />
         );
     }
   };
 
   return (
-    <Card>
-      <CardContent className="pt-4 space-y-3">
-        <label className="block font-medium text-foreground">
-          {field.label}
-          {field.required && <span className="text-destructive ml-1">*</span>}
-        </label>
-        {renderField()}
-      </CardContent>
-    </Card>
+    <div className={cn("bg-card rounded-xl border border-border shadow-sm", fieldMode ? "p-5" : "p-4")}>
+      <label className={cn("block font-semibold text-foreground mb-3", fieldMode ? "text-xl sm:text-2xl" : "text-base")}>
+        {field.label}
+        {field.required && <span className="text-destructive ml-1">*</span>}
+      </label>
+      {renderField()}
+    </div>
   );
 };
 
@@ -892,6 +945,10 @@ const Survey = () => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [autoDetectedLocation, setAutoDetectedLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [cachedSurvey, setCachedSurvey] = useLocalStorage<{ survey: DbSurvey; fields: DbSurveyField[] } | null>(`survey_cache_${id}`, null);
+  
+  // Mode collecte terrain - navigation par étapes
+  const [fieldMode, setFieldMode] = useState(false);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const toggleTheme = () => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
@@ -1102,15 +1159,41 @@ const Survey = () => {
 
   const handleNewResponse = () => {
     setSubmitted(false);
+    setCurrentStep(0);
     initializeFormData(fields);
   };
+
+  // Navigation mode collecte terrain
+  const goToNextStep = () => {
+    if (currentStep < fields.length - 1) {
+      // Validate current field if required
+      const currentField = fields[currentStep];
+      if (currentField.required) {
+        const value = formData[currentField.id];
+        if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+          toast.error(`Ce champ est obligatoire`);
+          return;
+        }
+      }
+      setCurrentStep(prev => prev + 1);
+    }
+  };
+
+  const goToPreviousStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
+  };
+
+  const isLastStep = currentStep === fields.length - 1;
+  const progressPercent = fields.length > 0 ? ((currentStep + 1) / fields.length) * 100 : 0;
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
-          <p className="text-muted-foreground">Chargement de l'enquête...</p>
+          <p className="text-muted-foreground">{t('survey.loading')}</p>
         </div>
       </div>
     );
@@ -1122,7 +1205,7 @@ const Survey = () => {
         <Card className="max-w-md w-full">
           <CardContent className="pt-6 text-center">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-xl font-bold text-foreground mb-2">Erreur</h2>
+            <h2 className="text-xl font-bold text-foreground mb-2">{t('survey.notFound')}</h2>
             <p className="text-muted-foreground">{error}</p>
           </CardContent>
         </Card>
@@ -1163,104 +1246,193 @@ const Survey = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="min-w-0">
-              <h1 className="font-bold text-foreground truncate text-sm">{survey?.title}</h1>
-              {survey?.description && (
-                <p className="text-xs text-muted-foreground/80 truncate">{survey.description}</p>
+        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
+                <h1 className="font-bold text-foreground truncate text-xs sm:text-sm">{survey?.title}</h1>
+                {survey?.description && !fieldMode && (
+                  <p className="text-[10px] sm:text-xs text-muted-foreground/80 truncate hidden sm:block">{survey.description}</p>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
+              {/* Field Mode Toggle */}
+              <button
+                onClick={() => {
+                  setFieldMode(!fieldMode);
+                  setCurrentStep(0);
+                }}
+                className={cn(
+                  "p-1.5 sm:p-2 rounded-lg transition-colors text-xs",
+                  fieldMode 
+                    ? "bg-primary text-primary-foreground" 
+                    : "hover:bg-muted text-foreground"
+                )}
+                title={fieldMode ? "Mode normal" : "Mode collecte terrain"}
+              >
+                <Smartphone className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </button>
+
+              {/* Theme Toggle */}
+              <button
+                onClick={toggleTheme}
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-muted transition-colors"
+                aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
+              >
+                {resolvedTheme === 'dark' ? (
+                  <Sun className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-foreground" />
+                ) : (
+                  <Moon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-foreground" />
+                )}
+              </button>
+
+              {/* Language Selector */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="p-1.5 sm:p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-0.5 sm:gap-1">
+                    <Globe className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-foreground" />
+                    <span className="text-[10px] sm:text-xs font-medium uppercase text-foreground">
+                      {i18n.language}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem
+                    onClick={() => changeLanguage('fr')}
+                    className={cn(i18n.language === 'fr' && 'bg-primary/10')}
+                  >
+                    🇫🇷 Français
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => changeLanguage('en')}
+                    className={cn(i18n.language === 'en' && 'bg-primary/10')}
+                  >
+                    🇬🇧 English
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {isOnline ? (
+                <span className="flex items-center text-green-600">
+                  <Wifi className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                </span>
+              ) : (
+                <span className="flex items-center text-orange-600">
+                  <WifiOff className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                </span>
+              )}
+              {pendingResponses.length > 0 && (
+                <span className="text-[10px] sm:text-xs bg-orange-500/10 text-orange-600 px-1.5 sm:px-2 py-0.5 rounded-full">
+                  {pendingResponses.length}
+                </span>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1 ml-2">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-lg hover:bg-muted transition-colors"
-              aria-label={resolvedTheme === 'dark' ? t('settings.lightMode') : t('settings.darkMode')}
-            >
-              {resolvedTheme === 'dark' ? (
-                <Sun className="h-4 w-4 text-foreground" />
-              ) : (
-                <Moon className="h-4 w-4 text-foreground" />
-              )}
-            </button>
-
-            {/* Language Selector */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-2 rounded-lg hover:bg-muted transition-colors flex items-center gap-1">
-                  <Globe className="h-4 w-4 text-foreground" />
-                  <span className="text-xs font-medium uppercase text-foreground">
-                    {i18n.language}
-                  </span>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                  onClick={() => changeLanguage('fr')}
-                  className={cn(i18n.language === 'fr' && 'bg-primary/10')}
-                >
-                  🇫🇷 Français
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => changeLanguage('en')}
-                  className={cn(i18n.language === 'en' && 'bg-primary/10')}
-                >
-                  🇬🇧 English
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {isOnline ? (
-              <span className="flex items-center gap-1 text-xs text-green-600 ml-1">
-                <Wifi className="h-3 w-3" />
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 text-xs text-orange-600 ml-1">
-                <WifiOff className="h-3 w-3" />
-              </span>
-            )}
-            {pendingResponses.length > 0 && (
-              <span className="text-xs bg-orange-500/10 text-orange-600 px-2 py-0.5 rounded-full">
-                {pendingResponses.length}
-              </span>
-            )}
-          </div>
+          
+          {/* Progress bar for field mode */}
+          {fieldMode && fields.length > 0 && (
+            <div className="mt-2">
+              <Progress value={progressPercent} className="h-1.5" />
+              <p className="text-[10px] sm:text-xs text-muted-foreground mt-1 text-center">
+                {currentStep + 1} / {fields.length}
+              </p>
+            </div>
+          )}
         </div>
       </header>
 
       {/* Form */}
-      <main className="max-w-2xl mx-auto px-4 py-6">
-        <div className="space-y-4">
-          {fields.map((field) => (
-            <SurveyFormField
-              key={field.id}
-              field={field}
-              value={formData[field.id]}
-              onChange={(value) => handleFieldChange(field.id, value)}
-              autoDetectedLocation={autoDetectedLocation}
-            />
-          ))}
-        </div>
-
-        {/* Submit button */}
-        <div className="mt-8 pb-8">
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full py-6 text-lg"
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                {t('form.submitting')}
-              </>
-            ) : (
-              t('form.submit')
+      <main className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6">
+        {fieldMode ? (
+          // Mode collecte terrain - une question à la fois
+          <div className="space-y-4">
+            {fields.length > 0 && (
+              <SurveyFormField
+                key={fields[currentStep].id}
+                field={fields[currentStep]}
+                value={formData[fields[currentStep].id]}
+                onChange={(value) => handleFieldChange(fields[currentStep].id, value)}
+                autoDetectedLocation={autoDetectedLocation}
+                fieldMode={true}
+                t={t}
+              />
             )}
-          </Button>
-        </div>
+            
+            {/* Navigation buttons */}
+            <div className="flex gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={goToPreviousStep}
+                disabled={currentStep === 0}
+                className="flex-1 py-5 sm:py-6 text-base sm:text-lg"
+              >
+                <ChevronLeft className="h-5 w-5 mr-1" />
+                {t('common.previous')}
+              </Button>
+              
+              {isLastStep ? (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={submitting}
+                  className="flex-1 py-5 sm:py-6 text-base sm:text-lg"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      {t('form.submitting')}
+                    </>
+                  ) : (
+                    t('form.submit')
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onClick={goToNextStep}
+                  className="flex-1 py-5 sm:py-6 text-base sm:text-lg"
+                >
+                  {t('common.next')}
+                  <ChevronRight className="h-5 w-5 ml-1" />
+                </Button>
+              )}
+            </div>
+          </div>
+        ) : (
+          // Mode normal - toutes les questions
+          <>
+            <div className="space-y-3 sm:space-y-4">
+              {fields.map((field) => (
+                <SurveyFormField
+                  key={field.id}
+                  field={field}
+                  value={formData[field.id]}
+                  onChange={(value) => handleFieldChange(field.id, value)}
+                  autoDetectedLocation={autoDetectedLocation}
+                  fieldMode={false}
+                  t={t}
+                />
+              ))}
+            </div>
+
+            {/* Submit button */}
+            <div className="mt-6 sm:mt-8 pb-6 sm:pb-8">
+              <Button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full py-5 sm:py-6 text-base sm:text-lg"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    {t('form.submitting')}
+                  </>
+                ) : (
+                  t('form.submit')
+                )}
+              </Button>
+            </div>
+          </>
+        )}
       </main>
 
       {/* PWA Install Banner */}
