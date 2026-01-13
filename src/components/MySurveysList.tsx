@@ -66,35 +66,48 @@ export const MySurveysList = ({
         >
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <h3 className="font-semibold text-foreground truncate">
-                  {survey.title}
-                </h3>
-                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                  survey.status === 'active'
-                    ? 'bg-success/10 text-success'
-                    : 'bg-muted text-muted-foreground'
-                }`}>
-                  {survey.status === 'active' 
-                    ? t('mySurveys.published', 'Publié') 
-                    : t('mySurveys.draft', 'Brouillon')}
-                </span>
-              </div>
-              {survey.description && (
-                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                  {survey.description}
-                </p>
-              )}
-              <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
-                <span>
-                  {t('mySurveys.createdOn', 'Créé le')} {format(new Date(survey.created_at), 'dd MMM yyyy', { locale: dateLocale })}
-                </span>
-                <span className="flex items-center gap-1 text-primary font-medium">
-                  <MessageSquare className="h-3 w-3" />
-                  {responseCounts[survey.id] || 0} {(responseCounts[survey.id] || 0) !== 1 
-                    ? t('mySurveys.responses', 'réponses') 
-                    : t('mySurveys.response', 'réponse')}
-                </span>
+              <div className="flex items-start gap-3">
+                {survey.cover_image_url && (
+                  <img
+                    src={survey.cover_image_url}
+                    alt={t('mySurveys.coverAlt', "Image de l'enquête")}
+                    loading="lazy"
+                    className="w-12 h-12 rounded-lg object-cover border border-border flex-shrink-0"
+                  />
+                )}
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <h3 className="font-semibold text-foreground truncate">
+                      {survey.title}
+                    </h3>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      survey.status === 'active'
+                        ? 'bg-success/10 text-success'
+                        : 'bg-muted text-muted-foreground'
+                    }`}>
+                      {survey.status === 'active' 
+                        ? t('mySurveys.published', 'Publié') 
+                        : t('mySurveys.draft', 'Brouillon')}
+                    </span>
+                  </div>
+                  {survey.description && (
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2 break-words">
+                      {survey.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                    <span>
+                      {t('mySurveys.createdOn', 'Créé le')} {format(new Date(survey.created_at), 'dd MMM yyyy', { locale: dateLocale })}
+                    </span>
+                    <span className="flex items-center gap-1 text-primary font-medium">
+                      <MessageSquare className="h-3 w-3" />
+                      {responseCounts[survey.id] || 0} {(responseCounts[survey.id] || 0) !== 1 
+                        ? t('mySurveys.responses', 'réponses') 
+                        : t('mySurveys.response', 'réponse')}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
