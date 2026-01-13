@@ -473,29 +473,29 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
   };
 
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-4 sm:space-y-6 pb-32">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col gap-3">
         <div>
-          <h2 className="text-xl font-bold text-foreground">{survey.title}</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-foreground line-clamp-2">{survey.title}</h2>
           {survey.description && (
-            <p className="text-sm text-muted-foreground">{survey.description}</p>
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{survey.description}</p>
           )}
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 sm:gap-2 flex-wrap">
           <FormDesignSelector 
             selectedTemplate={selectedDesign} 
             onSelect={handleDesignSelect} 
           />
           <ShareSurveyDialog surveyId={survey.id} surveyTitle={survey.title} surveyDescription={survey.description} coverImageUrl={survey.cover_image_url} />
-          <Button variant="outline" size="sm" onClick={onPreview} className="text-xs sm:text-sm">
-            <Eye className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">Aperçu</span>
+          <Button variant="outline" size="sm" onClick={onPreview} className="text-[10px] sm:text-xs h-8 px-2 sm:px-3">
+            <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+            <span className="hidden xs:inline">Aperçu</span>
           </Button>
-          <Button size="sm" onClick={onPublish} className="text-xs sm:text-sm">
-            <Send className="h-4 w-4 mr-1" />
-            <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Déployer sur serveur'}</span>
-            <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : 'Déployer'}</span>
+          <Button size="sm" onClick={onPublish} className="text-[10px] sm:text-xs h-8 px-2 sm:px-3">
+            <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-0.5 sm:mr-1" />
+            <span className="hidden sm:inline">{survey.status === 'active' ? 'Dépublier' : 'Déployer'}</span>
+            <span className="sm:hidden">{survey.status === 'active' ? 'Stop' : '🚀'}</span>
           </Button>
         </div>
       </div>
@@ -559,19 +559,19 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
       </div>
 
       {/* Add Question Panel - KoboToolbox style */}
-      <div className="space-y-4">
-        <h3 className="font-semibold text-foreground">Ajouter une question</h3>
-        <div className="bg-card border border-border rounded-xl p-4">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2">
+      <div className="space-y-3 sm:space-y-4">
+        <h3 className="font-semibold text-foreground text-sm sm:text-base">Ajouter une question</h3>
+        <div className="bg-card border border-border rounded-xl p-2 sm:p-4">
+          <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-6 md:grid-cols-7 lg:grid-cols-8 gap-1 sm:gap-2">
             {FIELD_TYPES.map((type) => (
               <button
                 key={type.value}
                 onClick={() => handleAddField(type.value)}
-                className="flex flex-col items-center gap-1.5 p-3 rounded-lg hover:bg-primary/10 transition-all text-center group border border-transparent hover:border-primary/30"
+                className="flex flex-col items-center gap-1 p-1.5 sm:p-3 rounded-lg hover:bg-primary/10 transition-all text-center group border border-transparent hover:border-primary/30"
                 title={type.description}
               >
-                <type.icon className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
-                <span className="text-xs font-medium text-foreground leading-tight">{type.label}</span>
+                <type.icon className="h-4 w-4 sm:h-5 sm:w-5 text-primary group-hover:scale-110 transition-transform" />
+                <span className="text-[9px] sm:text-xs font-medium text-foreground leading-tight line-clamp-1">{type.label}</span>
               </button>
             ))}
           </div>
