@@ -12,12 +12,13 @@ export const APP_CONFIG = {
 };
 
 // Get the correct base URL for sharing
+// ALWAYS use production URL for consistency
 export const getShareBaseUrl = (): string => {
-  // Always use production URL for sharing if configured
-  if (APP_CONFIG.productionUrl) {
-    return APP_CONFIG.productionUrl;
-  }
-  
-  // Fallback to current origin
-  return window.location.origin;
+  // Always use production URL for sharing
+  return APP_CONFIG.productionUrl;
+};
+
+// Get the survey URL
+export const getSurveyUrl = (surveyId: string): string => {
+  return `${getShareBaseUrl()}/survey/${surveyId}`;
 };
