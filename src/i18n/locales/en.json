@@ -12,7 +12,13 @@
     "yes": "Yes",
     "no": "No",
     "all": "All",
-    "back": "Back"
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "submit": "Submit",
+    "create": "Create",
+    "update": "Update",
+    "close": "Close"
   },
   "nav": {
     "home": "Home",
@@ -37,6 +43,21 @@
     "noAvailable": "No surveys available",
     "noAvailableDesc": "Published surveys will appear here",
     "createNew": "Create survey"
+  },
+  "mySurveys": {
+    "noSurveys": "No surveys created",
+    "createFirst": "Create your first survey to get started",
+    "published": "Published",
+    "draft": "Draft",
+    "createdOn": "Created on",
+    "responses": "responses",
+    "response": "response",
+    "viewResponses": "View responses",
+    "duplicate": "Duplicate",
+    "unpublish": "Unpublish",
+    "publish": "Publish",
+    "deleteTitle": "Delete survey?",
+    "deleteDescription": "This action is irreversible. The survey and all its responses will be permanently deleted."
   },
   "data": {
     "title": "Data",
@@ -117,7 +138,20 @@
     "thankYou": "Thank you!",
     "submitted": "Your response has been recorded successfully.",
     "responseRecorded": "response recorded on this device",
-    "responsesRecorded": "responses recorded on this device"
+    "responsesRecorded": "responses recorded on this device",
+    "captureLocation": "Capture GPS location",
+    "locationCaptured": "GPS location captured",
+    "takePhoto": "Take a photo",
+    "photoCaptured": "Photo captured",
+    "selectOption": "Select an option",
+    "selectMultiple": "Select multiple options",
+    "enterText": "Enter your answer...",
+    "enterNumber": "Enter a number",
+    "enterEmail": "Enter your email",
+    "enterPhone": "Enter your phone",
+    "selectDate": "Select a date",
+    "selectTime": "Select a time",
+    "autoFilled": "Auto-filled"
   },
   "premium": {
     "title": "Premium Report",
@@ -166,6 +200,41 @@
     "pending": "pending",
     "thankYou": "Thank you!",
     "responseRecorded": "Your response has been recorded successfully.",
-    "newResponse": "New response"
+    "newResponse": "New response",
+    "loading": "Loading survey...",
+    "notFound": "Survey not found",
+    "notFoundDesc": "This survey doesn't exist or has been deleted.",
+    "offlineNotice": "You are offline. Your responses will be synced automatically.",
+    "poweredBy": "Powered by"
+  },
+  "share": {
+    "share": "Share",
+    "shareSurvey": "Share survey",
+    "shareWithEnumerators": "Share this link with your enumerators.",
+    "linkCopied": "Link copied to clipboard",
+    "copyError": "Error copying link",
+    "respondTo": "Respond to survey",
+    "download": "Download",
+    "qrDownloaded": "QR code downloaded",
+    "scanToAccess": "Scan to access",
+    "fullscreen": "Fullscreen",
+    "shareQR": "Share QR",
+    "backToOptions": "Back to options",
+    "open": "Open",
+    "illustrativeImage": "Illustrative image included",
+    "productionUrl": "Optimized link for sharing (youcollect.netlify.app)",
+    "offlineTip": "This app works offline! Enumerators can collect data without connection."
+  },
+  "create": {
+    "title": "Create a survey",
+    "surveyTitle": "Survey title",
+    "surveyTitlePlaceholder": "Ex: Customer satisfaction 2024",
+    "description": "Description",
+    "descriptionPlaceholder": "Survey description (optional)",
+    "coverImage": "Cover image",
+    "selectImage": "Select an image",
+    "imageSelected": "Image selected",
+    "creating": "Creating...",
+    "createAndEdit": "Create and edit"
   }
 }

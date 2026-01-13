@@ -12,7 +12,13 @@
     "yes": "Oui",
     "no": "Non",
     "all": "Tous",
-    "back": "Retour"
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "submit": "Soumettre",
+    "create": "Créer",
+    "update": "Mettre à jour",
+    "close": "Fermer"
   },
   "nav": {
     "home": "Accueil",
@@ -37,6 +43,21 @@
     "noAvailable": "Aucune enquête disponible",
     "noAvailableDesc": "Les enquêtes publiées apparaîtront ici",
     "createNew": "Créer une enquête"
+  },
+  "mySurveys": {
+    "noSurveys": "Aucune enquête créée",
+    "createFirst": "Créez votre première enquête pour commencer",
+    "published": "Publié",
+    "draft": "Brouillon",
+    "createdOn": "Créé le",
+    "responses": "réponses",
+    "response": "réponse",
+    "viewResponses": "Voir les réponses",
+    "duplicate": "Dupliquer",
+    "unpublish": "Dépublier",
+    "publish": "Publier",
+    "deleteTitle": "Supprimer l'enquête ?",
+    "deleteDescription": "Cette action est irréversible. L'enquête et toutes ses réponses seront supprimées définitivement."
   },
   "data": {
     "title": "Données",
@@ -117,7 +138,20 @@
     "thankYou": "Merci !",
     "submitted": "Votre réponse a été enregistrée avec succès.",
     "responseRecorded": "réponse enregistrée sur cet appareil",
-    "responsesRecorded": "réponses enregistrées sur cet appareil"
+    "responsesRecorded": "réponses enregistrées sur cet appareil",
+    "captureLocation": "Capturer la position GPS",
+    "locationCaptured": "Position GPS capturée",
+    "takePhoto": "Prendre une photo",
+    "photoCaptured": "Photo capturée",
+    "selectOption": "Sélectionner une option",
+    "selectMultiple": "Sélectionner plusieurs options",
+    "enterText": "Entrez votre réponse...",
+    "enterNumber": "Entrez un nombre",
+    "enterEmail": "Entrez votre email",
+    "enterPhone": "Entrez votre téléphone",
+    "selectDate": "Sélectionner une date",
+    "selectTime": "Sélectionner une heure",
+    "autoFilled": "Rempli automatiquement"
   },
   "premium": {
     "title": "Rapport Premium",
@@ -166,6 +200,41 @@
     "pending": "en attente",
     "thankYou": "Merci !",
     "responseRecorded": "Votre réponse a été enregistrée avec succès.",
-    "newResponse": "Nouvelle réponse"
+    "newResponse": "Nouvelle réponse",
+    "loading": "Chargement de l'enquête...",
+    "notFound": "Enquête introuvable",
+    "notFoundDesc": "Cette enquête n'existe pas ou a été supprimée.",
+    "offlineNotice": "Vous êtes hors ligne. Vos réponses seront synchronisées automatiquement.",
+    "poweredBy": "Propulsé par"
+  },
+  "share": {
+    "share": "Partager",
+    "shareSurvey": "Partager l'enquête",
+    "shareWithEnumerators": "Partagez ce lien avec vos enquêteurs.",
+    "linkCopied": "Lien copié dans le presse-papiers",
+    "copyError": "Erreur lors de la copie",
+    "respondTo": "Répondez à l'enquête",
+    "download": "Télécharger",
+    "qrDownloaded": "QR code téléchargé",
+    "scanToAccess": "Scanner pour accéder",
+    "fullscreen": "Plein écran",
+    "shareQR": "Partager QR",
+    "backToOptions": "Retour aux options",
+    "open": "Ouvrir",
+    "illustrativeImage": "Image illustrative incluse",
+    "productionUrl": "Lien optimisé pour le partage (youcollect.netlify.app)",
+    "offlineTip": "Cette application fonctionne hors-ligne ! Les enquêteurs peuvent collecter des données sans connexion."
+  },
+  "create": {
+    "title": "Créer une enquête",
+    "surveyTitle": "Titre de l'enquête",
+    "surveyTitlePlaceholder": "Ex: Satisfaction client 2024",
+    "description": "Description",
+    "descriptionPlaceholder": "Description de l'enquête (optionnel)",
+    "coverImage": "Image de couverture",
+    "selectImage": "Sélectionner une image",
+    "imageSelected": "Image sélectionnée",
+    "creating": "Création...",
+    "createAndEdit": "Créer et modifier"
   }
 }

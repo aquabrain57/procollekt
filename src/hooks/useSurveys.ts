@@ -142,6 +142,66 @@ export const useSurveys = () => {
     return updateSurvey(id, { status: 'draft' });
   };
 
+  const duplicateSurvey = async (sourceSurvey: DbSurvey) => {
+    if (!user) return null;
+
+    try {
+      // Create new survey as a copy
+      const { data: newSurvey, error: surveyError } = await supabase
+        .from('surveys')
+        .insert({
+          user_id: user.id,
+          title: `${sourceSurvey.title} (copie)`,
+          description: sourceSurvey.description,
+          status: 'draft',
+          cover_image_url: sourceSurvey.cover_image_url,
+        })
+        .select()
+        .single();
+
+      if (surveyError) throw surveyError;
+
+      // Fetch source survey fields
+      const { data: sourceFields, error: fieldsError } = await supabase
+        .from('survey_fields')
+        .select('*')
+        .eq('survey_id', sourceSurvey.id)
+        .order('field_order', { ascending: true });
+
+      if (fieldsError) throw fieldsError;
+
+      // Duplicate fields if any
+      if (sourceFields && sourceFields.length > 0) {
+        const newFields = sourceFields.map((field: any) => ({
+          survey_id: newSurvey.id,
+          field_type: field.field_type,
+          label: field.label,
+          placeholder: field.placeholder,
+          required: field.required,
+          options: field.options,
+          min_value: field.min_value,
+          max_value: field.max_value,
+          conditional_on: field.conditional_on,
+          field_order: field.field_order,
+        }));
+
+        const { error: insertFieldsError } = await supabase
+          .from('survey_fields')
+          .insert(newFields);
+
+        if (insertFieldsError) throw insertFieldsError;
+      }
+
+      setSurveys(prev => [newSurvey as DbSurvey, ...prev]);
+      toast.success('Enquête dupliquée avec succès');
+      return newSurvey as DbSurvey;
+    } catch (error: any) {
+      console.error('Error duplicating survey:', error);
+      toast.error('Erreur lors de la duplication');
+      return null;
+    }
+  };
+
   return {
     surveys,
     loading,
@@ -150,6 +210,7 @@ export const useSurveys = () => {
     deleteSurvey,
     publishSurvey,
     unpublishSurvey,
+    duplicateSurvey,
     refetch: fetchSurveys,
   };
 };

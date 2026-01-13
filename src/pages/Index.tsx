@@ -37,7 +37,7 @@ const Index = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const { surveys, loading: surveysLoading, createSurvey, updateSurvey, deleteSurvey, publishSurvey, unpublishSurvey } = useSurveys();
+  const { surveys, loading: surveysLoading, createSurvey, updateSurvey, deleteSurvey, publishSurvey, unpublishSurvey, duplicateSurvey } = useSurveys();
   const { responses: allResponses, loading: responsesLoading } = useSurveyResponses();
   const { responses, loading: selectedResponsesLoading } = useSurveyResponses(selectedSurvey?.id);
 
@@ -397,6 +397,7 @@ const Index = () => {
                     onPublish={publishSurvey}
                     onUnpublish={unpublishSurvey}
                     onViewResponses={handleViewResponses}
+                    onDuplicate={duplicateSurvey}
                   />
                 )}
               </TabsContent>

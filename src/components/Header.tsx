@@ -62,7 +62,7 @@ export const Header = ({
               <ArrowLeft className="h-5 w-5 text-foreground" />
             </button>
           ) : (
-            <span className="font-bold text-lg text-foreground tracking-tight hidden sm:block">Youcollect</span>
+            <span className="font-bold text-lg text-foreground tracking-tight">Youcollect</span>
           )}
           {showBack && (
             <h1 className="font-semibold text-lg text-foreground truncate max-w-[150px] sm:max-w-none">
