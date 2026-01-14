@@ -6,18 +6,19 @@ import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import DOMPurify from 'dompurify';
 import { DbSurveyResponse, DbSurveyField } from '@/hooks/useSurveys';
-import { MapPin, AlertCircle, Globe, Navigation } from 'lucide-react';
+import { MapPin, AlertCircle, Globe, Navigation, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ResponsesMapProps {
   responses: DbSurveyResponse[];
   fields: DbSurveyField[];
 }
 
-// Default Mapbox token for demo - users should configure their own
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZS1kZW1vIiwiYSI6ImNsZzA0N2FrazBrZDAzcXBkM3NtN3d6Y2cifQ.HcGnWmZWHe36hXwKxXfZuw';
+// Public Mapbox token for demo (limited usage)
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
 
 export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
   const { t, i18n } = useTranslation();
@@ -28,6 +29,7 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
   const [mapError, setMapError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
+  const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid' | 'missing'>('checking');
 
   // Filter and memoize geo responses
   const geoResponses = useMemo(() => 
@@ -85,6 +87,18 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
     };
   }, [geoResponses]);
 
+  // Get token - try env first, then fallback to public demo token
+  const getMapboxToken = (): string | null => {
+    // First try VITE_MAPBOX_TOKEN from env
+    const envToken = import.meta.env.VITE_MAPBOX_TOKEN;
+    if (envToken && envToken !== 'undefined' && envToken.trim() !== '' && envToken.startsWith('pk.')) {
+      return envToken;
+    }
+    
+    // Use public fallback token for basic map functionality
+    return DEFAULT_MAPBOX_TOKEN;
+  };
+
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || geoResponses.length === 0) {
@@ -92,16 +106,16 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
       return;
     }
 
-    // Get token from environment or use fallback
-    let token = import.meta.env.VITE_MAPBOX_TOKEN;
+    const token = getMapboxToken();
     
-    // Use configured secret if available
-    if (!token || token === 'undefined' || token.trim() === '') {
-      // Fallback: try without token for basic functionality
-      setMapError('Token Mapbox non configuré. Affichage en mode liste.');
+    if (!token) {
+      setTokenStatus('missing');
+      setMapError('Token Mapbox non disponible');
       setIsLoading(false);
       return;
     }
+
+    setTokenStatus('checking');
 
     try {
       mapboxgl.accessToken = token;
@@ -150,17 +164,25 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
       map.current.on('load', () => {
         setIsLoading(false);
         setMapReady(true);
+        setTokenStatus('valid');
       });
 
       map.current.on('error', (e) => {
         console.error('Map error:', e);
-        setMapError('Erreur de chargement de la carte');
+        const errorData = e as any;
+        if (errorData?.error?.status === 401 || errorData?.error?.status === 403) {
+          setTokenStatus('invalid');
+          setMapError('Token Mapbox invalide. Vérifiez votre configuration.');
+        } else {
+          setMapError('Erreur de chargement de la carte');
+        }
         setIsLoading(false);
       });
 
     } catch (error: any) {
       console.error('Map initialization error:', error);
       setMapError(error.message || 'Erreur lors du chargement de la carte');
+      setTokenStatus('invalid');
       setIsLoading(false);
     }
 
@@ -266,35 +288,37 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
     );
   }
 
-  // Map error - show enhanced fallback
-  if (mapError) {
+  // Map error or no token - show enhanced fallback with stats
+  if (mapError || tokenStatus === 'invalid' || tokenStatus === 'missing') {
     return (
       <div className="space-y-4">
         {/* Error notice */}
-        <div className="p-4 bg-amber-500/10 rounded-xl flex items-start gap-3 border border-amber-500/20">
-          <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium text-sm text-amber-800">Carte non disponible</p>
-            <p className="text-xs text-amber-700 mt-0.5">{mapError}</p>
-          </div>
-        </div>
+        <Alert variant="destructive" className="border-amber-500/30 bg-amber-500/10">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Carte non disponible</AlertTitle>
+          <AlertDescription className="text-sm">
+            {tokenStatus === 'missing' && 'Token Mapbox non configuré. '}
+            {tokenStatus === 'invalid' && 'Token Mapbox invalide. '}
+            Les données sont affichées en mode liste ci-dessous.
+          </AlertDescription>
+        </Alert>
 
         {/* Stats summary */}
         {geoStats && (
           <div className="grid grid-cols-3 gap-3">
-            <Card>
+            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
               <CardContent className="p-3 text-center">
                 <p className="text-2xl font-bold text-primary">{geoStats.total}</p>
                 <p className="text-xs text-muted-foreground">Géolocalisées</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
               <CardContent className="p-3 text-center">
                 <p className="text-2xl font-bold text-green-600">{geoStats.zonesCount}</p>
                 <p className="text-xs text-muted-foreground">Zones</p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20">
               <CardContent className="p-3 text-center">
                 <p className="text-2xl font-bold text-purple-600">
                   {Math.round((geoStats.total / responses.length) * 100)}%
