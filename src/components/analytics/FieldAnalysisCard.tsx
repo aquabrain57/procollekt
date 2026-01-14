@@ -35,7 +35,7 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
   const [expanded, setExpanded] = useState(!compact);
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
 
-  // Get field options from the form definition
+  // Get field options from the form definition - ALWAYS use actual labels from form
   const getFieldOptions = (): FieldOption[] => {
     if (!field.options) return [];
     if (Array.isArray(field.options)) {
@@ -43,10 +43,42 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
         if (typeof opt === 'string') {
           return { value: opt, label: opt };
         }
-        return { value: opt.value || opt, label: opt.label || opt.value || opt };
+        // Ensure we get the actual label, not technical values like "Option 01"
+        const label = opt.label || opt.value || String(opt);
+        const value = opt.value || opt.label || String(opt);
+        return { value, label };
       });
     }
     return [];
+  };
+
+  // Helper to get proper display label for any response value
+  const getDisplayLabel = (responseValue: any): string => {
+    const fieldOptions = getFieldOptions();
+    const valueStr = String(responseValue);
+    
+    // First try exact match on value
+    const byValue = fieldOptions.find(opt => opt.value === valueStr);
+    if (byValue) return byValue.label;
+    
+    // Then try exact match on label
+    const byLabel = fieldOptions.find(opt => opt.label === valueStr);
+    if (byLabel) return byLabel.label;
+    
+    // If no match found and looks like a default value (Option XX), return original if available
+    if (valueStr.match(/^Option\s*\d+$/i) && fieldOptions.length > 0) {
+      // This might be an index-based reference, try to match by position
+      const match = valueStr.match(/\d+/);
+      if (match) {
+        const idx = parseInt(match[0], 10) - 1;
+        if (idx >= 0 && idx < fieldOptions.length) {
+          return fieldOptions[idx].label;
+        }
+      }
+    }
+    
+    // Return the original value if no mapping found
+    return valueStr;
   };
 
   const analysis = useMemo(() => {
@@ -64,20 +96,15 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
         optionCounts[opt.label] = 0;
       });
 
-      // Count actual responses - use option labels
+      // Count actual responses - use proper display labels
       values.forEach(v => {
         if (Array.isArray(v)) {
           v.forEach(item => {
-            const itemStr = String(item);
-            // Find matching option label
-            const option = fieldOptions.find(opt => opt.value === itemStr || opt.label === itemStr);
-            const label = option ? option.label : itemStr;
+            const label = getDisplayLabel(item);
             optionCounts[label] = (optionCounts[label] || 0) + 1;
           });
         } else {
-          const vStr = String(v);
-          const option = fieldOptions.find(opt => opt.value === vStr || opt.label === vStr);
-          const label = option ? option.label : vStr;
+          const label = getDisplayLabel(v);
           optionCounts[label] = (optionCounts[label] || 0) + 1;
         }
       });

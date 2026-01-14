@@ -190,14 +190,39 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
   }
 
   if (mapError) {
+    // Show a simple zone list as fallback instead of map
     return (
-      <div className="h-[400px] bg-destructive/10 rounded-xl flex flex-col items-center justify-center text-destructive">
-        <AlertCircle className="h-12 w-12 mb-4" />
-        <p className="font-medium">{t('map.mapError')}</p>
-        <p className="text-sm">{mapError}</p>
-        <p className="text-xs mt-2 text-muted-foreground">
-          Vérifiez que le secret VITE_MAPBOX_TOKEN est configuré
-        </p>
+      <div className="space-y-4">
+        <div className="h-[200px] bg-muted/30 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-muted">
+          <AlertCircle className="h-8 w-8 mb-2 text-muted-foreground" />
+          <p className="font-medium text-sm text-muted-foreground">Carte non disponible</p>
+          <p className="text-xs text-muted-foreground">{mapError}</p>
+        </div>
+        
+        {/* Show location data as list fallback */}
+        <div className="bg-card rounded-lg border p-4">
+          <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-primary" />
+            {geoResponses.length} réponses géolocalisées
+          </h4>
+          <div className="space-y-2 max-h-[200px] overflow-y-auto">
+            {geoResponses.slice(0, 20).map((response, idx) => (
+              <div key={response.id} className="flex items-center justify-between text-xs p-2 bg-muted/30 rounded">
+                <span className="text-muted-foreground">
+                  {format(new Date(response.created_at), "dd/MM/yyyy HH:mm", { locale: dateLocale })}
+                </span>
+                <span className="font-mono text-muted-foreground">
+                  {response.location?.latitude.toFixed(4)}, {response.location?.longitude.toFixed(4)}
+                </span>
+              </div>
+            ))}
+            {geoResponses.length > 20 && (
+              <p className="text-xs text-muted-foreground text-center pt-2">
+                +{geoResponses.length - 20} autres réponses...
+              </p>
+            )}
+          </div>
+        </div>
       </div>
     );
   }
