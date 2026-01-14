@@ -1,11 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
   Download, FileSpreadsheet, FileText, File, Crown, Sparkles,
   TrendingUp, Users, MapPin, Target, BarChart3, PieChart,
   Lightbulb, AlertTriangle, CheckCircle, HelpCircle, Edit3,
-  Presentation, FileImage, Table as TableIcon
+  Presentation, FileImage, Table as TableIcon, Brain, Loader2,
+  RefreshCw, Zap, ArrowRight
 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
@@ -41,10 +42,18 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, PageBreak } from 'docx';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PremiumReportProps {
   survey: DbSurvey;
   responses: DbSurveyResponse[];
+}
+
+interface AIAnalysis {
+  summary: string;
+  trends: string[];
+  anomalies: string[];
+  recommendations: string[];
 }
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
@@ -58,6 +67,11 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
   const [customNotes, setCustomNotes] = useState('');
   const [authorName, setAuthorName] = useState('');
   const [activeExportTab, setActiveExportTab] = useState('pdf');
+  
+  // AI Analysis state
+  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Helper to get option label from field options
   const getOptionLabel = (field: any, value: any): string => {
@@ -220,6 +234,101 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
 
     return result.slice(0, 6);
   }, [globalStats, fieldAnalytics]);
+
+  // Calculate additional stats for AI analysis
+  const analysisStats = useMemo(() => {
+    const dateGroups: Record<string, number> = {};
+    const hourGroups: Record<number, number> = {};
+    
+    responses.forEach(r => {
+      const date = format(new Date(r.created_at), 'yyyy-MM-dd');
+      const hour = new Date(r.created_at).getHours();
+      dateGroups[date] = (dateGroups[date] || 0) + 1;
+      hourGroups[hour] = (hourGroups[hour] || 0) + 1;
+    });
+    
+    const dates = Object.keys(dateGroups).sort();
+    const peakHourEntry = Object.entries(hourGroups).sort(([,a], [,b]) => b - a)[0];
+    
+    return {
+      avgPerDay: dates.length > 0 ? Math.round(responses.length / dates.length * 10) / 10 : 0,
+      daysActive: dates.length,
+      peakHour: peakHourEntry ? `${peakHourEntry[0]}h` : 'N/A',
+    };
+  }, [responses]);
+
+  // AI Analysis function
+  const runAIAnalysis = async () => {
+    if (responses.length < 3) {
+      toast.error('Minimum 3 réponses nécessaires pour l\'analyse IA');
+      return;
+    }
+    
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    
+    try {
+      // Prepare field analytics for API
+      const apiFieldAnalytics = fieldAnalytics.map(fa => ({
+        field: fa.field.label,
+        type: fa.type,
+        data: fa.type === 'categorical' && fa.data 
+          ? fa.data.slice(0, 10).map(d => ({
+              option: d.name,
+              count: d.value,
+              percentage: d.percentage,
+            }))
+          : [],
+        stats: fa.type === 'numeric' && fa.stats ? {
+          avg: fa.stats.avg,
+          min: fa.stats.min,
+          max: fa.stats.max,
+          median: fa.stats.avg, // Approximation
+        } : undefined,
+      }));
+
+      const { data, error } = await supabase.functions.invoke('analyze-survey', {
+        body: {
+          survey: {
+            title: survey.title,
+            description: survey.description || '',
+          },
+          fields: fields.map(f => ({
+            id: f.id,
+            label: f.label,
+            type: f.field_type,
+            options: f.options,
+          })),
+          statistics: {
+            total: globalStats.total,
+            completionRate: globalStats.completionRate,
+            locationRate: globalStats.locationRate,
+            avgPerDay: analysisStats.avgPerDay,
+            daysActive: analysisStats.daysActive,
+            peakHour: analysisStats.peakHour,
+          },
+          fieldAnalytics: apiFieldAnalytics,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Erreur lors de l\'analyse');
+      }
+
+      if (data?.analysis?.sections) {
+        setAiAnalysis(data.analysis.sections);
+        toast.success('Analyse IA générée avec succès');
+      } else {
+        throw new Error('Format de réponse invalide');
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erreur inconnue';
+      setAnalysisError(message);
+      toast.error(`Erreur d'analyse: ${message}`);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
 
   // Export to Premium PDF with full analysis
   const exportPremiumPDF = (mode: 'standard' | 'presentation' = 'standard') => {
@@ -892,6 +1001,178 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
             </CardContent>
           </Card>
         )}
+
+        {/* AI Executive Summary - Premium Feature */}
+        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-purple-500/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-2 rounded-lg bg-gradient-to-br from-primary to-purple-600">
+                  <Brain className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    Résumé Exécutif IA
+                    <Badge variant="secondary" className="text-[10px] bg-gradient-to-r from-primary/20 to-purple-600/20">
+                      Premium
+                    </Badge>
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Analyse automatique par intelligence artificielle
+                  </CardDescription>
+                </div>
+              </div>
+              <Button 
+                onClick={runAIAnalysis}
+                disabled={isAnalyzing || responses.length < 3}
+                variant="outline"
+                size="sm"
+                className="gap-2"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Analyse...
+                  </>
+                ) : aiAnalysis ? (
+                  <>
+                    <RefreshCw className="h-4 w-4" />
+                    Actualiser
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-4 w-4" />
+                    Générer
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {!aiAnalysis && !isAnalyzing && !analysisError && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Brain className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                <p className="font-medium">Analyse IA non générée</p>
+                <p className="text-sm mt-1">
+                  Cliquez sur "Générer" pour obtenir un résumé exécutif, 
+                  les tendances clés et des recommandations stratégiques.
+                </p>
+                {responses.length < 3 && (
+                  <p className="text-xs text-amber-600 mt-2">
+                    Minimum 3 réponses nécessaires (actuellement: {responses.length})
+                  </p>
+                )}
+              </div>
+            )}
+
+            {isAnalyzing && (
+              <div className="text-center py-8">
+                <Loader2 className="h-12 w-12 mx-auto mb-4 animate-spin text-primary" />
+                <p className="font-medium text-primary">Analyse en cours...</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  L'IA analyse vos {responses.length} réponses et génère des insights.
+                </p>
+              </div>
+            )}
+
+            {analysisError && !isAnalyzing && (
+              <div className="text-center py-8 text-destructive">
+                <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="font-medium">Erreur d'analyse</p>
+                <p className="text-sm mt-1">{analysisError}</p>
+                <Button 
+                  onClick={runAIAnalysis} 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Réessayer
+                </Button>
+              </div>
+            )}
+
+            {aiAnalysis && !isAnalyzing && (
+              <div className="space-y-6">
+                {/* Executive Summary */}
+                {aiAnalysis.summary && (
+                  <div className="p-4 bg-card rounded-xl border shadow-sm">
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      Résumé
+                    </h4>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {aiAnalysis.summary}
+                    </p>
+                  </div>
+                )}
+
+                {/* Trends */}
+                {aiAnalysis.trends && aiAnalysis.trends.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4 text-green-500" />
+                      Tendances clés identifiées
+                    </h4>
+                    <div className="grid gap-2">
+                      {aiAnalysis.trends.map((trend, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-start gap-2 p-3 bg-green-500/5 rounded-lg border border-green-500/20"
+                        >
+                          <ArrowRight className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                          <span className="text-sm">{trend}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Anomalies */}
+                {aiAnalysis.anomalies && aiAnalysis.anomalies.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      Points d'attention
+                    </h4>
+                    <div className="grid gap-2">
+                      {aiAnalysis.anomalies.map((anomaly, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-start gap-2 p-3 bg-amber-500/5 rounded-lg border border-amber-500/20"
+                        >
+                          <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                          <span className="text-sm">{anomaly}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recommendations */}
+                {aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-sm flex items-center gap-2">
+                      <Target className="h-4 w-4 text-primary" />
+                      Recommandations stratégiques
+                    </h4>
+                    <div className="grid gap-2">
+                      {aiAnalysis.recommendations.map((rec, idx) => (
+                        <div 
+                          key={idx} 
+                          className="flex items-start gap-2 p-3 bg-primary/5 rounded-lg border border-primary/20"
+                        >
+                          <CheckCircle className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                          <span className="text-sm">{rec}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Timeline Chart */}
         {globalStats.timelineData.length > 1 && (
