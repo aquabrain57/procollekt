@@ -59,7 +59,39 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
   const [authorName, setAuthorName] = useState('');
   const [activeExportTab, setActiveExportTab] = useState('pdf');
 
-  // Compute analytics per field
+  // Helper to get option label from field options
+  const getOptionLabel = (field: any, value: any): string => {
+    if (!field.options || !Array.isArray(field.options)) return String(value);
+    
+    const valueStr = String(value);
+    const options = field.options as any[];
+    
+    // Try to find matching option
+    const found = options.find(opt => {
+      if (typeof opt === 'string') return opt === valueStr;
+      return opt.value === valueStr || opt.label === valueStr;
+    });
+    
+    if (found) {
+      return typeof found === 'string' ? found : (found.label || found.value || valueStr);
+    }
+    
+    // Handle "Option XX" pattern
+    if (valueStr.match(/^Option\s*\d+$/i) && options.length > 0) {
+      const match = valueStr.match(/\d+/);
+      if (match) {
+        const idx = parseInt(match[0], 10) - 1;
+        if (idx >= 0 && idx < options.length) {
+          const opt = options[idx];
+          return typeof opt === 'string' ? opt : (opt.label || opt.value || valueStr);
+        }
+      }
+    }
+    
+    return valueStr;
+  };
+
+  // Compute analytics per field with proper labels
   const fieldAnalytics = useMemo(() => {
     return fields.map(field => {
       const values = responses.map(r => r.data[field.id]).filter(v => v !== undefined && v !== null && v !== '');
@@ -67,20 +99,29 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
       if (field.field_type === 'select' || field.field_type === 'multiselect') {
         const optionCounts: Record<string, number> = {};
         
+        // Initialize with form options
+        if (field.options && Array.isArray(field.options)) {
+          (field.options as any[]).forEach(opt => {
+            const label = typeof opt === 'string' ? opt : (opt.label || opt.value || opt);
+            optionCounts[label] = 0;
+          });
+        }
+        
         values.forEach(v => {
           if (Array.isArray(v)) {
             v.forEach(item => {
-              const label = String(item);
+              const label = getOptionLabel(field, item);
               optionCounts[label] = (optionCounts[label] || 0) + 1;
             });
           } else {
-            const label = String(v);
+            const label = getOptionLabel(field, v);
             optionCounts[label] = (optionCounts[label] || 0) + 1;
           }
         });
         
         const total = Object.values(optionCounts).reduce((a, b) => a + b, 0);
         const data = Object.entries(optionCounts)
+          .filter(([_, value]) => value > 0)
           .map(([name, value]) => ({
             name,
             value,
