@@ -6,7 +6,6 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Phone, MapPin, Building2, Briefcase, User, Mail, Users, Globe } from 'lucide-react';
 import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
-import youcollectLogo from '@/assets/youcollect-logo.png';
 
 interface BadgeCardProps {
   badge: SurveyorBadge;
@@ -74,37 +73,37 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
   if (compact) {
     return (
       <Card className="overflow-hidden">
-        <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <Avatar className="h-12 w-12">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0">
               <AvatarImage src={badge.photo_url || undefined} />
-              <AvatarFallback className="bg-primary/10 text-primary">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm">
                 {badge.first_name[0]}{badge.last_name[0]}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="font-semibold truncate">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="font-semibold truncate text-sm sm:text-base">
                   {badge.first_name} {badge.last_name}
                 </p>
-                <Badge variant="secondary" className={getStatusColor(badge.status)}>
+                <Badge variant="secondary" className={`${getStatusColor(badge.status)} text-[10px] sm:text-xs`}>
                   {getStatusLabel(badge.status)}
                 </Badge>
               </div>
-              <p className="text-sm text-muted-foreground">ID: {badge.surveyor_id}</p>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">ID: {badge.surveyor_id}</p>
             </div>
             {badge.qr_code_data && (
-              <div className="relative">
-                <QRCodeSVG 
-                  value={badge.qr_code_data} 
-                  size={50}
-                  imageSettings={{
-                    src: youcollectLogo,
-                    height: 12,
-                    width: 12,
-                    excavate: true,
-                  }}
-                />
+              <div className="flex-shrink-0 hidden sm:block">
+                <div className="relative bg-white p-1 rounded">
+                  <QRCodeSVG 
+                    value={badge.qr_code_data} 
+                    size={45}
+                    level="M"
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-[6px] font-bold text-primary bg-white/90 px-0.5 rounded">YC</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -114,25 +113,25 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-br from-card to-primary/5 max-w-md">
-      <div className="bg-primary text-primary-foreground p-4 text-center">
-        <h3 className="text-lg font-bold">BADGE ENQUÊTEUR</h3>
-        <p className="text-sm opacity-90">YouCollect</p>
+    <Card className="overflow-hidden bg-gradient-to-br from-card to-primary/5 w-full max-w-sm sm:max-w-md mx-auto">
+      <div className="bg-primary text-primary-foreground p-3 sm:p-4 text-center">
+        <h3 className="text-base sm:text-lg font-bold">BADGE ENQUÊTEUR</h3>
+        <p className="text-xs sm:text-sm opacity-90">YouCollect</p>
       </div>
       
-      <CardContent className="p-6">
-        <div className="flex flex-col items-center gap-4">
+      <CardContent className="p-4 sm:p-6">
+        <div className="flex flex-col items-center gap-3 sm:gap-4">
           {/* Photo */}
-          <Avatar className="h-24 w-24 border-4 border-primary/20">
+          <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-4 border-primary/20">
             <AvatarImage src={badge.photo_url || undefined} />
-            <AvatarFallback className="bg-primary/10 text-primary text-2xl">
+            <AvatarFallback className="bg-primary/10 text-primary text-xl sm:text-2xl">
               {badge.first_name[0]}{badge.last_name[0]}
             </AvatarFallback>
           </Avatar>
 
           {/* Name and Status */}
           <div className="text-center">
-            <h4 className="text-xl font-bold">
+            <h4 className="text-lg sm:text-xl font-bold truncate max-w-full px-2">
               {badge.first_name} {badge.last_name}
             </h4>
             <Badge variant="secondary" className={`mt-1 ${getStatusColor(badge.status)}`}>
@@ -141,101 +140,110 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
           </div>
 
           {/* Details Grid */}
-          <div className="w-full space-y-2 text-sm">
+          <div className="w-full space-y-1.5 sm:space-y-2 text-xs sm:text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <User className="w-4 h-4 flex-shrink-0" />
-              <span>ID: <strong className="text-foreground">{badge.surveyor_id}</strong></span>
+              <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="truncate">ID: <strong className="text-foreground">{badge.surveyor_id}</strong></span>
             </div>
             
             {badge.role && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Briefcase className="w-4 h-4 flex-shrink-0" />
-                <span>{getRoleLabel(badge.role)}</span>
+                <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{getRoleLabel(badge.role)}</span>
               </div>
             )}
 
             {badge.email && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Mail className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">{badge.email}</span>
+                <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate text-xs">{badge.email}</span>
               </div>
             )}
             
             {badge.phone && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="w-4 h-4 flex-shrink-0" />
-                <span>{badge.phone}</span>
+                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{badge.phone}</span>
               </div>
             )}
             
             {badge.organization && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Building2 className="w-4 h-4 flex-shrink-0" />
-                <span>{badge.organization}</span>
+                <Building2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{badge.organization}</span>
               </div>
             )}
             
             {(badge.city || badge.country) && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Globe className="w-4 h-4 flex-shrink-0" />
-                <span>{[badge.city, badge.country].filter(Boolean).join(', ')}</span>
+                <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{[badge.city, badge.country].filter(Boolean).join(', ')}</span>
               </div>
             )}
 
             {badge.covered_zone && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4 flex-shrink-0" />
-                <span>{badge.covered_zone}</span>
+                <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">{badge.covered_zone}</span>
               </div>
             )}
 
             {badge.supervisor_name && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Users className="w-4 h-4 flex-shrink-0" />
-                <span>Superviseur: {badge.supervisor_name}</span>
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+                <span className="truncate">Superviseur: {badge.supervisor_name}</span>
               </div>
             )}
           </div>
 
           {/* Organization Info */}
           {(badge.organization_email || badge.organization_phone) && (
-            <div className="w-full p-3 bg-muted/50 rounded-lg text-xs">
+            <div className="w-full p-2 sm:p-3 bg-muted/50 rounded-lg text-[10px] sm:text-xs">
               <p className="font-medium mb-1">Contact Organisation:</p>
-              {badge.organization_email && <p>{badge.organization_email}</p>}
+              {badge.organization_email && <p className="truncate">{badge.organization_email}</p>}
               {badge.organization_phone && <p>{badge.organization_phone}</p>}
-              {badge.organization_address && <p className="text-muted-foreground">{badge.organization_address}</p>}
+              {badge.organization_address && <p className="text-muted-foreground truncate">{badge.organization_address}</p>}
             </div>
           )}
 
           {/* Stats */}
           {badge.forms_submitted > 0 && (
-            <div className="w-full p-3 bg-primary/10 rounded-lg text-center">
-              <p className="text-2xl font-bold text-primary">{badge.forms_submitted}</p>
-              <p className="text-xs text-muted-foreground">Formulaires soumis</p>
+            <div className="w-full p-2 sm:p-3 bg-primary/10 rounded-lg text-center">
+              <p className="text-xl sm:text-2xl font-bold text-primary">{badge.forms_submitted}</p>
+              <p className="text-[10px] sm:text-xs text-muted-foreground">Formulaires soumis</p>
             </div>
           )}
 
-          {/* QR Code with Logo */}
-          <div className="flex flex-col items-center gap-4 pt-4 border-t w-full">
+          {/* QR Code with Youcollect Text - Professional Style */}
+          <div className="flex flex-col items-center gap-3 sm:gap-4 pt-3 sm:pt-4 border-t w-full">
             {badge.qr_code_data && (
-              <div className="bg-white p-3 rounded-lg shadow-sm" id={`qr-${badge.id}`}>
-                <QRCodeSVG 
-                  value={badge.qr_code_data} 
-                  size={120}
-                  level="H"
-                  imageSettings={{
-                    src: youcollectLogo,
-                    height: 30,
-                    width: 30,
-                    excavate: true,
-                  }}
-                />
+              <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md border-2 border-primary/20" id={`qr-${badge.id}`}>
+                <div className="relative">
+                  <QRCodeSVG 
+                    value={badge.qr_code_data} 
+                    size={100}
+                    level="H"
+                    bgColor="#ffffff"
+                    fgColor="#1a1a2e"
+                  />
+                  {/* Professional Youcollect branding in center */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="bg-white px-1.5 py-0.5 rounded shadow-sm border">
+                      <span className="text-[8px] sm:text-[10px] font-black text-primary tracking-tight">
+                        YOUCOLLECT
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-center text-[9px] sm:text-[10px] text-muted-foreground mt-2 font-medium">
+                  Scannez pour vérifier
+                </p>
               </div>
             )}
             
             {badge.barcode_data && (
-              <div className="bg-white p-1 rounded" id={`barcode-${badge.id}`}>
-                <svg ref={barcodeRef} />
+              <div className="bg-white p-1 rounded w-full max-w-[200px] overflow-hidden" id={`barcode-${badge.id}`}>
+                <svg ref={barcodeRef} className="w-full" />
               </div>
             )}
           </div>

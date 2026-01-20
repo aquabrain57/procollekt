@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Check, X, Zap, Crown, Building2, ArrowRight } from 'lucide-react';
+import { Check, X, Zap, Crown, Building2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,10 @@ import { Label } from '@/components/ui/label';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { Header } from '@/components/Header';
+import { BottomNav } from '@/components/BottomNav';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { SyncStatus } from '@/types/survey';
 
 interface PricingPlan {
   id: 'free' | 'starter' | 'pro';
@@ -114,10 +118,20 @@ const plans: PricingPlan[] = [
   },
 ];
 
+type Tab = 'home' | 'surveys' | 'data' | 'settings' | 'badges';
+
 export default function Pricing() {
   const [isYearly, setIsYearly] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isOnline = useOnlineStatus();
+
+  const syncStatus: SyncStatus = {
+    isOnline,
+    pendingCount: 0,
+    lastSyncAt: null,
+    isSyncing: false,
+  };
 
   const handleSelectPlan = (planId: string) => {
     if (!user) {
@@ -130,15 +144,25 @@ export default function Pricing() {
       toast.success('Vous utilisez le plan Gratuit');
       navigate('/');
     } else {
-      // For paid plans, show coming soon or integrate payment
       toast.info('Paiement en cours d\'intégration. Contactez-nous pour accès anticipé.');
     }
   };
 
+  const handleTabChange = (tab: Tab) => {
+    navigate('/');
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 pb-24 md:pb-8">
       {/* Header */}
-      <div className="container mx-auto px-4 py-12">
+      <Header 
+        title="Tarifs" 
+        showBack 
+        onBack={() => navigate('/')} 
+        syncStatus={syncStatus}
+      />
+
+      <div className="container mx-auto px-4 py-8 sm:py-12">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <Badge variant="outline" className="mb-4 border-primary/30">
             Tarification simple et transparente
@@ -303,6 +327,9 @@ export default function Pricing() {
           </div>
         </div>
       </div>
+
+      {/* Bottom Navigation for mobile */}
+      <BottomNav activeTab="home" onTabChange={handleTabChange} />
     </div>
   );
 }
