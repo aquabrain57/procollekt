@@ -108,21 +108,17 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
             </DialogDescription>
           </DialogHeader>
           
-          <div className="flex flex-col items-center py-4" ref={fullScreenQrRef}>
-            <div className="bg-white p-4 rounded-xl shadow-xl relative">
-              <QRCodeCanvas 
-                value={surveyUrl} 
-                size={220}
-                includeMargin 
-                level="H"
-              />
-              {/* Brand name below QR */}
-              <div className="absolute bottom-1 left-0 right-0 text-center">
-                <span className="text-[10px] font-bold text-primary tracking-wider uppercase bg-white px-2">
-                  {APP_CONFIG.appName}
-                </span>
-              </div>
-            </div>
+           <div className="flex flex-col items-center py-4" ref={fullScreenQrRef}>
+             <div className="bg-background p-4 rounded-xl shadow-xl border border-border">
+               <QRCodeCanvas
+                 value={surveyUrl}
+                 size={240}
+                 includeMargin
+                 level="H"
+                 fgColor="hsl(var(--primary))"
+                 bgColor="hsl(var(--background))"
+               />
+             </div>
             
             {/* URL display */}
             <div className="mt-3 text-center">
@@ -247,14 +243,16 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
               </Button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3" ref={qrRef}>
-              <div className="bg-white p-1.5 sm:p-2 rounded-lg shadow-sm flex-shrink-0">
-                <QRCodeCanvas 
-                  value={surveyUrl} 
-                  size={80}
-                  includeMargin 
-                  level="H"
-                />
-              </div>
+               <div className="bg-background p-1.5 sm:p-2 rounded-lg shadow-sm border border-border flex-shrink-0">
+                 <QRCodeCanvas
+                   value={surveyUrl}
+                   size={88}
+                   includeMargin
+                   level="H"
+                   fgColor="hsl(var(--primary))"
+                   bgColor="hsl(var(--background))"
+                 />
+               </div>
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">
                 <Button 
                   onClick={() => handleDownloadQR(qrRef)} 
@@ -276,10 +274,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
                 </Button>
               </div>
             </div>
-            {/* Brand name */}
-            <p className="text-center mt-2 text-[10px] font-bold text-primary tracking-wider uppercase">
-              {APP_CONFIG.appName}
-            </p>
+             
           </div>
 
           {/* Production URL note */}
