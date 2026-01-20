@@ -44,6 +44,10 @@ export const Header = ({
     { id: 'settings', labelKey: 'nav.settings' },
   ];
 
+  const externalLinks = [
+    { labelKey: 'nav.pricing', path: '/pricing' },
+  ];
+
   const toggleTheme = () => {
     setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
   };
@@ -101,6 +105,16 @@ export const Header = ({
               >
                 {item.id === 'badges' && <IdCard className="h-4 w-4" />}
                 {t(item.labelKey)}
+              </button>
+            ))}
+            {/* External Links */}
+            {externalLinks.map((link) => (
+              <button
+                key={link.path}
+                onClick={() => navigate(link.path)}
+                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                {t(link.labelKey)}
               </button>
             ))}
           </nav>
