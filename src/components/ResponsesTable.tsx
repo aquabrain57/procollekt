@@ -186,9 +186,49 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     return <ArrowUpDown className="h-4 w-4" />;
   };
 
-  // Format cell value for display
+  // Helper to get option label from field options
+  const getOptionLabel = (field: DbSurveyField, value: any): string => {
+    if (!field.options || !Array.isArray(field.options)) return String(value);
+    
+    const valueStr = String(value);
+    const options = field.options as any[];
+    
+    const found = options.find(opt => {
+      if (typeof opt === 'string') return opt === valueStr;
+      return opt.value === valueStr || opt.label === valueStr;
+    });
+    
+    if (found) {
+      return typeof found === 'string' ? found : (found.label || found.value || valueStr);
+    }
+    
+    // Handle "Option XX" pattern - map to actual option labels
+    if (valueStr.match(/^Option\s*\d+$/i) && options.length > 0) {
+      const match = valueStr.match(/\d+/);
+      if (match) {
+        const idx = parseInt(match[0], 10) - 1;
+        if (idx >= 0 && idx < options.length) {
+          const opt = options[idx];
+          return typeof opt === 'string' ? opt : (opt.label || opt.value || valueStr);
+        }
+      }
+    }
+    
+    return valueStr;
+  };
+
+  // Format cell value for display with proper labels
   const formatCellValue = (value: any, field: DbSurveyField) => {
     if (value === undefined || value === null || value === '') return '—';
+    
+    // Handle select/multiselect fields - show actual labels
+    if (field.field_type === 'select' || field.field_type === 'multiselect') {
+      if (Array.isArray(value)) {
+        return value.map(v => getOptionLabel(field, v)).join(', ');
+      }
+      return getOptionLabel(field, value);
+    }
+    
     if (Array.isArray(value)) return value.join(', ');
     if (typeof value === 'object') {
       if ('latitude' in value) return `${value.latitude.toFixed(4)}, ${value.longitude.toFixed(4)}`;
@@ -198,7 +238,21 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     return strValue.length > 50 ? strValue.slice(0, 50) + '...' : strValue;
   };
 
-  // Export functions
+  // Get display value for exports with proper labels
+  const getDisplayValue = (field: DbSurveyField, value: any): string => {
+    if (value === undefined || value === null || value === '') return '';
+    if (field.field_type === 'select' || field.field_type === 'multiselect') {
+      if (Array.isArray(value)) {
+        return value.map(v => getOptionLabel(field, v)).join('; ');
+      }
+      return getOptionLabel(field, value);
+    }
+    if (Array.isArray(value)) return value.join('; ');
+    if (typeof value === 'object' && value !== null) return JSON.stringify(value);
+    return value?.toString() || '';
+  };
+
+  // Export functions with proper labels
   const exportToCSV = () => {
     const headers = ['#', 'Date', 'Heure', 'Localisation', ...fields.map(f => f.label)];
     const rows = processedResponses.map((response, index) => {
@@ -208,12 +262,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
         ? `${response.location.latitude.toFixed(6)}, ${response.location.longitude.toFixed(6)}`
         : '';
       
-      const fieldValues = fields.map(field => {
-        const value = response.data[field.id];
-        if (Array.isArray(value)) return value.join('; ');
-        if (typeof value === 'object' && value !== null) return JSON.stringify(value);
-        return value?.toString() || '';
-      });
+      const fieldValues = fields.map(field => getDisplayValue(field, response.data[field.id]));
 
       return [index + 1, date, time, location, ...fieldValues];
     });
@@ -231,11 +280,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     
     const headers = ['#', 'Date', 'Heure', 'Latitude', 'Longitude', ...fields.map(f => f.label)];
     const rows = processedResponses.map((response, index) => {
-      const fieldValues = fields.map(field => {
-        const value = response.data[field.id];
-        if (Array.isArray(value)) return value.join('; ');
-        return value?.toString() || '';
-      });
+      const fieldValues = fields.map(field => getDisplayValue(field, response.data[field.id]));
 
       return [
         index + 1,

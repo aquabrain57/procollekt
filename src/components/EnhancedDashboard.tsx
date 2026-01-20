@@ -90,9 +90,9 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
   }, [surveys, responses, t, dateLocale]);
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 max-w-none">
       {/* Primary Stats - Full Width */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-full">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
           <CardContent className="p-4 lg:p-6">
             <div className="flex items-center justify-between">
@@ -169,7 +169,7 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
       </div>
 
       {/* Charts Row - Full Width */}
-      <div className="grid lg:grid-cols-2 gap-3 sm:gap-4 w-full">
+      <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 w-full">
         {/* Activity Chart */}
         <Card className="w-full">
           <CardHeader className="pb-2">
@@ -241,7 +241,7 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
       </div>
 
       {/* Secondary Stats Row - Full Width */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 w-full">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 w-full">
         <Card>
           <CardContent className="p-4 lg:p-6 text-center">
             <p className="text-2xl lg:text-3xl font-bold text-foreground">{stats.avgPerSurvey}</p>

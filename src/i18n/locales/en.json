@@ -25,7 +25,8 @@
     "surveys": "Surveys",
     "badges": "Badges",
     "data": "Data",
-    "settings": "Settings"
+    "settings": "Settings",
+    "pricing": "Pricing"
   },
   "home": {
     "welcome": "Hello, {{name}} 👋",

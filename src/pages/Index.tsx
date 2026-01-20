@@ -260,7 +260,7 @@ const Index = () => {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="px-2 sm:px-4 py-4 space-y-4 pb-24">
+          <div className="px-2 sm:px-4 lg:px-6 py-4 space-y-4 pb-24 w-full max-w-none">
             {/* Welcome Section */}
             <div className="slide-up">
               <h2 className="text-2xl font-bold text-foreground mb-1">
@@ -271,8 +271,10 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Enhanced Dashboard Stats */}
-            <EnhancedDashboard surveys={surveys} responses={allResponses} />
+            {/* Enhanced Dashboard Stats - Full Width */}
+            <div className="w-full">
+              <EnhancedDashboard surveys={surveys} responses={allResponses} />
+            </div>
 
             {/* Quick Actions */}
             <div className="slide-up" style={{ animationDelay: '200ms' }}>
@@ -407,7 +409,7 @@ const Index = () => {
 
       case 'data':
         return (
-          <div className="p-4 pb-24">
+          <div className="px-2 sm:px-4 lg:px-6 py-4 pb-24 w-full max-w-none">
             {mySurveys.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <ClipboardList className="h-12 w-12 mx-auto mb-4 opacity-50" />

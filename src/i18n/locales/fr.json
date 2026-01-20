@@ -25,7 +25,8 @@
     "surveys": "Enquêtes",
     "badges": "Badges",
     "data": "Données",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "pricing": "Tarifs"
   },
   "home": {
     "welcome": "Bonjour, {{name}} 👋",
