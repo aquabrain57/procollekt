@@ -4,8 +4,9 @@ import JsBarcode from 'jsbarcode';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Phone, MapPin, Building2, Briefcase, User } from 'lucide-react';
+import { Phone, MapPin, Building2, Briefcase, User, Mail, Users, Globe } from 'lucide-react';
 import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
+import youcollectLogo from '@/assets/youcollect-logo.png';
 
 interface BadgeCardProps {
   badge: SurveyorBadge;
@@ -58,6 +59,18 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
     }
   };
 
+  const getRoleLabel = (role: string) => {
+    const roles: Record<string, string> = {
+      surveyor: 'Enquêteur',
+      supervisor: 'Superviseur',
+      team_lead: "Chef d'équipe",
+      coordinator: 'Coordinateur',
+      data_collector: 'Collecteur de données',
+      field_agent: 'Agent de terrain',
+    };
+    return roles[role] || role;
+  };
+
   if (compact) {
     return (
       <Card className="overflow-hidden">
@@ -81,7 +94,18 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
               <p className="text-sm text-muted-foreground">ID: {badge.surveyor_id}</p>
             </div>
             {badge.qr_code_data && (
-              <QRCodeSVG value={badge.qr_code_data} size={50} />
+              <div className="relative">
+                <QRCodeSVG 
+                  value={badge.qr_code_data} 
+                  size={50}
+                  imageSettings={{
+                    src: youcollectLogo,
+                    height: 12,
+                    width: 12,
+                    excavate: true,
+                  }}
+                />
+              </div>
             )}
           </div>
         </CardContent>
@@ -90,7 +114,7 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-br from-card to-primary/5">
+    <Card className="overflow-hidden bg-gradient-to-br from-card to-primary/5 max-w-md">
       <div className="bg-primary text-primary-foreground p-4 text-center">
         <h3 className="text-lg font-bold">BADGE ENQUÊTEUR</h3>
         <p className="text-sm opacity-90">YouCollect</p>
@@ -106,7 +130,7 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
             </AvatarFallback>
           </Avatar>
 
-          {/* Name and ID */}
+          {/* Name and Status */}
           <div className="text-center">
             <h4 className="text-xl font-bold">
               {badge.first_name} {badge.last_name}
@@ -116,52 +140,101 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
             </Badge>
           </div>
 
-          {/* Details */}
+          {/* Details Grid */}
           <div className="w-full space-y-2 text-sm">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <User className="w-4 h-4" />
+              <User className="w-4 h-4 flex-shrink-0" />
               <span>ID: <strong className="text-foreground">{badge.surveyor_id}</strong></span>
             </div>
             
             {badge.role && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Briefcase className="w-4 h-4" />
-                <span>{badge.role}</span>
+                <Briefcase className="w-4 h-4 flex-shrink-0" />
+                <span>{getRoleLabel(badge.role)}</span>
               </div>
             )}
-            
-            {badge.organization && (
+
+            {badge.email && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Building2 className="w-4 h-4" />
-                <span>{badge.organization}</span>
-              </div>
-            )}
-            
-            {badge.covered_zone && (
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span>{badge.covered_zone}</span>
+                <Mail className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">{badge.email}</span>
               </div>
             )}
             
             {badge.phone && (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <Phone className="w-4 h-4" />
+                <Phone className="w-4 h-4 flex-shrink-0" />
                 <span>{badge.phone}</span>
+              </div>
+            )}
+            
+            {badge.organization && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Building2 className="w-4 h-4 flex-shrink-0" />
+                <span>{badge.organization}</span>
+              </div>
+            )}
+            
+            {(badge.city || badge.country) && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Globe className="w-4 h-4 flex-shrink-0" />
+                <span>{[badge.city, badge.country].filter(Boolean).join(', ')}</span>
+              </div>
+            )}
+
+            {badge.covered_zone && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="w-4 h-4 flex-shrink-0" />
+                <span>{badge.covered_zone}</span>
+              </div>
+            )}
+
+            {badge.supervisor_name && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <Users className="w-4 h-4 flex-shrink-0" />
+                <span>Superviseur: {badge.supervisor_name}</span>
               </div>
             )}
           </div>
 
-          {/* QR Code and Barcode */}
+          {/* Organization Info */}
+          {(badge.organization_email || badge.organization_phone) && (
+            <div className="w-full p-3 bg-muted/50 rounded-lg text-xs">
+              <p className="font-medium mb-1">Contact Organisation:</p>
+              {badge.organization_email && <p>{badge.organization_email}</p>}
+              {badge.organization_phone && <p>{badge.organization_phone}</p>}
+              {badge.organization_address && <p className="text-muted-foreground">{badge.organization_address}</p>}
+            </div>
+          )}
+
+          {/* Stats */}
+          {badge.forms_submitted > 0 && (
+            <div className="w-full p-3 bg-primary/10 rounded-lg text-center">
+              <p className="text-2xl font-bold text-primary">{badge.forms_submitted}</p>
+              <p className="text-xs text-muted-foreground">Formulaires soumis</p>
+            </div>
+          )}
+
+          {/* QR Code with Logo */}
           <div className="flex flex-col items-center gap-4 pt-4 border-t w-full">
             {badge.qr_code_data && (
-              <div className="bg-white p-2 rounded-lg">
-                <QRCodeSVG value={badge.qr_code_data} size={100} />
+              <div className="bg-white p-3 rounded-lg shadow-sm" id={`qr-${badge.id}`}>
+                <QRCodeSVG 
+                  value={badge.qr_code_data} 
+                  size={120}
+                  level="H"
+                  imageSettings={{
+                    src: youcollectLogo,
+                    height: 30,
+                    width: 30,
+                    excavate: true,
+                  }}
+                />
               </div>
             )}
             
             {badge.barcode_data && (
-              <div className="bg-white p-1 rounded">
+              <div className="bg-white p-1 rounded" id={`barcode-${badge.id}`}>
                 <svg ref={barcodeRef} />
               </div>
             )}

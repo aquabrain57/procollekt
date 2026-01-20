@@ -906,6 +906,26 @@ const SurveyFormField = ({
         );
 
       default:
+        // Handle surveyor_id and other unknown types
+        if (field.field_type === 'surveyor_id') {
+          return (
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={value || ''}
+                onChange={(e) => onChange(e.target.value)}
+                placeholder="Entrez votre ID enquêteur..."
+                className={cn(
+                  "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50",
+                  fieldMode ? "px-4 py-4 text-lg" : "px-4 py-3 text-base"
+                )}
+              />
+              <p className="text-xs text-muted-foreground">
+                Entrez votre ID badge pour vous identifier
+              </p>
+            </div>
+          );
+        }
         return (
           <TextInput
             value={value || ''}

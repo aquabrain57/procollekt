@@ -4,7 +4,7 @@ import {
   Type, Hash, ListChecks, CheckSquare, Calendar, MapPin, Camera, Star,
   AlignLeft, Mail, Phone, Clock, Image, Video, Mic, QrCode, FileText,
   ToggleLeft, Calculator, Layers, SlidersHorizontal, CheckCircle, File,
-  PenTool, List, Eye as EyeIcon, Grid, Minus, Square, MessageSquare, Palette
+  PenTool, List, Eye as EyeIcon, Grid, Minus, Square, MessageSquare, Palette, IdCard
 } from 'lucide-react';
 import { FormDesignSelector } from '@/components/FormDesignSelector';
 import { FormDesignTemplate, FORM_DESIGN_TEMPLATES } from '@/data/formDesignTemplates';
@@ -84,6 +84,9 @@ const FIELD_TYPES = [
   // Notation
   { value: 'rating', label: 'Notation', icon: Star, description: 'Étoiles 1-5', category: 'scale' },
   { value: 'range', label: 'Intervalle', icon: SlidersHorizontal, description: 'Échelle linéaire', category: 'scale' },
+  
+  // Identité enquêteur
+  { value: 'surveyor_id', label: 'ID Enquêteur', icon: IdCard, description: 'Badge enquêteur', category: 'identity' },
   
   // Avancé
   { value: 'barcode', label: 'Code-barres', icon: QrCode, description: 'Scanner code', category: 'advanced' },

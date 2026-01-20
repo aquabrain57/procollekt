@@ -262,60 +262,137 @@ export type Database = {
       }
       surveyor_badges: {
         Row: {
+          address: string | null
           barcode_data: string | null
+          city: string | null
+          country: string | null
           covered_zone: string | null
           created_at: string
+          email: string | null
           first_name: string
+          forms_submitted: number | null
           id: string
+          last_location: Json | null
+          last_location_at: string | null
           last_name: string
           organization: string | null
+          organization_address: string | null
+          organization_email: string | null
+          organization_phone: string | null
           phone: string | null
           photo_url: string | null
           project: string | null
           qr_code_data: string | null
           role: string
           status: Database["public"]["Enums"]["badge_status"]
+          supervisor_id: string | null
+          supervisor_name: string | null
           surveyor_id: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          address?: string | null
           barcode_data?: string | null
+          city?: string | null
+          country?: string | null
           covered_zone?: string | null
           created_at?: string
+          email?: string | null
           first_name: string
+          forms_submitted?: number | null
           id?: string
+          last_location?: Json | null
+          last_location_at?: string | null
           last_name: string
           organization?: string | null
+          organization_address?: string | null
+          organization_email?: string | null
+          organization_phone?: string | null
           phone?: string | null
           photo_url?: string | null
           project?: string | null
           qr_code_data?: string | null
           role?: string
           status?: Database["public"]["Enums"]["badge_status"]
+          supervisor_id?: string | null
+          supervisor_name?: string | null
           surveyor_id: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          address?: string | null
           barcode_data?: string | null
+          city?: string | null
+          country?: string | null
           covered_zone?: string | null
           created_at?: string
+          email?: string | null
           first_name?: string
+          forms_submitted?: number | null
           id?: string
+          last_location?: Json | null
+          last_location_at?: string | null
           last_name?: string
           organization?: string | null
+          organization_address?: string | null
+          organization_email?: string | null
+          organization_phone?: string | null
           phone?: string | null
           photo_url?: string | null
           project?: string | null
           qr_code_data?: string | null
           role?: string
           status?: Database["public"]["Enums"]["badge_status"]
+          supervisor_id?: string | null
+          supervisor_name?: string | null
           surveyor_id?: string
           updated_at?: string
           user_id?: string
         }
         Relationships: []
+      }
+      surveyor_locations: {
+        Row: {
+          accuracy: number | null
+          badge_id: string
+          created_at: string
+          id: string
+          latitude: number
+          longitude: number
+          recorded_at: string
+          surveyor_id: string
+        }
+        Insert: {
+          accuracy?: number | null
+          badge_id: string
+          created_at?: string
+          id?: string
+          latitude: number
+          longitude: number
+          recorded_at?: string
+          surveyor_id: string
+        }
+        Update: {
+          accuracy?: number | null
+          badge_id?: string
+          created_at?: string
+          id?: string
+          latitude?: number
+          longitude?: number
+          recorded_at?: string
+          surveyor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surveyor_locations_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "surveyor_badges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       surveys: {
         Row: {
