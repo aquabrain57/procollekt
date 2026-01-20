@@ -7,3 +7,6 @@ export { SurveyorValidation } from './SurveyorValidation';
 export { SupervisorDashboard } from './SupervisorDashboard';
 export { SurveyorIdField } from './SurveyorIdField';
 export { SurveyorTracking } from './SurveyorTracking';
+export { SurveyorItinerary } from './SurveyorItinerary';
+export { QRStyleSelector, QRCodePreview, generateBadgeQRData } from './QRStyleSelector';
+export type { QRStyle } from './QRStyleSelector';

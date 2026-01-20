@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Plus, Search, Filter, Download, Eye, Trash2, UserX, UserCheck, QrCode } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, UserX, UserCheck, QrCode, Route } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
@@ -14,6 +15,8 @@ import { useSurveyorBadges, SurveyorBadge } from '@/hooks/useSurveyorBadges';
 import { CreateBadgeDialog } from './CreateBadgeDialog';
 import { BadgeCard } from './BadgeCard';
 import { BadgePDFExport } from './BadgePDFExport';
+import { SurveyorItinerary } from './SurveyorItinerary';
+import { QRStyleSelector, QRStyle } from './QRStyleSelector';
 import { toast } from 'sonner';
 
 export function BadgeManagement() {
@@ -24,6 +27,9 @@ export function BadgeManagement() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [badgeToDelete, setBadgeToDelete] = useState<string | null>(null);
+  const [itineraryBadge, setItineraryBadge] = useState<SurveyorBadge | null>(null);
+  const [qrStyleDialogOpen, setQrStyleDialogOpen] = useState(false);
+  const [selectedQRStyle, setSelectedQRStyle] = useState<QRStyle>('classic');
 
   const filteredBadges = badges.filter(badge => 
     badge.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -217,6 +223,10 @@ export function BadgeManagement() {
                             <Eye className="w-4 h-4 mr-2" />
                             Voir
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setItineraryBadge(badge)}>
+                            <Route className="w-4 h-4 mr-2" />
+                            Itinéraire
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleToggleStatus(badge)}>
                             {badge.status === 'active' ? (
                               <><UserX className="w-4 h-4 mr-2" />Suspendre</>
@@ -299,6 +309,10 @@ export function BadgeManagement() {
                               <Eye className="w-4 h-4 mr-2" />
                               Voir le badge
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setItineraryBadge(badge)}>
+                              <Route className="w-4 h-4 mr-2" />
+                              Itinéraire & Activité
+                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleToggleStatus(badge)}>
                               {badge.status === 'active' ? (
                                 <>
@@ -349,10 +363,38 @@ export function BadgeManagement() {
             <DialogTitle>Badge Enquêteur</DialogTitle>
           </DialogHeader>
           {selectedBadge && (
-            <div className="space-y-4">
-              <BadgeCard badge={selectedBadge} />
-              <BadgePDFExport badge={selectedBadge} />
-            </div>
+            <Tabs defaultValue="badge" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="badge">Badge</TabsTrigger>
+                <TabsTrigger value="qr">Style QR</TabsTrigger>
+              </TabsList>
+              <TabsContent value="badge" className="space-y-4 mt-4">
+                <BadgeCard badge={selectedBadge} qrStyle={selectedQRStyle} />
+                <BadgePDFExport badge={selectedBadge} />
+              </TabsContent>
+              <TabsContent value="qr" className="mt-4">
+                <QRStyleSelector 
+                  badge={selectedBadge} 
+                  selectedStyle={selectedQRStyle}
+                  onStyleChange={setSelectedQRStyle}
+                />
+              </TabsContent>
+            </Tabs>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Itinerary Dialog */}
+      <Dialog open={!!itineraryBadge} onOpenChange={(open) => !open && setItineraryBadge(null)}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Route className="w-5 h-5" />
+              Itinéraire & Activité
+            </DialogTitle>
+          </DialogHeader>
+          {itineraryBadge && (
+            <SurveyorItinerary badge={itineraryBadge} />
           )}
         </DialogContent>
       </Dialog>
