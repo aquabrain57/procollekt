@@ -16,10 +16,22 @@ export interface SurveyorBadge {
   project: string | null;
   covered_zone: string | null;
   phone: string | null;
+  email: string | null;
+  address: string | null;
+  city: string | null;
+  country: string | null;
+  supervisor_id: string | null;
+  supervisor_name: string | null;
+  organization_email: string | null;
+  organization_phone: string | null;
+  organization_address: string | null;
   photo_url: string | null;
   status: BadgeStatus;
   qr_code_data: string | null;
   barcode_data: string | null;
+  last_location: { latitude: number; longitude: number } | null;
+  last_location_at: string | null;
+  forms_submitted: number;
   created_at: string;
   updated_at: string;
 }
@@ -33,6 +45,15 @@ export interface CreateBadgeInput {
   project?: string;
   covered_zone?: string;
   phone?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  supervisor_id?: string;
+  supervisor_name?: string;
+  organization_email?: string;
+  organization_phone?: string;
+  organization_address?: string;
   photo_url?: string;
 }
 
@@ -68,12 +89,32 @@ export const useSurveyorBadges = () => {
     if (!user) return null;
 
     try {
-      // Generate QR code data and barcode data
+      // Generate comprehensive QR code data
       const qrData = JSON.stringify({
         type: 'YOUCOLLECT_BADGE',
+        version: '2.0',
         id: input.surveyor_id,
         name: `${input.first_name} ${input.last_name}`,
-        org: input.organization,
+        role: input.role || 'surveyor',
+        email: input.email,
+        phone: input.phone,
+        organization: {
+          name: input.organization,
+          email: input.organization_email,
+          phone: input.organization_phone,
+          address: input.organization_address,
+        },
+        supervisor: {
+          id: input.supervisor_id,
+          name: input.supervisor_name,
+        },
+        location: {
+          zone: input.covered_zone,
+          city: input.city,
+          country: input.country,
+          address: input.address,
+        },
+        project: input.project,
         created: new Date().toISOString(),
       });
 
@@ -91,10 +132,20 @@ export const useSurveyorBadges = () => {
           project: input.project,
           covered_zone: input.covered_zone,
           phone: input.phone,
+          email: input.email,
+          address: input.address,
+          city: input.city,
+          country: input.country,
+          supervisor_id: input.supervisor_id,
+          supervisor_name: input.supervisor_name,
+          organization_email: input.organization_email,
+          organization_phone: input.organization_phone,
+          organization_address: input.organization_address,
           photo_url: input.photo_url,
           status: 'active' as BadgeStatus,
           qr_code_data: qrData,
           barcode_data: barcodeData,
+          forms_submitted: 0,
         })
         .select()
         .single();
@@ -192,6 +243,57 @@ export const useSurveyorBadges = () => {
     }
   };
 
+  const incrementFormsSubmitted = async (badgeId: string) => {
+    try {
+      const badge = badges.find(b => b.id === badgeId);
+      if (!badge) return;
+
+      const { error } = await supabase
+        .from('surveyor_badges')
+        .update({ forms_submitted: (badge.forms_submitted || 0) + 1 })
+        .eq('id', badgeId);
+
+      if (error) throw error;
+      
+      setBadges(prev => prev.map(b => 
+        b.id === badgeId 
+          ? { ...b, forms_submitted: (b.forms_submitted || 0) + 1 } 
+          : b
+      ));
+    } catch (error) {
+      console.error('Error incrementing forms:', error);
+    }
+  };
+
+  const updateLocation = async (badgeId: string, latitude: number, longitude: number) => {
+    try {
+      // Update badge last location
+      await supabase
+        .from('surveyor_badges')
+        .update({ 
+          last_location: { latitude, longitude },
+          last_location_at: new Date().toISOString()
+        })
+        .eq('id', badgeId);
+
+      // Insert location record
+      const badge = badges.find(b => b.id === badgeId);
+      if (badge) {
+        await supabase
+          .from('surveyor_locations')
+          .insert({
+            badge_id: badgeId,
+            surveyor_id: badge.surveyor_id,
+            latitude,
+            longitude,
+            recorded_at: new Date().toISOString()
+          });
+      }
+    } catch (error) {
+      console.error('Error updating location:', error);
+    }
+  };
+
   return {
     badges,
     loading,
@@ -201,6 +303,8 @@ export const useSurveyorBadges = () => {
     suspendBadge,
     activateBadge,
     validateBadge,
+    incrementFormsSubmitted,
+    updateLocation,
     refetch: fetchBadges,
   };
 };

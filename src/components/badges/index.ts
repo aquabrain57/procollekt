@@ -5,3 +5,5 @@ export { CreateBadgeDialog } from './CreateBadgeDialog';
 export { FormSignature, generateSignatureData } from './FormSignature';
 export { SurveyorValidation } from './SurveyorValidation';
 export { SupervisorDashboard } from './SupervisorDashboard';
+export { SurveyorIdField } from './SurveyorIdField';
+export { SurveyorTracking } from './SurveyorTracking';
