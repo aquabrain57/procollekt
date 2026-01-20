@@ -14,7 +14,6 @@ import {
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { getSurveyUrl, APP_CONFIG } from '@/config/app';
-import logoImage from '@/assets/youcollect-logo.png';
 
 interface ShareSurveyDialogProps {
   surveyId: string;
@@ -116,12 +115,6 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
                 size={220}
                 includeMargin 
                 level="H"
-                imageSettings={{
-                  src: logoImage,
-                  height: 40,
-                  width: 40,
-                  excavate: true,
-                }}
               />
               {/* Brand name below QR */}
               <div className="absolute bottom-1 left-0 right-0 text-center">
@@ -260,12 +253,6 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
                   size={80}
                   includeMargin 
                   level="H"
-                  imageSettings={{
-                    src: logoImage,
-                    height: 16,
-                    width: 16,
-                    excavate: true,
-                  }}
                 />
               </div>
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">

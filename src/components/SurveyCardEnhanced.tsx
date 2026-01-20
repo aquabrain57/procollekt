@@ -67,9 +67,9 @@ export const SurveyCardEnhanced = ({
       className="relative bg-card border border-border rounded-xl overflow-hidden hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
       onClick={onClick}
     >
-      {/* Cover Image Thumbnail - Small inline version */}
+      {/* Cover Image Thumbnail - Extra small */}
       {survey.cover_image_url && (
-        <div className="absolute top-3 right-3 w-12 h-12 rounded-lg overflow-hidden bg-muted shadow-md border border-border/50">
+        <div className="absolute top-3 right-3 w-9 h-9 rounded-md overflow-hidden bg-muted shadow-sm border border-border/50">
           <img 
             src={survey.cover_image_url} 
             alt={survey.title}

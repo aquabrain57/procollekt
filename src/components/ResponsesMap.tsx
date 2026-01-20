@@ -11,14 +11,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useMapboxToken } from '@/hooks/useMapboxToken';
 
 interface ResponsesMapProps {
   responses: DbSurveyResponse[];
   fields: DbSurveyField[];
 }
-
-// Public Mapbox token for demo (limited usage)
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
 
 export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
   const { t, i18n } = useTranslation();
@@ -30,6 +30,8 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
   const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid' | 'missing'>('checking');
+  const { token, setToken } = useMapboxToken();
+  const [tokenDraft, setTokenDraft] = useState('');
 
   // Filter and memoize geo responses
   const geoResponses = useMemo(() => 
@@ -87,18 +89,6 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
     };
   }, [geoResponses]);
 
-  // Get token - try env first, then fallback to public demo token
-  const getMapboxToken = (): string | null => {
-    // First try VITE_MAPBOX_TOKEN from env
-    const envToken = import.meta.env.VITE_MAPBOX_TOKEN;
-    if (envToken && envToken !== 'undefined' && envToken.trim() !== '' && envToken.startsWith('pk.')) {
-      return envToken;
-    }
-    
-    // Use public fallback token for basic map functionality
-    return DEFAULT_MAPBOX_TOKEN;
-  };
-
   // Initialize map
   useEffect(() => {
     if (!mapContainer.current || geoResponses.length === 0) {
@@ -106,8 +96,6 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
       return;
     }
 
-    const token = getMapboxToken();
-    
     if (!token) {
       setTokenStatus('missing');
       setMapError('Token Mapbox non disponible');
@@ -172,7 +160,7 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
         const errorData = e as any;
         if (errorData?.error?.status === 401 || errorData?.error?.status === 403) {
           setTokenStatus('invalid');
-          setMapError('Token Mapbox invalide. Vérifiez votre configuration.');
+        setMapError('Token Mapbox invalide. Vérifiez votre configuration.');
         } else {
           setMapError('Erreur de chargement de la carte');
         }
@@ -193,7 +181,7 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
       map.current = null;
       setMapReady(false);
     };
-  }, [geoResponses.length > 0, geoStats?.center?.[0], geoStats?.center?.[1]]);
+  }, [geoResponses.length > 0, geoStats?.center?.[0], geoStats?.center?.[1], token]);
 
   // Update markers when responses change
   useEffect(() => {
@@ -302,6 +290,42 @@ export const ResponsesMap = ({ responses, fields }: ResponsesMapProps) => {
             Les données sont affichées en mode liste ci-dessous.
           </AlertDescription>
         </Alert>
+
+        {/* Token quick setup */}
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Configurer la carte</p>
+                <p className="text-xs text-muted-foreground">
+                  Collez un token public Mapbox (commence par <span className="font-mono">pk.</span>) pour activer la carte.
+                </p>
+              </div>
+              <Info className="h-4 w-4 text-muted-foreground shrink-0" />
+            </div>
+            <div className="flex gap-2">
+              <Input
+                value={tokenDraft}
+                onChange={(e) => setTokenDraft(e.target.value)}
+                placeholder="pk. …"
+                className="font-mono text-xs"
+              />
+              <Button
+                type="button"
+                onClick={() => {
+                  setToken(tokenDraft);
+                  setTokenDraft('');
+                  setMapError(null);
+                  setTokenStatus('checking');
+                  setIsLoading(true);
+                }}
+                className="shrink-0"
+              >
+                Enregistrer
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Stats summary */}
         {geoStats && (

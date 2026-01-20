@@ -112,12 +112,7 @@ export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBad
       />
       {style === 'elegant' && (
         <div className="mt-2 text-center">
-          <p className="text-[10px] font-semibold text-violet-600 tracking-wider uppercase">YOUCOLLECT</p>
-        </div>
-      )}
-      {style === 'classic' && (
-        <div className="mt-2 text-center">
-          <p className="text-[9px] text-muted-foreground">ID: {badge.surveyor_id}</p>
+          <p className="text-xs font-bold text-violet-600 tracking-[0.25em] uppercase">YOUCOLLECT</p>
         </div>
       )}
     </div>
