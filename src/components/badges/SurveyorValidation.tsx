@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 interface SurveyorValidationProps {
   onValidated: (badge: SurveyorBadge) => void;
-  onInvalid: () => void;
+  onInvalid?: () => void;
   validatedBadge?: SurveyorBadge | null;
   required?: boolean;
 }
@@ -21,7 +21,7 @@ export function SurveyorValidation({
   onValidated, 
   onInvalid, 
   validatedBadge,
-  required = true 
+  required = false 
 }: SurveyorValidationProps) {
   const { validateBadge } = useSurveyorBadges();
   const [surveyorId, setSurveyorId] = useState('');
@@ -58,18 +58,18 @@ export function SurveyorValidation({
           toast.success('Identité confirmée');
         } else {
           setValidationStatus('suspended');
-          onInvalid();
+          onInvalid?.();
           toast.error('Badge suspendu ou expiré');
         }
       } else {
         setValidationStatus('invalid');
-        onInvalid();
+        onInvalid?.();
         toast.error('ID enquêteur invalide');
       }
     } catch (error) {
       console.error('Validation error:', error);
       setValidationStatus('invalid');
-      onInvalid();
+      onInvalid?.();
     } finally {
       setIsValidating(false);
     }
@@ -148,7 +148,7 @@ export function SurveyorValidation({
     setSurveyorId('');
     setBadge(null);
     setValidationStatus('idle');
-    onInvalid();
+    onInvalid?.();
   };
 
   return (

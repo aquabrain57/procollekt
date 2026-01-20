@@ -4,19 +4,26 @@ import { DbSurvey, DbSurveyField, useSurveyFields, useSurveyResponses } from '@/
 import { FormFieldComponent } from './FormField';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { SurveyorValidation } from './badges/SurveyorValidation';
+import { FormSignature, generateSignatureData } from './badges/FormSignature';
+import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ActiveSurveyFormProps {
   survey: DbSurvey;
   onComplete: () => void;
+  requireSurveyorValidation?: boolean;
 }
 
-export const ActiveSurveyForm = ({ survey, onComplete }: ActiveSurveyFormProps) => {
+export const ActiveSurveyForm = ({ survey, onComplete, requireSurveyorValidation = false }: ActiveSurveyFormProps) => {
   const { fields, loading: fieldsLoading } = useSurveyFields(survey.id);
   const { submitResponse } = useSurveyResponses();
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [validatedBadge, setValidatedBadge] = useState<SurveyorBadge | null>(null);
+  const [signatureData, setSignatureData] = useState<ReturnType<typeof generateSignatureData> | null>(null);
 
   const convertToFormField = (dbField: DbSurveyField) => ({
     id: dbField.id,
@@ -52,6 +59,12 @@ export const ActiveSurveyForm = ({ survey, onComplete }: ActiveSurveyFormProps) 
       return;
     }
 
+    // Check surveyor validation if required
+    if (requireSurveyorValidation && !validatedBadge) {
+      toast.error('Veuillez valider votre identité avant de soumettre');
+      return;
+    }
+
     setIsSubmitting(true);
 
     let location: { latitude: number; longitude: number } | undefined;
@@ -71,12 +84,61 @@ export const ActiveSurveyForm = ({ survey, onComplete }: ActiveSurveyFormProps) 
       }
     }
 
-    const result = await submitResponse(survey.id, formData, location);
+    // Submit response with surveyor info if validated
+    const result = await submitResponse(
+      survey.id, 
+      formData, 
+      location,
+      validatedBadge?.surveyor_id,
+      validatedBadge?.id,
+      !!validatedBadge
+    );
+    
+    // If validated, create signature
+    if (result && validatedBadge && signatureData) {
+      try {
+        await supabase.from('form_signatures').insert({
+          response_id: result.id,
+          survey_id: survey.id,
+          surveyor_id: validatedBadge.surveyor_id,
+          badge_id: validatedBadge.id,
+          timestamp: signatureData.timestamp,
+          gps_latitude: signatureData.gps_latitude,
+          gps_longitude: signatureData.gps_longitude,
+          device_id: signatureData.device_id,
+          signature_hash: signatureData.signature_hash,
+        });
+      } catch (error) {
+        console.error('Error saving signature:', error);
+      }
+    }
+    
     setIsSubmitting(false);
 
     if (result) {
       setIsSubmitted(true);
     }
+  };
+
+  const handleBadgeValidated = (badge: SurveyorBadge) => {
+    setValidatedBadge(badge);
+    // Generate signature data when badge is validated
+    navigator.geolocation?.getCurrentPosition(
+      (position) => {
+        const sig = generateSignatureData(
+          badge,
+          survey.id,
+          { latitude: position.coords.latitude, longitude: position.coords.longitude }
+        );
+        setSignatureData(sig);
+      },
+      () => {
+        // GPS not available, generate without location
+        const sig = generateSignatureData(badge, survey.id);
+        setSignatureData(sig);
+      },
+      { timeout: 5000 }
+    );
   };
 
   if (fieldsLoading) {
@@ -137,6 +199,21 @@ export const ActiveSurveyForm = ({ survey, onComplete }: ActiveSurveyFormProps) 
         )}
       </div>
 
+      {/* Surveyor Validation Section */}
+      <SurveyorValidation
+        onValidated={handleBadgeValidated}
+        required={requireSurveyorValidation}
+      />
+
+      {/* Show signature preview when validated */}
+      {validatedBadge && (
+        <FormSignature
+          badge={validatedBadge}
+          surveyId={survey.id}
+          location={signatureData ? { latitude: signatureData.gps_latitude ?? 0, longitude: signatureData.gps_longitude ?? 0 } : null}
+        />
+      )}
+
       {fields.map((field, index) => (
         <div key={field.id} style={{ animationDelay: `${index * 50}ms` }}>
           <FormFieldComponent
@@ -156,7 +233,7 @@ export const ActiveSurveyForm = ({ survey, onComplete }: ActiveSurveyFormProps) 
       <div className="fixed bottom-20 left-0 right-0 p-4 glass-card border-t border-border/50">
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting}
+          disabled={isSubmitting || (requireSurveyorValidation && !validatedBadge)}
           className="w-full"
           size="lg"
         >
@@ -165,7 +242,7 @@ export const ActiveSurveyForm = ({ survey, onComplete }: ActiveSurveyFormProps) 
           ) : (
             <Send className="h-4 w-4 mr-2" />
           )}
-          Soumettre
+          {requireSurveyorValidation && !validatedBadge ? 'Validez votre identité' : 'Soumettre'}
         </Button>
       </div>
     </div>

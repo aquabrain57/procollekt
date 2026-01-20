@@ -368,7 +368,14 @@ export const useSurveyResponses = (surveyId?: string) => {
     fetchResponses();
   }, [fetchResponses]);
 
-  const submitResponse = async (surveyId: string, data: Record<string, any>, location?: { latitude: number; longitude: number }) => {
+  const submitResponse = async (
+    surveyId: string, 
+    data: Record<string, any>, 
+    location?: { latitude: number; longitude: number },
+    surveyorId?: string,
+    badgeId?: string,
+    surveyorValidated?: boolean
+  ) => {
     if (!user) return null;
 
     try {
@@ -380,6 +387,9 @@ export const useSurveyResponses = (surveyId?: string) => {
           data,
           location,
           sync_status: 'synced',
+          surveyor_id: surveyorId || null,
+          badge_id: badgeId || null,
+          surveyor_validated: surveyorValidated || false,
         })
         .select()
         .single();

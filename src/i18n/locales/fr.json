@@ -23,6 +23,7 @@
   "nav": {
     "home": "Accueil",
     "surveys": "Enquêtes",
+    "badges": "Badges",
     "data": "Données",
     "settings": "Paramètres"
   },
@@ -236,5 +237,33 @@
     "imageSelected": "Image sélectionnée",
     "creating": "Création...",
     "createAndEdit": "Créer et modifier"
+  },
+  "badges": {
+    "title": "Badges Enquêteurs",
+    "management": "Gestion",
+    "dashboard": "Tableau de bord",
+    "create": "Créer un badge",
+    "surveyorId": "ID Enquêteur",
+    "firstName": "Prénom",
+    "lastName": "Nom",
+    "role": "Rôle",
+    "organization": "Organisation",
+    "project": "Projet",
+    "coveredZone": "Zone couverte",
+    "phone": "Téléphone",
+    "photo": "Photo",
+    "status": "Statut",
+    "active": "Actif",
+    "suspended": "Suspendu",
+    "expired": "Expiré",
+    "noBadges": "Aucun badge",
+    "noBadgesDesc": "Créez des badges pour vos enquêteurs",
+    "verifyIdentity": "Vérifier l'identité",
+    "identityVerified": "Identité vérifiée",
+    "identityNotVerified": "Identité non vérifiée",
+    "scanQR": "Scanner QR Code",
+    "enterManually": "Saisir manuellement",
+    "invalidBadge": "Badge invalide ou suspendu",
+    "viewProfile": "Voir le profil"
   }
 }
