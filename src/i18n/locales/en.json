@@ -23,6 +23,7 @@
   "nav": {
     "home": "Home",
     "surveys": "Surveys",
+    "badges": "Badges",
     "data": "Data",
     "settings": "Settings"
   },
@@ -236,5 +237,33 @@
     "imageSelected": "Image selected",
     "creating": "Creating...",
     "createAndEdit": "Create and edit"
+  },
+  "badges": {
+    "title": "Surveyor Badges",
+    "management": "Management",
+    "dashboard": "Dashboard",
+    "create": "Create badge",
+    "surveyorId": "Surveyor ID",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "role": "Role",
+    "organization": "Organization",
+    "project": "Project",
+    "coveredZone": "Covered zone",
+    "phone": "Phone",
+    "photo": "Photo",
+    "status": "Status",
+    "active": "Active",
+    "suspended": "Suspended",
+    "expired": "Expired",
+    "noBadges": "No badges",
+    "noBadgesDesc": "Create badges for your surveyors",
+    "verifyIdentity": "Verify identity",
+    "identityVerified": "Identity verified",
+    "identityNotVerified": "Identity not verified",
+    "scanQR": "Scan QR Code",
+    "enterManually": "Enter manually",
+    "invalidBadge": "Invalid or suspended badge",
+    "viewProfile": "View profile"
   }
 }

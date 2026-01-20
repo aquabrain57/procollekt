@@ -1,9 +1,10 @@
-import { ArrowLeft, Globe, Moon, Sun } from 'lucide-react';
+import { ArrowLeft, Globe, Moon, Sun, IdCard } from 'lucide-react';
 import { StatusBadge } from './StatusBadge';
 import { SyncStatus } from '@/types/survey';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 
-type Tab = 'home' | 'surveys' | 'data' | 'settings';
+type Tab = 'home' | 'surveys' | 'data' | 'settings' | 'badges';
 
 interface HeaderProps {
   title: string;
@@ -33,10 +34,12 @@ export const Header = ({
 }: HeaderProps) => {
   const { t, i18n } = useTranslation();
   const { resolvedTheme, setTheme } = useTheme();
+  const navigate = useNavigate();
 
-  const navItems: { id: Tab; labelKey: string }[] = [
+  const navItems: { id: Tab; labelKey: string; path?: string }[] = [
     { id: 'home', labelKey: 'nav.home' },
     { id: 'surveys', labelKey: 'nav.surveys' },
+    { id: 'badges', labelKey: 'nav.badges', path: '/badges' },
     { id: 'data', labelKey: 'nav.data' },
     { id: 'settings', labelKey: 'nav.settings' },
   ];
@@ -47,6 +50,17 @@ export const Header = ({
 
   const changeLanguage = (lang: string) => {
     i18n.changeLanguage(lang);
+  };
+
+  const handleNavClick = (item: typeof navItems[0]) => {
+    if (item.path) {
+      navigate(item.path);
+    } else if (onTabChange) {
+      if (window.location.pathname !== '/') {
+        navigate('/');
+      }
+      onTabChange(item.id);
+    }
   };
 
   return (
@@ -72,19 +86,20 @@ export const Header = ({
         </div>
 
         {/* Desktop Navigation */}
-        {!showBack && activeTab && onTabChange && (
+        {!showBack && activeTab && (
           <nav className="hidden md:flex items-center gap-1">
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => onTabChange(item.id)}
+                onClick={() => handleNavClick(item)}
                 className={cn(
-                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+                  'px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
                   activeTab === item.id
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                 )}
               >
+                {item.id === 'badges' && <IdCard className="h-4 w-4" />}
                 {t(item.labelKey)}
               </button>
             ))}
