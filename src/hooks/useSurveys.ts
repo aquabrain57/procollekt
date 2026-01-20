@@ -37,6 +37,9 @@ export interface DbSurveyResponse {
   sync_status: 'synced' | 'pending' | 'error';
   location: { latitude: number; longitude: number } | null;
   created_at: string;
+  surveyor_id?: string | null;
+  surveyor_validated?: boolean;
+  badge_id?: string | null;
 }
 
 export const useSurveys = () => {
@@ -353,7 +356,7 @@ export const useSurveyResponses = (surveyId?: string) => {
       const { data, error } = await query;
 
       if (error) throw error;
-      setResponses((data as DbSurveyResponse[]) || []);
+      setResponses((data as unknown as DbSurveyResponse[]) || []);
     } catch (error: any) {
       console.error('Error fetching responses:', error);
     } finally {
@@ -383,9 +386,9 @@ export const useSurveyResponses = (surveyId?: string) => {
 
       if (error) throw error;
 
-      setResponses(prev => [response as DbSurveyResponse, ...prev]);
+      setResponses(prev => [response as unknown as DbSurveyResponse, ...prev]);
       toast.success('Réponse enregistrée avec succès');
-      return response as DbSurveyResponse;
+      return response as unknown as DbSurveyResponse;
     } catch (error: any) {
       console.error('Error submitting response:', error);
       toast.error('Erreur lors de l\'enregistrement');
