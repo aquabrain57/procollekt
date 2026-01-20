@@ -1,4 +1,4 @@
-import { ClipboardList, ChevronRight, Users, MapPin, Briefcase, Globe, Star } from 'lucide-react';
+import { ClipboardList, ChevronRight, Users, MapPin, Briefcase, Globe, Star, Image } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse } from '@/hooks/useSurveys';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -64,77 +64,96 @@ export const SurveyCardEnhanced = ({
 
   return (
     <div
-      className="bg-card border border-border rounded-xl p-4 hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
+      className="bg-card border border-border rounded-xl overflow-hidden hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
       onClick={onClick}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          {/* Header with icon and status */}
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-              <ClipboardList className="h-4 w-4 text-primary" />
-            </div>
-            <Badge 
-              variant="outline" 
-              className={cn('text-[10px] h-5', statusColors[survey.status as keyof typeof statusColors])}
-            >
-              {statusLabels[survey.status as keyof typeof statusLabels] || survey.status}
-            </Badge>
-          </div>
-          
-          {/* Title */}
-          <h3 className="font-semibold text-foreground mb-1.5 truncate">
-            {survey.title}
-          </h3>
-          
-          {/* Description */}
-          {cleanDescription && (
-            <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-              {cleanDescription}
-            </p>
-          )}
-
-          {/* Metadata badges */}
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            {sector && (
-              <Badge variant="secondary" className="text-xs gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
-                <Briefcase className="h-3 w-3" />
-                {sector}
-              </Badge>
-            )}
-            {country && (
-              <Badge variant="secondary" className="text-xs gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                <Globe className="h-3 w-3" />
-                {country}
-              </Badge>
-            )}
-          </div>
-
-          {/* Stats row */}
-          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
-              <span>{responseCount} réponse{responseCount !== 1 ? 's' : ''}</span>
-            </div>
-          </div>
+      {/* Cover Image Thumbnail */}
+      {survey.cover_image_url && (
+        <div className="relative h-24 sm:h-32 w-full overflow-hidden bg-muted">
+          <img 
+            src={survey.cover_image_url} 
+            alt={survey.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent" />
         </div>
+      )}
+      
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            {/* Header with icon and status */}
+            <div className="flex items-center gap-2 mb-2">
+              {!survey.cover_image_url && (
+                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
+                  <ClipboardList className="h-4 w-4 text-primary" />
+                </div>
+              )}
+              <Badge 
+                variant="outline" 
+                className={cn('text-[10px] h-5', statusColors[survey.status as keyof typeof statusColors])}
+              >
+                {statusLabels[survey.status as keyof typeof statusLabels] || survey.status}
+              </Badge>
+            </div>
+            
+            {/* Title */}
+            <h3 className="font-semibold text-foreground mb-1.5 truncate">
+              {survey.title}
+            </h3>
+            
+            {/* Description */}
+            {cleanDescription && (
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
+                {cleanDescription}
+              </p>
+            )}
 
-        <div className="flex flex-col items-center gap-2 shrink-0">
-          {showSubscribe && survey.status === 'active' && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="text-xs h-7 px-2"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSubscribe?.();
-              }}
-            >
-              <Star className="h-3 w-3 mr-1" />
-              Suivre
-            </Button>
-          )}
-          <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            {/* Metadata badges */}
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              {sector && (
+                <Badge variant="secondary" className="text-xs gap-1 bg-blue-500/10 text-blue-600 border-blue-500/20">
+                  <Briefcase className="h-3 w-3" />
+                  {sector}
+                </Badge>
+              )}
+              {country && (
+                <Badge variant="secondary" className="text-xs gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                  <Globe className="h-3 w-3" />
+                  {country}
+                </Badge>
+              )}
+            </div>
+
+            {/* Stats row */}
+            <div className="flex items-center gap-4 text-xs text-muted-foreground">
+              <div className="flex items-center gap-1">
+                <Users className="h-3.5 w-3.5" />
+                <span>{responseCount} réponse{responseCount !== 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 shrink-0">
+            {showSubscribe && survey.status === 'active' && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs h-7 px-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSubscribe?.();
+                }}
+              >
+                <Star className="h-3 w-3 mr-1" />
+                Suivre
+              </Button>
+            )}
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </div>
         </div>
       </div>
     </div>

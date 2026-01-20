@@ -176,7 +176,74 @@ export function BadgeManagement() {
               )}
             </div>
           ) : (
-            <div className="rounded-md border overflow-hidden">
+            <>
+              {/* Mobile Cards View */}
+              <div className="block md:hidden space-y-3">
+              {filteredBadges.map((badge) => (
+                <Card key={badge.id} className="overflow-hidden">
+                  <CardContent className="p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          <AvatarImage src={badge.photo_url || undefined} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                            {badge.first_name[0]}{badge.last_name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-medium text-sm truncate">{badge.first_name} {badge.last_name}</p>
+                            <Badge variant="secondary" className={`${getStatusColor(badge.status)} text-[10px]`}>
+                              {getStatusLabel(badge.status)}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground">ID: {badge.surveyor_id}</p>
+                          {badge.role && (
+                            <p className="text-xs text-muted-foreground">{getRoleLabel(badge.role)}</p>
+                          )}
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            •••
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedBadge(badge);
+                            setViewDialogOpen(true);
+                          }}>
+                            <Eye className="w-4 h-4 mr-2" />
+                            Voir
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleStatus(badge)}>
+                            {badge.status === 'active' ? (
+                              <><UserX className="w-4 h-4 mr-2" />Suspendre</>
+                            ) : (
+                              <><UserCheck className="w-4 h-4 mr-2" />Activer</>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-destructive"
+                            onClick={() => {
+                              setBadgeToDelete(badge.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-md border overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -200,8 +267,8 @@ export function BadgeManagement() {
                               {badge.first_name[0]}{badge.last_name[0]}
                             </AvatarFallback>
                           </Avatar>
-                          <div>
-                            <p className="font-medium">{badge.first_name} {badge.last_name}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate max-w-[120px]">{badge.first_name} {badge.last_name}</p>
                             {badge.phone && (
                               <p className="text-xs text-muted-foreground">{badge.phone}</p>
                             )}
@@ -210,8 +277,8 @@ export function BadgeManagement() {
                       </TableCell>
                       <TableCell className="font-mono text-sm">{badge.surveyor_id}</TableCell>
                       <TableCell>{getRoleLabel(badge.role)}</TableCell>
-                      <TableCell>{badge.organization || '-'}</TableCell>
-                      <TableCell>{badge.covered_zone || '-'}</TableCell>
+                      <TableCell className="max-w-[100px] truncate">{badge.organization || '-'}</TableCell>
+                      <TableCell className="max-w-[80px] truncate">{badge.covered_zone || '-'}</TableCell>
                       <TableCell>
                         <Badge variant="secondary" className={getStatusColor(badge.status)}>
                           {getStatusLabel(badge.status)}
@@ -263,6 +330,7 @@ export function BadgeManagement() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -276,7 +344,7 @@ export function BadgeManagement() {
 
       {/* View Badge Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Badge Enquêteur</DialogTitle>
           </DialogHeader>
