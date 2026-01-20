@@ -64,21 +64,20 @@ export const SurveyCardEnhanced = ({
 
   return (
     <div
-      className="bg-card border border-border rounded-xl overflow-hidden hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
+      className="relative bg-card border border-border rounded-xl overflow-hidden hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
       onClick={onClick}
     >
-      {/* Cover Image Thumbnail */}
+      {/* Cover Image Thumbnail - Small inline version */}
       {survey.cover_image_url && (
-        <div className="relative h-24 sm:h-32 w-full overflow-hidden bg-muted">
+        <div className="absolute top-3 right-3 w-12 h-12 rounded-lg overflow-hidden bg-muted shadow-md border border-border/50">
           <img 
             src={survey.cover_image_url} 
             alt={survey.title}
             className="w-full h-full object-cover"
             onError={(e) => {
-              e.currentTarget.style.display = 'none';
+              e.currentTarget.parentElement!.style.display = 'none';
             }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-card/80 to-transparent" />
         </div>
       )}
       

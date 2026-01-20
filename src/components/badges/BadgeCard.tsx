@@ -1,4 +1,3 @@
-import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,13 +5,15 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Phone, MapPin, Building2, Briefcase, User, Mail, Users, Globe } from 'lucide-react';
 import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
+import { QRCodePreview, QRStyle, generateBadgeQRData } from './QRStyleSelector';
 
 interface BadgeCardProps {
   badge: SurveyorBadge;
   compact?: boolean;
+  qrStyle?: QRStyle;
 }
 
-export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
+export function BadgeCard({ badge, compact = false, qrStyle = 'classic' }: BadgeCardProps) {
   const barcodeRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
@@ -94,16 +95,7 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
             </div>
             {badge.qr_code_data && (
               <div className="flex-shrink-0 hidden sm:block">
-                <div className="relative bg-white p-1 rounded">
-                  <QRCodeSVG 
-                    value={badge.qr_code_data} 
-                    size={45}
-                    level="M"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span className="text-[6px] font-bold text-primary bg-white/90 px-0.5 rounded">YC</span>
-                  </div>
-                </div>
+                <QRCodePreview badge={badge} style="minimal" size={45} />
               </div>
             )}
           </div>
@@ -214,30 +206,11 @@ export function BadgeCard({ badge, compact = false }: BadgeCardProps) {
             </div>
           )}
 
-          {/* QR Code with Youcollect Text - Professional Style */}
+          {/* QR Code with Selected Style */}
           <div className="flex flex-col items-center gap-3 sm:gap-4 pt-3 sm:pt-4 border-t w-full">
             {badge.qr_code_data && (
-              <div className="bg-white p-3 sm:p-4 rounded-xl shadow-md border-2 border-primary/20" id={`qr-${badge.id}`}>
-                <div className="relative">
-                  <QRCodeSVG 
-                    value={badge.qr_code_data} 
-                    size={100}
-                    level="H"
-                    bgColor="#ffffff"
-                    fgColor="#1a1a2e"
-                  />
-                  {/* Professional Youcollect branding in center */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="bg-white px-1.5 py-0.5 rounded shadow-sm border">
-                      <span className="text-[8px] sm:text-[10px] font-black text-primary tracking-tight">
-                        YOUCOLLECT
-                      </span>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-center text-[9px] sm:text-[10px] text-muted-foreground mt-2 font-medium">
-                  Scannez pour vérifier
-                </p>
+              <div id={`qr-${badge.id}`}>
+                <QRCodePreview badge={badge} style={qrStyle} size={120} />
               </div>
             )}
             
