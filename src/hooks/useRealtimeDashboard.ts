@@ -69,7 +69,7 @@ export const useRealtimeDashboard = (options: UseRealtimeDashboardOptions = {}) 
       setState(prev => ({
         ...prev,
         surveys: (surveysData as DbSurvey[]) || [],
-        responses: (responsesData as DbSurveyResponse[]) || [],
+        responses: (responsesData as unknown as DbSurveyResponse[]) || [],
         isLoading: false,
         lastUpdate: new Date(),
         newResponsesCount: 0,

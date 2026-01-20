@@ -14,6 +14,70 @@ export type Database = {
   }
   public: {
     Tables: {
+      form_signatures: {
+        Row: {
+          badge_id: string
+          created_at: string
+          device_id: string | null
+          gps_latitude: number | null
+          gps_longitude: number | null
+          id: string
+          response_id: string
+          signature_hash: string
+          survey_id: string
+          surveyor_id: string
+          timestamp: string
+        }
+        Insert: {
+          badge_id: string
+          created_at?: string
+          device_id?: string | null
+          gps_latitude?: number | null
+          gps_longitude?: number | null
+          id?: string
+          response_id: string
+          signature_hash: string
+          survey_id: string
+          surveyor_id: string
+          timestamp?: string
+        }
+        Update: {
+          badge_id?: string
+          created_at?: string
+          device_id?: string | null
+          gps_latitude?: number | null
+          gps_longitude?: number | null
+          id?: string
+          response_id?: string
+          signature_hash?: string
+          survey_id?: string
+          surveyor_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "form_signatures_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "surveyor_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_signatures_response_id_fkey"
+            columns: ["response_id"]
+            isOneToOne: true
+            referencedRelation: "survey_responses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_signatures_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -42,6 +106,48 @@ export type Database = {
           id?: string
           organization?: string | null
           phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          billing_period: Database["public"]["Enums"]["billing_period"] | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          responses_limit: number
+          started_at: string
+          surveyors_limit: number
+          surveys_limit: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          billing_period?: Database["public"]["Enums"]["billing_period"] | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          responses_limit?: number
+          started_at?: string
+          surveyors_limit?: number
+          surveys_limit?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          billing_period?: Database["public"]["Enums"]["billing_period"] | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          responses_limit?: number
+          started_at?: string
+          surveyors_limit?: number
+          surveys_limit?: number
           updated_at?: string
           user_id?: string
         }
@@ -102,33 +208,49 @@ export type Database = {
       }
       survey_responses: {
         Row: {
+          badge_id: string | null
           created_at: string
           data: Json
           id: string
           location: Json | null
           survey_id: string
+          surveyor_id: string | null
+          surveyor_validated: boolean | null
           sync_status: string
           user_id: string
         }
         Insert: {
+          badge_id?: string | null
           created_at?: string
           data?: Json
           id?: string
           location?: Json | null
           survey_id: string
+          surveyor_id?: string | null
+          surveyor_validated?: boolean | null
           sync_status?: string
           user_id: string
         }
         Update: {
+          badge_id?: string | null
           created_at?: string
           data?: Json
           id?: string
           location?: Json | null
           survey_id?: string
+          surveyor_id?: string | null
+          surveyor_validated?: boolean | null
           sync_status?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "survey_responses_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "surveyor_badges"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "survey_responses_survey_id_fkey"
             columns: ["survey_id"]
@@ -137,6 +259,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      surveyor_badges: {
+        Row: {
+          barcode_data: string | null
+          covered_zone: string | null
+          created_at: string
+          first_name: string
+          id: string
+          last_name: string
+          organization: string | null
+          phone: string | null
+          photo_url: string | null
+          project: string | null
+          qr_code_data: string | null
+          role: string
+          status: Database["public"]["Enums"]["badge_status"]
+          surveyor_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          barcode_data?: string | null
+          covered_zone?: string | null
+          created_at?: string
+          first_name: string
+          id?: string
+          last_name: string
+          organization?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          project?: string | null
+          qr_code_data?: string | null
+          role?: string
+          status?: Database["public"]["Enums"]["badge_status"]
+          surveyor_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          barcode_data?: string | null
+          covered_zone?: string | null
+          created_at?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          organization?: string | null
+          phone?: string | null
+          photo_url?: string | null
+          project?: string | null
+          qr_code_data?: string | null
+          role?: string
+          status?: Database["public"]["Enums"]["badge_status"]
+          surveyor_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       surveys: {
         Row: {
@@ -179,7 +358,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      badge_status: "active" | "suspended" | "expired"
+      billing_period: "monthly" | "yearly"
+      subscription_plan: "free" | "starter" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -306,6 +487,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      badge_status: ["active", "suspended", "expired"],
+      billing_period: ["monthly", "yearly"],
+      subscription_plan: ["free", "starter", "pro"],
+    },
   },
 } as const
