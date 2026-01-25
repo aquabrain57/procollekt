@@ -153,7 +153,16 @@
     "enterPhone": "Enter your phone",
     "selectDate": "Select a date",
     "selectTime": "Select a time",
-    "autoFilled": "Auto-filled"
+    "autoFilled": "Auto-filled",
+    "captureGPS": "Capture GPS position",
+    "recordAudio": "Record audio",
+    "audioRecorded": "Audio recorded",
+    "captureVideo": "Capture video",
+    "videoCaptured": "Video captured",
+    "uploadFile": "Upload a file",
+    "maxSize": "Maximum",
+    "fieldRequired": "This field is required",
+    "viewDetails": "View details"
   },
   "premium": {
     "title": "Premium Report",

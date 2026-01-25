@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { DbSurvey, DbSurveyField } from '@/hooks/useSurveys';
-import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff, Globe, Moon, Sun, ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, MapPin, Wifi, WifiOff, Camera, Star, Check, Calendar, Clock, Download, Smartphone, Mic, Video, File, QrCode, PenTool, GripVertical, Minus, Square, Grid, Calculator, EyeOff, Globe, Moon, Sun, ChevronLeft, ChevronRight, ArrowLeft, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -127,11 +127,13 @@ const LocationFieldWithAutoDetect = ({
   onChange,
   autoDetectedLocation,
   fieldMode = false,
+  t,
 }: {
   value: any;
   onChange: (value: any) => void;
   autoDetectedLocation: { lat: number; lng: number } | null;
   fieldMode?: boolean;
+  t: (key: string) => string;
 }) => {
   const displayValue = value || autoDetectedLocation;
   const { locationName, loading: geoLoading } = useReverseGeocode(
@@ -198,7 +200,7 @@ const LocationFieldWithAutoDetect = ({
               </p>
             </div>
           ) : (
-            <span className={fieldMode ? "text-base" : "text-sm"}>Capturer la position GPS</span>
+            <span className={fieldMode ? "text-base" : "text-sm"}>📍 {t('form.captureGPS')}</span>
           )}
         </div>
       </button>
@@ -490,6 +492,7 @@ const SurveyFormField = ({
             onChange={onChange}
             autoDetectedLocation={autoDetectedLocation}
             fieldMode={fieldMode}
+            t={t}
           />
         );
 
@@ -652,7 +655,7 @@ const SurveyFormField = ({
             >
               <Mic className={cn('mb-2', value ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-10 w-10' : 'h-8 w-8')} />
               <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
-                {value ? 'Audio enregistré ✓' : 'Enregistrer un audio'}
+                {value ? `${t('form.audioRecorded')} ✓` : t('form.recordAudio')}
               </span>
             </label>
             {value && (
@@ -694,7 +697,7 @@ const SurveyFormField = ({
             >
               <Video className={cn('mb-2', value ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-10 w-10' : 'h-8 w-8')} />
               <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
-                {value ? 'Vidéo capturée ✓' : 'Capturer une vidéo'}
+                {value ? `${t('form.videoCaptured')} ✓` : t('form.captureVideo')}
               </span>
             </label>
             {value && (
@@ -739,9 +742,9 @@ const SurveyFormField = ({
             >
               <File className={cn('mb-2', value ? 'text-green-500' : 'text-muted-foreground', fieldMode ? 'h-10 w-10' : 'h-8 w-8')} />
               <span className={cn("text-muted-foreground", fieldMode ? "text-base" : "text-sm")}>
-                {value ? `${value.name} ✓` : 'Téléverser un fichier'}
+                {value ? `${value.name} ✓` : t('form.uploadFile')}
               </span>
-              <span className={cn("text-muted-foreground mt-1", fieldMode ? "text-sm" : "text-xs")}>Maximum 10MB</span>
+              <span className={cn("text-muted-foreground mt-1", fieldMode ? "text-sm" : "text-xs")}>{t('form.maxSize')} 10MB</span>
             </label>
           </div>
         );
@@ -764,6 +767,7 @@ const SurveyFormField = ({
               onChange={onChange}
               autoDetectedLocation={autoDetectedLocation}
               fieldMode={fieldMode}
+              t={t}
             />
           </div>
         );
@@ -1093,11 +1097,11 @@ const Survey = () => {
       if (field.required) {
         const value = formData[field.id];
         if (value === undefined || value === null || value === '') {
-          toast.error(`Le champ "${field.label}" est obligatoire`);
+          toast.error(`${field.label}: ${t('form.fieldRequired')}`);
           return false;
         }
         if (Array.isArray(value) && value.length === 0) {
-          toast.error(`Le champ "${field.label}" est obligatoire`);
+          toast.error(`${field.label}: ${t('form.fieldRequired')}`);
           return false;
         }
       }
@@ -1282,8 +1286,21 @@ const Survey = () => {
             <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
               <div className="min-w-0 flex-1">
                 <h1 className="font-bold text-foreground truncate text-xs sm:text-sm">{survey?.title}</h1>
-                {survey?.description && !fieldMode && (
-                  <p className="text-[10px] sm:text-xs text-muted-foreground/80 truncate hidden sm:block">{survey.description}</p>
+                {survey?.description && (
+                  <>
+                    {/* Desktop: show description inline */}
+                    <p className="text-[10px] sm:text-xs text-muted-foreground/80 truncate hidden sm:block">{survey.description}</p>
+                    {/* Mobile: show info icon with tooltip/popover for description */}
+                    <div className="sm:hidden flex items-center gap-1 text-[10px] text-muted-foreground/80">
+                      <button
+                        onClick={() => toast.info(survey.description, { duration: 5000 })}
+                        className="flex items-center gap-1 hover:text-primary transition-colors"
+                      >
+                        <Info className="h-3 w-3" />
+                        <span className="truncate max-w-[150px]">{survey.description.slice(0, 30)}{survey.description.length > 30 ? '...' : ''}</span>
+                      </button>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

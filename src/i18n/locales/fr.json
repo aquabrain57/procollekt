@@ -153,7 +153,16 @@
     "enterPhone": "Entrez votre téléphone",
     "selectDate": "Sélectionner une date",
     "selectTime": "Sélectionner une heure",
-    "autoFilled": "Rempli automatiquement"
+    "autoFilled": "Rempli automatiquement",
+    "captureGPS": "Capturer la position GPS",
+    "recordAudio": "Enregistrer un audio",
+    "audioRecorded": "Audio enregistré",
+    "captureVideo": "Capturer une vidéo",
+    "videoCaptured": "Vidéo capturée",
+    "uploadFile": "Téléverser un fichier",
+    "maxSize": "Maximum",
+    "fieldRequired": "Ce champ est obligatoire",
+    "viewDetails": "Voir les détails"
   },
   "premium": {
     "title": "Rapport Premium",
