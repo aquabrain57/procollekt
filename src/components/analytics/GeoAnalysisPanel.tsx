@@ -1,10 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { MapPin, Globe, TrendingUp, AlertTriangle, Loader2, Navigation, Target } from 'lucide-react';
+import { MapPin, Globe, TrendingUp, AlertTriangle, Loader2, Navigation, Target, User } from 'lucide-react';
 import { DbSurveyResponse, DbSurveyField } from '@/hooks/useSurveys';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ResponsesMap } from '@/components/ResponsesMap';
+import { ResponsesMapLibre } from '@/components/ResponsesMapLibre';
 import { reverseGeocodeBatch } from '@/hooks/useReverseGeocode';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -227,7 +227,7 @@ export const GeoAnalysisPanel = ({ responses, fields, zoneFieldId }: GeoAnalysis
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
-          <ResponsesMap responses={responses} fields={fields} />
+          <ResponsesMapLibre responses={responses} fields={fields} />
         </CardContent>
       </Card>
 
