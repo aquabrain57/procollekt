@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Eye, Trash2, UserX, UserCheck, QrCode, Route } from 'lucide-react';
+import { Plus, Search, Eye, Trash2, UserX, UserCheck, QrCode, Route, Wifi } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import { BadgeCard } from './BadgeCard';
 import { BadgePDFExport } from './BadgePDFExport';
 import { SurveyorItinerary } from './SurveyorItinerary';
 import { QRStyleSelector, QRStyleExtended } from './QRStyleSelector';
+import { SurveyorOnlineStatus } from './SurveyorOnlineStatus';
 import { toast } from 'sonner';
 
 export function BadgeManagement() {
@@ -198,7 +199,7 @@ export function BadgeManagement() {
                         </Avatar>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="font-medium text-sm truncate">{badge.first_name} {badge.last_name}</p>
+                          <p className="font-medium text-sm truncate">{badge.first_name} {badge.last_name}</p>
                             <Badge variant="secondary" className={`${getStatusColor(badge.status)} text-[10px]`}>
                               {getStatusLabel(badge.status)}
                             </Badge>
@@ -207,6 +208,12 @@ export function BadgeManagement() {
                           {badge.role && (
                             <p className="text-xs text-muted-foreground">{getRoleLabel(badge.role)}</p>
                           )}
+                          <SurveyorOnlineStatus 
+                            badgeId={badge.id} 
+                            surveyorId={badge.surveyor_id}
+                            lastLocationAt={badge.last_location_at}
+                            compact
+                          />
                         </div>
                       </div>
                       <DropdownMenu>
@@ -263,6 +270,7 @@ export function BadgeManagement() {
                     <TableHead>Organisation</TableHead>
                     <TableHead>Zone</TableHead>
                     <TableHead>Statut</TableHead>
+                    <TableHead>Connexion</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -293,6 +301,15 @@ export function BadgeManagement() {
                         <Badge variant="secondary" className={getStatusColor(badge.status)}>
                           {getStatusLabel(badge.status)}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <SurveyorOnlineStatus 
+                          badgeId={badge.id} 
+                          surveyorId={badge.surveyor_id}
+                          lastLocationAt={badge.last_location_at}
+                          compact
+                          showLastSeen
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
