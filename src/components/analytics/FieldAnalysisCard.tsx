@@ -222,7 +222,22 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
     // CONTACT FIELDS (phone, email)
     if (field.field_type === 'phone' || field.field_type === 'email') {
       const uniqueValues = new Set(values.map(v => String(v).toLowerCase().trim()));
-      const sampleValues = values.slice(0, 10).map(v => String(v));
+      
+      // Format phone numbers professionally
+      const formatPhone = (phone: string): string => {
+        const cleaned = phone.replace(/\D/g, '');
+        if (cleaned.length === 10) {
+          return cleaned.replace(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4 $5');
+        } else if (cleaned.length >= 8 && cleaned.length <= 15) {
+          return cleaned.replace(/(\d{3})(\d{3})(\d+)/, '+$1 $2 $3');
+        }
+        return phone;
+      };
+      
+      const sampleValues = values.slice(0, 10).map(v => {
+        const val = String(v);
+        return field.field_type === 'phone' ? formatPhone(val) : val;
+      });
 
       return {
         type: 'contact' as const,
@@ -548,7 +563,9 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
                           ) : (
                             <Mail className="h-3 w-3 text-muted-foreground shrink-0" />
                           )}
-                          <span className="truncate">{item.fullName}</span>
+                          <span className={`truncate ${field.field_type === 'phone' ? 'font-mono tracking-wide' : ''}`}>
+                            {item.fullName}
+                          </span>
                         </div>
                       ))}
                     </div>
