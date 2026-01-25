@@ -12,10 +12,12 @@ import {
   Calendar,
   TrendingUp,
   Route,
-  Activity
+  Activity,
+  Map
 } from 'lucide-react';
 import { SurveyorBadge, useSurveyorBadges } from '@/hooks/useSurveyorBadges';
 import { supabase } from '@/integrations/supabase/client';
+import { SurveyorItineraryMap } from './SurveyorItineraryMap';
 
 interface SurveyorLocation {
   id: string;
@@ -323,17 +325,33 @@ export function SurveyorItinerary({ badge }: SurveyorItineraryProps) {
         )}
 
         {/* Tabs for History */}
-        <Tabs defaultValue="forms" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="map" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="map" className="text-xs">
+              <Map className="w-3 h-3 mr-1" />
+              Carte
+            </TabsTrigger>
             <TabsTrigger value="forms" className="text-xs">
               <FileText className="w-3 h-3 mr-1" />
-              Formulaires ({submissions.length})
+              Fiches ({submissions.length})
             </TabsTrigger>
             <TabsTrigger value="gps" className="text-xs">
               <MapPin className="w-3 h-3 mr-1" />
-              Points GPS ({locations.length})
+              GPS ({locations.length})
             </TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="map" className="mt-3">
+            <SurveyorItineraryMap 
+              points={locations.map(l => ({
+                latitude: l.latitude,
+                longitude: l.longitude,
+                recorded_at: l.recorded_at
+              }))}
+              isOnline={isTracking}
+              surveyorName={`${badge.first_name} ${badge.last_name}`}
+            />
+          </TabsContent>
           
           <TabsContent value="forms" className="mt-3">
             <div className="max-h-60 overflow-y-auto space-y-2">

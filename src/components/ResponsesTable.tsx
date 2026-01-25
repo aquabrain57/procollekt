@@ -4,7 +4,8 @@ import { fr } from 'date-fns/locale';
 import { 
   Download, Filter, Search, ArrowUpDown, ArrowUp, ArrowDown,
   MapPin, Clock, Eye, FileSpreadsheet, FileText, File,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2
+  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2,
+  User, IdCard
 } from 'lucide-react';
 import { DbSurvey, DbSurveyResponse, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
@@ -315,6 +316,12 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                 {getSortIcon('date')}
               </div>
             </TableHead>
+            <TableHead className="min-w-[150px]">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4" />
+                Enquêteur
+              </div>
+            </TableHead>
             <TableHead 
               className="cursor-pointer hover:bg-muted/50 min-w-[100px]"
               onClick={() => handleSort('location')}
@@ -341,7 +348,20 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {paginatedResponses.map((response, index) => (
+          {paginatedResponses.map((response, index) => {
+            // Extract surveyor info from response data or direct fields
+            const surveyorIdField = fields.find(f => f.field_type === 'surveyor_id');
+            const surveyorData = surveyorIdField ? response.data[surveyorIdField.id] : null;
+            
+            let surveyorName = '';
+            let surveyorId = response.surveyor_id || '';
+            
+            if (typeof surveyorData === 'object' && surveyorData !== null) {
+              surveyorName = surveyorData.surveyor_name || '';
+              surveyorId = surveyorData.surveyor_id || surveyorId;
+            }
+            
+            return (
             <TableRow key={response.id} className="hover:bg-muted/30">
               <TableCell className="font-mono text-muted-foreground sticky left-0 bg-card">
                 {(currentPage - 1) * pageSize + index + 1}
@@ -355,6 +375,31 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                     {format(new Date(response.created_at), 'HH:mm')}
                   </div>
                 </div>
+              </TableCell>
+              <TableCell>
+                {(surveyorName || surveyorId || response.surveyor_validated) ? (
+                  <div className="text-sm">
+                    {surveyorName && (
+                      <div className="font-medium flex items-center gap-1">
+                        <User className="h-3 w-3 text-primary" />
+                        <span className="truncate max-w-[120px]">{surveyorName}</span>
+                      </div>
+                    )}
+                    {surveyorId && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-1">
+                        <IdCard className="h-3 w-3" />
+                        {surveyorId}
+                      </div>
+                    )}
+                    {response.surveyor_validated && (
+                      <span className="inline-flex items-center text-[10px] text-green-600 font-medium">
+                        ✓ Validé
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">—</span>
+                )}
               </TableCell>
               <TableCell>
                 {response.location ? (
@@ -383,7 +428,8 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                 </Button>
               </TableCell>
             </TableRow>
-          ))}
+          );
+        })}
         </TableBody>
       </Table>
     </div>
