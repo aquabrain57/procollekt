@@ -573,17 +573,18 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-foreground">{survey.title}</h2>
-          <p className="text-sm text-muted-foreground">
-            {processedResponses.length} réponse{processedResponses.length !== 1 ? 's' : ''} 
-            {searchTerm || filterValue ? ` (filtré de ${responses.length})` : ''}
-          </p>
+      {/* Actions Bar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg">
+        <div className="text-sm text-muted-foreground">
+          {processedResponses.length} réponse{processedResponses.length !== 1 ? 's' : ''} affichée{processedResponses.length !== 1 ? 's' : ''}
+          {searchTerm || filterValue || dateFrom || dateTo || enumeratorTerm || zoneTerm ? (
+            <span className="ml-1 text-primary font-medium">
+              (filtré de {responses.length})
+            </span>
+          ) : null}
         </div>
         
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           <Button variant="outline" size="sm" onClick={() => setIsFullscreen(true)}>
             <Maximize2 className="h-4 w-4 mr-2" />
             Plein écran

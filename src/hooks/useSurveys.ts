@@ -425,11 +425,31 @@ export const useSurveyResponses = (surveyId?: string) => {
     }
   };
 
+  const deleteAllResponses = async (surveyId: string) => {
+    try {
+      const { error } = await supabase
+        .from('survey_responses')
+        .delete()
+        .eq('survey_id', surveyId);
+
+      if (error) throw error;
+
+      setResponses([]);
+      toast.success('Toutes les réponses ont été supprimées');
+      return true;
+    } catch (error: any) {
+      console.error('Error deleting all responses:', error);
+      toast.error('Erreur lors de la suppression des réponses');
+      return false;
+    }
+  };
+
   return {
     responses,
     loading,
     submitResponse,
     deleteResponse,
+    deleteAllResponses,
     refetch: fetchResponses,
   };
 };
