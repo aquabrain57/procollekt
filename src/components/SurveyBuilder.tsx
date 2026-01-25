@@ -116,6 +116,12 @@ interface FieldEditorProps {
   onMoveDown: () => void;
   isFirst: boolean;
   isLast: boolean;
+  onDragStart: (e: React.DragEvent) => void;
+  onDragEnd: (e: React.DragEvent) => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  isDragging: boolean;
+  isDragOver: boolean;
 }
 
 const FieldEditor = ({
@@ -130,6 +136,12 @@ const FieldEditor = ({
   onMoveDown,
   isFirst,
   isLast,
+  onDragStart,
+  onDragEnd,
+  onDragOver,
+  onDrop,
+  isDragging,
+  isDragOver,
 }: FieldEditorProps) => {
   // Local state for fast typing (avoid saving to backend on every keystroke)
   const [localLabel, setLocalLabel] = useState(field.label);
@@ -162,9 +174,16 @@ const FieldEditor = ({
 
   return (
     <Card
+      draggable
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       className={cn(
         'transition-all duration-200',
-        isExpanded ? 'ring-2 ring-primary/20' : 'hover:shadow-md'
+        isExpanded ? 'ring-2 ring-primary/20' : 'hover:shadow-md',
+        isDragging && 'opacity-40 cursor-grabbing',
+        isDragOver && 'ring-2 ring-primary/50 scale-[1.02]'
       )}
     >
       <Collapsible open={isExpanded} onOpenChange={onToggle}>
@@ -187,7 +206,7 @@ const FieldEditor = ({
               </button>
             </div>
 
-            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab" />
+            <GripVertical className="h-5 w-5 text-muted-foreground cursor-grab active:cursor-grabbing" />
 
             <div className="p-2 bg-primary/10 rounded-lg">
               <Icon className="h-4 w-4 text-primary" />
@@ -379,6 +398,8 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
   const { fields, loading, addField, updateField, deleteField, reorderFields } = useSurveyFields(survey.id);
   const [expandedFieldId, setExpandedFieldId] = useState<string | null>(null);
   const [selectedDesign, setSelectedDesign] = useState<string>('modern-blue');
+  const [draggedFieldId, setDraggedFieldId] = useState<string | null>(null);
+  const [dragOverFieldId, setDragOverFieldId] = useState<string | null>(null);
 
   const handleDesignSelect = (template: FormDesignTemplate) => {
     setSelectedDesign(template.id);
@@ -475,6 +496,47 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
     await reorderFields(newFields.map((f, i) => ({ ...f, field_order: i })));
   };
 
+  const handleDragStart = (fieldId: string) => (e: React.DragEvent) => {
+    setDraggedFieldId(fieldId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = () => {
+    setDraggedFieldId(null);
+    setDragOverFieldId(null);
+  };
+
+  const handleDragOver = (fieldId: string) => (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedFieldId !== fieldId) {
+      setDragOverFieldId(fieldId);
+    }
+  };
+
+  const handleDrop = (targetFieldId: string) => async (e: React.DragEvent) => {
+    e.preventDefault();
+    
+    if (!draggedFieldId || draggedFieldId === targetFieldId) {
+      setDragOverFieldId(null);
+      return;
+    }
+
+    const draggedIndex = fields.findIndex(f => f.id === draggedFieldId);
+    const targetIndex = fields.findIndex(f => f.id === targetFieldId);
+    
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    const newFields = [...fields];
+    const [draggedField] = newFields.splice(draggedIndex, 1);
+    newFields.splice(targetIndex, 0, draggedField);
+    
+    await reorderFields(newFields.map((f, i) => ({ ...f, field_order: i })));
+    
+    setDragOverFieldId(null);
+    toast.success('Question déplacée');
+  };
+
   return (
     <div className="space-y-4 sm:space-y-6 pb-32">
       {/* Header */}
@@ -559,6 +621,12 @@ export const SurveyBuilder = ({ survey, onPublish, onPreview }: SurveyBuilderPro
                 onMoveDown={() => handleMoveField(index, 'down')}
                 isFirst={index === 0}
                 isLast={index === fields.length - 1}
+                onDragStart={handleDragStart(field.id)}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver(field.id)}
+                onDrop={handleDrop(field.id)}
+                isDragging={draggedFieldId === field.id}
+                isDragOver={dragOverFieldId === field.id}
               />
             ))}
           </div>

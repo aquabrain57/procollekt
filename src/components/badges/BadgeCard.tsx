@@ -5,12 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Phone, MapPin, Building2, Briefcase, User, Mail, Users, Globe } from 'lucide-react';
 import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
-import { QRCodePreview, QRStyle, generateBadgeQRData } from './QRStyleSelector';
+import { QRCodePreview, QRStyleExtended, generateBadgeQRData } from './QRStyleSelector';
 
 interface BadgeCardProps {
   badge: SurveyorBadge;
   compact?: boolean;
-  qrStyle?: QRStyle;
+  qrStyle?: QRStyleExtended;
 }
 
 export function BadgeCard({ badge, compact = false, qrStyle = 'classic' }: BadgeCardProps) {

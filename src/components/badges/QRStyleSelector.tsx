@@ -7,18 +7,26 @@ import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
 
 export type QRStyle = 'classic' | 'rounded' | 'dots' | 'elegant' | 'minimal';
 
+// New additional styles
+export type QRStyleExtended = QRStyle | 'gradient' | 'diamond' | 'modern' | 'corporate' | 'tech';
+
 interface QRStyleSelectorProps {
   badge: SurveyorBadge;
-  selectedStyle: QRStyle;
-  onStyleChange: (style: QRStyle) => void;
+  selectedStyle: QRStyleExtended;
+  onStyleChange: (style: QRStyleExtended) => void;
 }
 
-const qrStyles: { id: QRStyle; label: string; description: string }[] = [
+const qrStyles: { id: QRStyleExtended; label: string; description: string }[] = [
   { id: 'classic', label: 'Classique', description: 'Style standard professionnel' },
   { id: 'rounded', label: 'Arrondi', description: 'Coins arrondis modernes' },
   { id: 'dots', label: 'Points', description: 'Style pointillé élégant' },
   { id: 'elegant', label: 'Élégant', description: 'Cadre décoratif premium' },
   { id: 'minimal', label: 'Minimal', description: 'Design épuré' },
+  { id: 'gradient', label: 'Dégradé', description: 'Gradient moderne et dynamique' },
+  { id: 'diamond', label: 'Diamant', description: 'Forme losange luxueuse' },
+  { id: 'modern', label: 'Moderne', description: 'Design contemporain raffiné' },
+  { id: 'corporate', label: 'Corporate', description: 'Style professionnel entreprise' },
+  { id: 'tech', label: 'Tech', description: 'Futuriste haute technologie' },
 ];
 
 // Generate complete badge data for QR code
@@ -61,7 +69,7 @@ export const generateBadgeQRData = (badge: SurveyorBadge): string => {
   return JSON.stringify(data);
 };
 
-export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBadge; style: QRStyle; size?: number }) {
+export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBadge; style: QRStyleExtended; size?: number }) {
   const qrData = generateBadgeQRData(badge);
   
   const getQRColors = () => {
@@ -76,6 +84,16 @@ export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBad
         return { fg: '#7c3aed', bg: '#faf5ff' };
       case 'minimal':
         return { fg: '#374151', bg: '#ffffff' };
+      case 'gradient':
+        return { fg: '#ec4899', bg: '#fdf2f8' };
+      case 'diamond':
+        return { fg: '#8b5cf6', bg: '#faf5ff' };
+      case 'modern':
+        return { fg: '#0891b2', bg: '#ecfeff' };
+      case 'corporate':
+        return { fg: '#0f172a', bg: '#f8fafc' };
+      case 'tech':
+        return { fg: '#6366f1', bg: '#eef2ff' };
       default:
         return { fg: '#1a1a2e', bg: '#ffffff' };
     }
@@ -95,6 +113,16 @@ export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBad
         return 'bg-gradient-to-br from-violet-50 to-white p-5 rounded-xl border-2 border-violet-200 shadow-xl ring-4 ring-violet-100/50';
       case 'minimal':
         return 'bg-white p-3 rounded-md border border-gray-100';
+      case 'gradient':
+        return 'bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 p-5 rounded-2xl border-2 border-pink-300 shadow-xl';
+      case 'diamond':
+        return 'bg-white p-5 rounded-lg border-4 border-violet-400 shadow-2xl transform rotate-0';
+      case 'modern':
+        return 'bg-gradient-to-br from-cyan-50 to-white p-4 rounded-xl border-l-4 border-cyan-500 shadow-lg';
+      case 'corporate':
+        return 'bg-slate-50 p-4 rounded-sm border-2 border-slate-300 shadow-md';
+      case 'tech':
+        return 'bg-gradient-to-br from-indigo-100 via-blue-50 to-white p-5 rounded-2xl border border-indigo-300 shadow-xl ring-2 ring-indigo-200';
       default:
         return 'bg-white p-4 rounded-lg border border-gray-200';
     }
@@ -115,6 +143,16 @@ export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBad
           <p className="text-xs font-bold text-violet-600 tracking-[0.25em] uppercase">YOUCOLLECT</p>
         </div>
       )}
+      {style === 'gradient' && (
+        <div className="mt-2 text-center">
+          <p className="text-xs font-bold bg-gradient-to-r from-pink-600 to-blue-600 bg-clip-text text-transparent tracking-wide uppercase">YOUCOLLECT</p>
+        </div>
+      )}
+      {style === 'tech' && (
+        <div className="mt-2 text-center">
+          <p className="text-xs font-bold text-indigo-600 tracking-[0.3em] uppercase font-mono">YOUCOLLECT</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -126,8 +164,8 @@ export function QRStyleSelector({ badge, selectedStyle, onStyleChange }: QRStyle
       
       <RadioGroup 
         value={selectedStyle} 
-        onValueChange={(value) => onStyleChange(value as QRStyle)}
-        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3"
+        onValueChange={(value) => onStyleChange(value as QRStyleExtended)}
+        className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 max-h-96 overflow-y-auto"
       >
         {qrStyles.map((style) => (
           <div key={style.id}>
@@ -155,7 +193,7 @@ export function QRStyleSelector({ badge, selectedStyle, onStyleChange }: QRStyle
       <Card className="mt-4">
         <CardContent className="p-4 flex flex-col items-center">
           <p className="text-sm font-medium mb-3">Aperçu du QR Code</p>
-          <QRCodePreview badge={badge} style={selectedStyle} size={150} />
+          <QRCodePreview badge={badge} style={selectedStyle} size={200} />
           <p className="text-xs text-muted-foreground mt-3 text-center max-w-xs">
             Ce QR code contient toutes les informations de l'enquêteur : identité, organisation, superviseur et statistiques.
           </p>
