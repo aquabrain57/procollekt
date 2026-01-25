@@ -30,6 +30,48 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
   const qrRef = useRef<HTMLDivElement>(null);
   const fullScreenQrRef = useRef<HTMLDivElement>(null);
 
+  // Get computed CSS color values for QR code (resolve HSL to actual colors)
+  const qrColors = useMemo(() => {
+    if (typeof window === 'undefined') return { fg: '#000000', bg: '#ffffff' };
+    
+    const root = document.documentElement;
+    const computedStyle = getComputedStyle(root);
+    
+    // Get HSL values from CSS variables
+    const primaryHsl = computedStyle.getPropertyValue('--primary').trim();
+    const backgroundHsl = computedStyle.getPropertyValue('--background').trim();
+    
+    // Convert HSL to RGB hex
+    const hslToHex = (hsl: string): string => {
+      if (!hsl) return '#000000';
+      const [h, s, l] = hsl.split(' ').map(v => parseFloat(v.replace('%', '')));
+      
+      const c = (1 - Math.abs(2 * l / 100 - 1)) * (s / 100);
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = l / 100 - c / 2;
+      
+      let r = 0, g = 0, b = 0;
+      if (h < 60) { r = c; g = x; b = 0; }
+      else if (h < 120) { r = x; g = c; b = 0; }
+      else if (h < 180) { r = 0; g = c; b = x; }
+      else if (h < 240) { r = 0; g = x; b = c; }
+      else if (h < 300) { r = x; g = 0; b = c; }
+      else { r = c; g = 0; b = x; }
+      
+      const toHex = (n: number) => {
+        const hex = Math.round((n + m) * 255).toString(16);
+        return hex.length === 1 ? '0' + hex : hex;
+      };
+      
+      return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+    };
+    
+    return {
+      fg: primaryHsl ? hslToHex(primaryHsl) : '#1a1a2e',
+      bg: backgroundHsl ? hslToHex(backgroundHsl) : '#ffffff'
+    };
+  }, []);
+
   // Always use production URL for sharing
   const surveyUrl = useMemo(() => getSurveyUrl(surveyId), [surveyId]);
 
@@ -115,8 +157,8 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
                  size={240}
                  includeMargin
                  level="H"
-                 fgColor="hsl(var(--primary))"
-                 bgColor="hsl(var(--background))"
+                 fgColor={qrColors.fg}
+                 bgColor={qrColors.bg}
                />
              </div>
             
@@ -249,8 +291,8 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
                    size={88}
                    includeMargin
                    level="H"
-                   fgColor="hsl(var(--primary))"
-                   bgColor="hsl(var(--background))"
+                  fgColor={qrColors.fg}
+                  bgColor={qrColors.bg}
                  />
                </div>
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">

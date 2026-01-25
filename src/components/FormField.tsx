@@ -8,6 +8,7 @@ import {
 import { FormField as FormFieldType } from '@/types/survey';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { PublicSurveyorIdField } from './PublicSurveyorIdField';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -910,6 +911,9 @@ export const FormFieldComponent = ({ field, value, onChange, error }: FormFieldP
             </div>
           </div>
         );
+
+      case 'surveyor_id':
+        return <PublicSurveyorIdField value={value} onChange={onChange} fieldMode={true} />;
 
       case 'signature':
         return <SignaturePad value={value} onChange={onChange} />;

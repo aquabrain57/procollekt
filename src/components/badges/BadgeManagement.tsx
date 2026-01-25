@@ -16,7 +16,7 @@ import { CreateBadgeDialog } from './CreateBadgeDialog';
 import { BadgeCard } from './BadgeCard';
 import { BadgePDFExport } from './BadgePDFExport';
 import { SurveyorItinerary } from './SurveyorItinerary';
-import { QRStyleSelector, QRStyle } from './QRStyleSelector';
+import { QRStyleSelector, QRStyleExtended } from './QRStyleSelector';
 import { toast } from 'sonner';
 
 export function BadgeManagement() {
@@ -29,7 +29,7 @@ export function BadgeManagement() {
   const [badgeToDelete, setBadgeToDelete] = useState<string | null>(null);
   const [itineraryBadge, setItineraryBadge] = useState<SurveyorBadge | null>(null);
   const [qrStyleDialogOpen, setQrStyleDialogOpen] = useState(false);
-  const [selectedQRStyle, setSelectedQRStyle] = useState<QRStyle>('classic');
+  const [selectedQRStyle, setSelectedQRStyle] = useState<QRStyleExtended>('classic');
 
   const filteredBadges = badges.filter(badge => 
     badge.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
