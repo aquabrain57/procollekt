@@ -13,6 +13,7 @@ import { PWAInstallBanner } from '@/components/PWAInstallBanner';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Progress } from '@/components/ui/progress';
+import { PublicSurveyorIdField } from '@/components/PublicSurveyorIdField';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -906,24 +907,14 @@ const SurveyFormField = ({
         );
 
       default:
-        // Handle surveyor_id and other unknown types
+        // Handle surveyor_id with auto-suggestions and profile selection
         if (field.field_type === 'surveyor_id') {
           return (
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={value || ''}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder="Entrez votre ID enquêteur..."
-                className={cn(
-                  "w-full rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50",
-                  fieldMode ? "px-4 py-4 text-lg" : "px-4 py-3 text-base"
-                )}
-              />
-              <p className="text-xs text-muted-foreground">
-                Entrez votre ID badge pour vous identifier
-              </p>
-            </div>
+            <PublicSurveyorIdField
+              value={value}
+              onChange={onChange}
+              fieldMode={fieldMode}
+            />
           );
         }
         return (
@@ -1131,6 +1122,23 @@ const Survey = () => {
       };
     }
 
+    // Extract surveyor info from surveyor_id field if present
+    const surveyorField = fields.find(f => f.field_type === 'surveyor_id');
+    let surveyorId: string | null = null;
+    let badgeId: string | null = null;
+    let surveyorValidated = false;
+    
+    if (surveyorField && formData[surveyorField.id]) {
+      const surveyorData = formData[surveyorField.id];
+      if (typeof surveyorData === 'object') {
+        surveyorId = surveyorData.surveyor_id || null;
+        badgeId = surveyorData.badge_id || null;
+        surveyorValidated = surveyorData.surveyor_validated || false;
+      } else if (typeof surveyorData === 'string') {
+        surveyorId = surveyorData;
+      }
+    }
+
     const responseData: PendingResponse = {
       id: crypto.randomUUID(),
       survey_id: survey.id,
@@ -1149,7 +1157,7 @@ const Survey = () => {
         const { data: { user } } = await supabase.auth.getUser();
         
         if (user) {
-          // If authenticated, insert directly
+          // If authenticated, insert directly with surveyor info
           const { error } = await supabase
             .from('survey_responses')
             .insert({
@@ -1158,6 +1166,9 @@ const Survey = () => {
               data: formData,
               location,
               sync_status: 'synced',
+              surveyor_id: surveyorId,
+              badge_id: badgeId,
+              surveyor_validated: surveyorValidated,
             });
 
           if (!error) {
