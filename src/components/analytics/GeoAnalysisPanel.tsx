@@ -92,21 +92,29 @@ export const GeoAnalysisPanel = ({ responses, fields, zoneFieldId }: GeoAnalysis
 
         const geocoded = await reverseGeocodeBatch(locations);
 
-        const byCityMap: Record<string, number> = {};
+        const byCityMap: Record<string, { count: number; country: string | null }> = {};
         const byRegionMap: Record<string, number> = {};
+        const byCountryMap: Record<string, number> = {};
 
         geocoded.forEach((loc) => {
-          if (loc.city) byCityMap[loc.city] = (byCityMap[loc.city] || 0) + 1;
+          if (loc.city) {
+            const cityKey = loc.city;
+            if (!byCityMap[cityKey]) {
+              byCityMap[cityKey] = { count: 0, country: loc.country };
+            }
+            byCityMap[cityKey].count++;
+          }
           if (loc.region) byRegionMap[loc.region] = (byRegionMap[loc.region] || 0) + 1;
+          if (loc.country) byCountryMap[loc.country] = (byCountryMap[loc.country] || 0) + 1;
         });
 
         const total = geocoded.size;
         
         const byCity = Object.entries(byCityMap)
-          .map(([name, count]) => ({
-            name,
-            count,
-            percentage: Math.round((count / total) * 100),
+          .map(([name, data]) => ({
+            name: data.country ? `${name}, ${data.country}` : name,
+            count: data.count,
+            percentage: Math.round((data.count / total) * 100),
           }))
           .sort((a, b) => b.count - a.count)
           .slice(0, 10);
