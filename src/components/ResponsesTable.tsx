@@ -5,9 +5,9 @@ import {
   Download, Filter, Search, ArrowUpDown, ArrowUp, ArrowDown,
   MapPin, Clock, Eye, FileSpreadsheet, FileText, File,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Maximize2,
-  User, IdCard
+  User, IdCard, Trash2, Phone, Globe
 } from 'lucide-react';
-import { DbSurvey, DbSurveyResponse, DbSurveyField, useSurveyFields } from '@/hooks/useSurveys';
+import { DbSurvey, DbSurveyResponse, DbSurveyField, useSurveyFields, useSurveyResponses } from '@/hooks/useSurveys';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -36,11 +36,25 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LocationBadge, LocationDisplay } from '@/components/LocationDisplay';
+import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
@@ -54,6 +68,7 @@ type SortColumn = 'date' | 'location' | string;
 
 export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
   const { fields } = useSurveyFields(survey.id);
+  const { deleteResponse } = useSurveyResponses(survey.id);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -67,6 +82,30 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
   const [enumeratorTerm, setEnumeratorTerm] = useState<string>('');
   const [zoneTerm, setZoneTerm] = useState<string>('');
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Helper to format phone numbers professionally
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return '';
+    // Remove all non-digit characters
+    const cleaned = phone.replace(/\D/g, '');
+    // Format based on length
+    if (cleaned.length === 10) {
+      // Format: XX XX XX XX XX
+      return cleaned.replace(/(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1 $2 $3 $4 $5');
+    } else if (cleaned.length === 11 && cleaned.startsWith('0')) {
+      // Format: 0X XX XX XX XX
+      return cleaned.replace(/(\d{1})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/, '$1$2 $3 $4 $5 $6');
+    } else if (cleaned.length >= 8 && cleaned.length <= 15) {
+      // International format with spaces every 2-3 digits
+      return cleaned.replace(/(\d{3})(\d{3})(\d+)/, '+$1 $2 $3');
+    }
+    return phone;
+  };
+
+  // Check if form has surveyor_id field
+  const hasSurveyorIdField = fields.some(f => f.field_type === 'surveyor_id');
 
   // Sort and filter responses
   const processedResponses = useMemo(() => {
@@ -230,6 +269,15 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
       return getOptionLabel(field, value);
     }
     
+    // Handle phone numbers - format professionally
+    if (field.field_type === 'phone') {
+      return (
+        <span className="font-mono text-sm tracking-wide whitespace-nowrap">
+          {formatPhoneNumber(String(value))}
+        </span>
+      );
+    }
+    
     if (Array.isArray(value)) return value.join(', ');
     if (typeof value === 'object') {
       if ('latitude' in value) return `${value.latitude.toFixed(4)}, ${value.longitude.toFixed(4)}`;
@@ -237,6 +285,19 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     }
     const strValue = String(value);
     return strValue.length > 50 ? strValue.slice(0, 50) + '...' : strValue;
+  };
+
+  // Handle response deletion
+  const handleDeleteResponse = async (responseId: string) => {
+    setIsDeleting(true);
+    try {
+      const success = await deleteResponse(responseId);
+      if (success) {
+        setDeleteConfirmId(null);
+      }
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Get display value for exports with proper labels
@@ -255,7 +316,10 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
 
   // Export functions with proper labels
   const exportToCSV = () => {
-    const headers = ['#', 'Date', 'Heure', 'Localisation', ...fields.map(f => f.label)];
+    const baseHeaders = ['#', 'Date', 'Heure'];
+    const surveyorHeaders = hasSurveyorIdField ? ['ID Enquêteur', 'Nom Enquêteur'] : [];
+    const headers = [...baseHeaders, ...surveyorHeaders, 'Localisation', ...fields.map(f => f.label)];
+    
     const rows = processedResponses.map((response, index) => {
       const date = format(new Date(response.created_at), 'dd/MM/yyyy');
       const time = format(new Date(response.created_at), 'HH:mm:ss');
@@ -263,9 +327,27 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
         ? `${response.location.latitude.toFixed(6)}, ${response.location.longitude.toFixed(6)}`
         : '';
       
-      const fieldValues = fields.map(field => getDisplayValue(field, response.data[field.id]));
+      // Extract surveyor info
+      const surveyorIdField = fields.find(f => f.field_type === 'surveyor_id');
+      const surveyorData = surveyorIdField ? response.data[surveyorIdField.id] : null;
+      let surveyorId = response.surveyor_id || '';
+      let surveyorName = '';
+      if (typeof surveyorData === 'object' && surveyorData !== null) {
+        surveyorName = surveyorData.surveyor_name || '';
+        surveyorId = surveyorData.surveyor_id || surveyorId;
+      }
+      
+      const surveyorValues = hasSurveyorIdField ? [surveyorId, surveyorName] : [];
+      const fieldValues = fields.map(field => {
+        const value = response.data[field.id];
+        // Format phone numbers for export
+        if (field.field_type === 'phone' && value) {
+          return formatPhoneNumber(String(value));
+        }
+        return getDisplayValue(field, value);
+      });
 
-      return [index + 1, date, time, location, ...fieldValues];
+      return [index + 1, date, time, ...surveyorValues, location, ...fieldValues];
     });
 
     const csvContent = [headers, ...rows]
@@ -279,14 +361,36 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
     
-    const headers = ['#', 'Date', 'Heure', 'Latitude', 'Longitude', ...fields.map(f => f.label)];
+    const baseHeaders = ['#', 'Date', 'Heure'];
+    const surveyorHeaders = hasSurveyorIdField ? ['ID Enquêteur', 'Nom Enquêteur'] : [];
+    const headers = [...baseHeaders, ...surveyorHeaders, 'Latitude', 'Longitude', ...fields.map(f => f.label)];
+    
     const rows = processedResponses.map((response, index) => {
-      const fieldValues = fields.map(field => getDisplayValue(field, response.data[field.id]));
+      // Extract surveyor info
+      const surveyorIdField = fields.find(f => f.field_type === 'surveyor_id');
+      const surveyorData = surveyorIdField ? response.data[surveyorIdField.id] : null;
+      let surveyorId = response.surveyor_id || '';
+      let surveyorName = '';
+      if (typeof surveyorData === 'object' && surveyorData !== null) {
+        surveyorName = surveyorData.surveyor_name || '';
+        surveyorId = surveyorData.surveyor_id || surveyorId;
+      }
+      
+      const surveyorValues = hasSurveyorIdField ? [surveyorId, surveyorName] : [];
+      const fieldValues = fields.map(field => {
+        const value = response.data[field.id];
+        // Format phone numbers for export
+        if (field.field_type === 'phone' && value) {
+          return formatPhoneNumber(String(value));
+        }
+        return getDisplayValue(field, value);
+      });
 
       return [
         index + 1,
         format(new Date(response.created_at), 'dd/MM/yyyy'),
         format(new Date(response.created_at), 'HH:mm:ss'),
+        ...surveyorValues,
         response.location?.latitude || '',
         response.location?.longitude || '',
         ...fieldValues,
@@ -419,13 +523,45 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                 </TableCell>
               ))}
               <TableCell className="text-center sticky right-0 bg-card">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => setSelectedResponse(response)}
-                >
-                  <Eye className="h-4 w-4" />
-                </Button>
+                <div className="flex items-center justify-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setSelectedResponse(response)}
+                  >
+                    <Eye className="h-4 w-4" />
+                  </Button>
+                  <AlertDialog open={deleteConfirmId === response.id} onOpenChange={(open) => !open && setDeleteConfirmId(null)}>
+                    <AlertDialogTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => setDeleteConfirmId(response.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Supprimer cette réponse ?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Cette action est irréversible. La réponse sera définitivement supprimée de la base de données.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Annuler</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => handleDeleteResponse(response.id)}
+                          disabled={isDeleting}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          {isDeleting ? 'Suppression...' : 'Supprimer'}
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               </TableCell>
             </TableRow>
           );
