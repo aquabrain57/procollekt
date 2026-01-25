@@ -53,7 +53,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { LocationBadge, LocationDisplay } from '@/components/LocationDisplay';
+import { LocationBadge, LocationDisplay, LocationFull } from '@/components/LocationDisplay';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -872,15 +872,53 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[60vh] pr-4">
-            {selectedResponse && (
+            {selectedResponse && (() => {
+              // Extract surveyor info
+              const surveyorIdField = fields.find(f => f.field_type === 'surveyor_id');
+              const surveyorData = surveyorIdField ? selectedResponse.data[surveyorIdField.id] : null;
+              let surveyorName = '';
+              let surveyorId = selectedResponse.surveyor_id || '';
+              if (typeof surveyorData === 'object' && surveyorData !== null) {
+                surveyorName = surveyorData.surveyor_name || '';
+                surveyorId = surveyorData.surveyor_id || surveyorId;
+              }
+
+              return (
               <div className="space-y-4">
-                {/* Location */}
+                {/* Surveyor Info */}
+                {(surveyorName || surveyorId) && (
+                  <div className="p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Enquêteur</p>
+                    <div className="flex items-center gap-3">
+                      <User className="h-5 w-5 text-primary" />
+                      <div>
+                        {surveyorName && <p className="font-semibold text-foreground">{surveyorName}</p>}
+                        {surveyorId && (
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <IdCard className="h-3 w-3" />
+                            ID: {surveyorId}
+                          </p>
+                        )}
+                      </div>
+                      {selectedResponse.surveyor_validated && (
+                        <Badge variant="default" className="bg-green-600 ml-auto">
+                          ✓ Validé
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Location with full details */}
                 {selectedResponse.location && (
                   <div className="p-3 bg-muted rounded-lg">
-                    <LocationDisplay
+                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                      <Globe className="h-3 w-3" />
+                      Localisation GPS
+                    </p>
+                    <LocationFull
                       latitude={selectedResponse.location.latitude}
                       longitude={selectedResponse.location.longitude}
-                      showCoordinates={true}
                     />
                   </div>
                 )}
@@ -890,9 +928,30 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                   {fields.map((field) => {
                     const value = selectedResponse.data[field.id];
                     
+                    // Skip surveyor_id field as it's shown above
+                    if (field.field_type === 'surveyor_id') return null;
+                    
                     let displayValue: React.ReactNode;
                     if (value === undefined || value === null || value === '') {
                       displayValue = <span className="text-muted-foreground italic">Non renseigné</span>;
+                    } else if (field.field_type === 'phone') {
+                      displayValue = (
+                        <span className="font-mono text-foreground tracking-wide">
+                          {formatPhoneNumber(String(value))}
+                        </span>
+                      );
+                    } else if (field.field_type === 'select' || field.field_type === 'multiselect') {
+                      if (Array.isArray(value)) {
+                        displayValue = (
+                          <div className="flex flex-wrap gap-1">
+                            {value.map((v, i) => (
+                              <Badge key={i} variant="outline">{getOptionLabel(field, v)}</Badge>
+                            ))}
+                          </div>
+                        );
+                      } else {
+                        displayValue = <Badge variant="outline">{getOptionLabel(field, value)}</Badge>;
+                      }
                     } else if (Array.isArray(value)) {
                       displayValue = (
                         <div className="flex flex-wrap gap-1">
@@ -927,7 +986,8 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                   })}
                 </div>
               </div>
-            )}
+            );
+            })()}
           </ScrollArea>
         </DialogContent>
       </Dialog>
