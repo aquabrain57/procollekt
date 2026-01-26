@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface GeocodedLocation {
   city: string | null;
@@ -50,26 +51,18 @@ export const useReverseGeocode = (
 
     setLocation(prev => ({ ...prev, loading: true }));
 
-    // Use OpenStreetMap Nominatim for reverse geocoding (free, no API key required)
+    // Use edge function proxy for reverse geocoding (keeps user location data private)
     const fetchAddress = async () => {
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=fr`,
-          {
-            headers: {
-              'User-Agent': 'FieldCollect-App/1.0',
-            },
-          }
-        );
+        const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+          body: { latitude, longitude, language: 'fr' }
+        });
 
-        if (!response.ok) throw new Error('Geocoding failed');
+        if (error) throw error;
 
-        const data = await response.json();
-        const address = data.address || {};
-
-        const city = address.city || address.town || address.village || address.municipality || address.locality || null;
-        const region = address.state || address.region || address.county || null;
-        const country = address.country || null;
+        const city = data.city || null;
+        const region = data.region || null;
+        const country = data.country || null;
 
         const result = { city, region, country };
         geocodeCache.set(cacheKey, result);
@@ -118,26 +111,18 @@ export const reverseGeocodeBatch = async (
     }
 
     try {
-      // Add delay between requests to respect Nominatim rate limit (1 req/sec)
+      // Add delay between requests to respect rate limit (1 req/sec)
       if (i > 0) await new Promise(resolve => setTimeout(resolve, 1100));
 
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.latitude}&lon=${loc.longitude}&accept-language=fr`,
-        {
-          headers: {
-            'User-Agent': 'FieldCollect-App/1.0',
-          },
-        }
-      );
+      const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+        body: { latitude: loc.latitude, longitude: loc.longitude, language: 'fr' }
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const address = data.address || {};
-
+      if (!error && data) {
         const result = {
-          city: address.city || address.town || address.village || address.municipality || address.locality || null,
-          region: address.state || address.region || address.county || null,
-          country: address.country || null,
+          city: data.city || null,
+          region: data.region || null,
+          country: data.country || null,
         };
 
         geocodeCache.set(cacheKey, result);
@@ -164,23 +149,15 @@ export const getAddressFromCoords = async (
   }
 
   try {
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=fr`,
-      {
-        headers: {
-          'User-Agent': 'FieldCollect-App/1.0',
-        },
-      }
-    );
+    const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+      body: { latitude, longitude, language: 'fr' }
+    });
 
-    if (!response.ok) throw new Error('Geocoding failed');
+    if (error) throw error;
 
-    const data = await response.json();
-    const address = data.address || {};
-
-    const city = address.city || address.town || address.village || address.municipality || address.locality || null;
-    const region = address.state || address.region || address.county || null;
-    const country = address.country || null;
+    const city = data.city || null;
+    const region = data.region || null;
+    const country = data.country || null;
 
     geocodeCache.set(cacheKey, { city, region, country });
     

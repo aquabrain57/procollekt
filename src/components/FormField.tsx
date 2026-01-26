@@ -9,6 +9,7 @@ import { FormField as FormFieldType } from '@/types/survey';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PublicSurveyorIdField } from './PublicSurveyorIdField';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FormFieldProps {
   field: FormFieldType;
@@ -34,16 +35,18 @@ const LocationFieldDisplay = ({
   useEffect(() => {
     if (value?.latitude && value?.longitude) {
       setIsLoadingName(true);
-      fetch(
-        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${value.latitude}&longitude=${value.longitude}&localityLanguage=fr`
-      )
-        .then((res) => res.json())
-        .then((data) => {
+      
+      // Use edge function proxy for geocoding (keeps user location data private)
+      supabase.functions.invoke('reverse-geocode', {
+        body: { latitude: value.latitude, longitude: value.longitude, language: 'fr' }
+      })
+        .then(({ data, error }) => {
+          if (error) throw error;
+          
           const parts = [];
-          if (data.locality) parts.push(data.locality);
-          else if (data.city) parts.push(data.city);
-          if (data.principalSubdivision) parts.push(data.principalSubdivision);
-          if (data.countryName) parts.push(data.countryName);
+          if (data.city) parts.push(data.city);
+          if (data.region) parts.push(data.region);
+          if (data.country) parts.push(data.country);
           
           setLocationName(parts.length > 0 ? parts.join(', ') : null);
         })
