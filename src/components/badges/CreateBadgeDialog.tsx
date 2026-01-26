@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, UserPlus, User, Building2, MapPin, Users } from 'lucide-react';
+import { Loader2, UserPlus, User, Building2, MapPin, Users, Camera } from 'lucide-react';
 import { CreateBadgeInput, useSurveyorBadges } from '@/hooks/useSurveyorBadges';
+import { BadgePhotoUpload } from './BadgePhotoUpload';
 
 const formSchema = z.object({
   surveyor_id: z.string().min(2, 'ID minimum 2 caractères').max(20, 'ID maximum 20 caractères'),
@@ -40,6 +41,7 @@ interface CreateBadgeDialogProps {
 export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadgeDialogProps) {
   const { createBadge, badges } = useSurveyorBadges();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   // Get supervisors from existing badges
   const supervisors = badges.filter(b => b.role === 'supervisor' || b.role === 'team_lead' || b.role === 'coordinator');
@@ -70,9 +72,13 @@ export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadge
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
     try {
-      const result = await createBadge(values as CreateBadgeInput);
+      const result = await createBadge({
+        ...values,
+        photo_url: photoUrl,
+      } as CreateBadgeInput);
       if (result) {
         form.reset();
+        setPhotoUrl(null);
         onOpenChange(false);
         onSuccess?.();
       }
@@ -104,8 +110,12 @@ export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadge
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <Tabs defaultValue="personal" className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
+            <Tabs defaultValue="photo" className="w-full">
+              <TabsList className="grid w-full grid-cols-5">
+                <TabsTrigger value="photo" className="text-xs">
+                  <Camera className="w-3 h-3 mr-1" />
+                  Photo
+                </TabsTrigger>
                 <TabsTrigger value="personal" className="text-xs">
                   <User className="w-3 h-3 mr-1" />
                   Personnel
@@ -123,6 +133,22 @@ export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadge
                   Hiérarchie
                 </TabsTrigger>
               </TabsList>
+
+              {/* Photo Tab */}
+              <TabsContent value="photo" className="space-y-4 mt-4">
+                <div className="flex flex-col items-center">
+                  <BadgePhotoUpload
+                    photoUrl={photoUrl}
+                    onPhotoChange={setPhotoUrl}
+                    firstName={form.watch('first_name')}
+                    lastName={form.watch('last_name')}
+                  />
+                  <p className="text-sm text-muted-foreground mt-4 text-center">
+                    Ajoutez une photo de l'enquêteur pour le badge. 
+                    Cette photo sera visible sur le badge imprimé et dans le profil.
+                  </p>
+                </div>
+              </TabsContent>
 
               {/* Personal Information Tab */}
               <TabsContent value="personal" className="space-y-4 mt-4">

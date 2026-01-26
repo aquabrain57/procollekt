@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, RefreshCw, Clock } from 'lucide-react';
+import { MapPin, Navigation, RefreshCw, Clock, AlertCircle } from 'lucide-react';
 import { SurveyorBadge, useSurveyorBadges } from '@/hooks/useSurveyorBadges';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -76,6 +76,23 @@ export function SurveyorTracking({ badge }: SurveyorTrackingProps) {
     }
   };
 
+  // Track last recorded position to avoid duplicates
+  const lastRecordedPosition = useRef<{ lat: number; lng: number } | null>(null);
+  const MIN_DISTANCE_METERS = 10; // Minimum distance in meters to record new position
+
+  // Calculate distance between two coordinates in meters (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371000; // Earth radius in meters
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
   const startTracking = () => {
     if (!navigator.geolocation) {
       console.error('Geolocation not supported');
@@ -83,13 +100,29 @@ export function SurveyorTracking({ badge }: SurveyorTrackingProps) {
     }
 
     setIsTracking(true);
+    lastRecordedPosition.current = null;
 
     const watchId = navigator.geolocation.watchPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords;
+        const { latitude, longitude, accuracy } = position.coords;
+        
+        // Always update display position
         setCurrentPosition({ lat: latitude, lng: longitude });
-        await updateLocation(badge.id, latitude, longitude);
         setLastUpdate(new Date());
+
+        // Only record to database if user has moved significantly
+        const shouldRecord = !lastRecordedPosition.current || 
+          calculateDistance(
+            lastRecordedPosition.current.lat, 
+            lastRecordedPosition.current.lng, 
+            latitude, 
+            longitude
+          ) >= MIN_DISTANCE_METERS;
+
+        if (shouldRecord) {
+          await updateLocation(badge.id, latitude, longitude);
+          lastRecordedPosition.current = { lat: latitude, lng: longitude };
+        }
       },
       (error) => {
         console.error('Geolocation error:', error);
@@ -98,7 +131,7 @@ export function SurveyorTracking({ badge }: SurveyorTrackingProps) {
       {
         enableHighAccuracy: true,
         timeout: 10000,
-        maximumAge: 30000
+        maximumAge: 0 // Always get fresh position, no caching
       }
     );
 
@@ -108,6 +141,7 @@ export function SurveyorTracking({ badge }: SurveyorTrackingProps) {
 
   const stopTracking = () => {
     setIsTracking(false);
+    lastRecordedPosition.current = null;
     const watchId = (window as any).__trackingWatchId;
     if (watchId !== undefined) {
       navigator.geolocation.clearWatch(watchId);
