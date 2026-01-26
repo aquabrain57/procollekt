@@ -10,12 +10,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, PageBreak } from 'docx';
 import { toast } from 'sonner';
+import { downloadXlsx } from '@/lib/excel';
 
 interface FieldOption {
   value: string;
@@ -193,10 +193,10 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
     toast.success('Export CSV généré');
   };
 
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
-    
-    // 1. Summary sheet
+  const exportToExcel = async () => {
+    const sheets: { name: string; rows: any[][] }[] = [];
+
+    // 1) Executive summary
     const summaryData = [
       ['RAPPORT D\'ANALYSE DÉTAILLÉ'],
       [''],
@@ -222,14 +222,12 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
       ['Heure de pointe', temporalDistribution.peakHour],
       ['Jour de pointe', temporalDistribution.peakDay],
     ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    wsSummary['!cols'] = [{ wch: 25 }, { wch: 50 }];
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Résumé exécutif');
+    sheets.push({ name: 'Résumé exécutif', rows: summaryData as any });
 
-    // 2. Per-question analysis sheets
+    // 2) Per-question sheets
     fieldAnalytics.forEach((fa, index) => {
-      const sheetName = `Q${index + 1}`.substring(0, 31);
-      
+      const sheetName = `Q${index + 1}`;
+
       if (fa.type === 'categorical' && fa.data) {
         const sheetData = [
           [`Question ${index + 1}: ${fa.field.label}`],
@@ -239,7 +237,7 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
           [''],
           ['DÉTAIL DES RÉPONSES'],
           ['Option', 'Fréquence', 'Pourcentage', 'Observation'],
-          ...fa.data.map((d, i) => [
+          ...fa.data.map((d) => [
             d.name,
             d.value,
             `${d.percentage}%`,
@@ -247,14 +245,15 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
           ]),
           [''],
           ['INSIGHT'],
-          [fa.data.length > 0 && fa.data[0].percentage > 40 
+          [fa.data.length > 0 && fa.data[0].percentage > 40
             ? `"${fa.data[0].name}" domine avec ${fa.data[0].percentage}% des réponses`
             : 'Répartition équilibrée entre les options'],
         ];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 12 }, { wch: 20 }];
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      } else if (fa.type === 'numeric' && fa.stats) {
+        sheets.push({ name: sheetName, rows: sheetData as any });
+        return;
+      }
+
+      if (fa.type === 'numeric' && fa.stats) {
         const sheetData = [
           [`Question ${index + 1}: ${fa.field.label}`],
           [''],
@@ -266,22 +265,20 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
           ['Maximum', fa.stats.max],
           ['Nombre de réponses', fa.stats.count],
         ];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{ wch: 25 }, { wch: 20 }];
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
-      } else {
-        const sheetData = [
-          [`Question ${index + 1}: ${fa.field.label}`],
-          [''],
-          ['Type de question', 'Question ouverte'],
-          ['Nombre de réponses', fa.count || 0],
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        sheets.push({ name: sheetName, rows: sheetData as any });
+        return;
       }
+
+      const sheetData = [
+        [`Question ${index + 1}: ${fa.field.label}`],
+        [''],
+        ['Type de question', 'Question ouverte'],
+        ['Nombre de réponses', fa.count || 0],
+      ];
+      sheets.push({ name: sheetName, rows: sheetData as any });
     });
 
-    // 3. Geographic sheet
+    // 3) Geography
     const geoData = [
       ['ANALYSE GÉOGRAPHIQUE DÉTAILLÉE'],
       [''],
@@ -294,10 +291,9 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
       ['Coordonnées', 'Nombre de réponses'],
       ...geoDistribution.topZones.map(z => [z.coords, z.count]),
     ];
-    const wsGeo = XLSX.utils.aoa_to_sheet(geoData);
-    XLSX.utils.book_append_sheet(wb, wsGeo, 'Géographie');
+    sheets.push({ name: 'Géographie', rows: geoData as any });
 
-    // 4. Temporal sheet
+    // 4) Temporal
     const tempData = [
       ['ANALYSE TEMPORELLE DÉTAILLÉE'],
       [''],
@@ -312,10 +308,9 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
       ['Date', 'Nombre de réponses'],
       ...temporalDistribution.byDay.map(d => [d.date, d.count]),
     ];
-    const wsTemp = XLSX.utils.aoa_to_sheet(tempData);
-    XLSX.utils.book_append_sheet(wb, wsTemp, 'Temporel');
+    sheets.push({ name: 'Temporel', rows: tempData as any });
 
-    // 5. Raw data sheet with proper labels
+    // 5) Raw data
     const headers = ['#', 'Date', 'Heure', 'Latitude', 'Longitude', ...fields.map(f => f.label)];
     const rows = responses.map((r, idx) => [
       idx + 1,
@@ -325,12 +320,9 @@ export const ExportPanel = ({ survey, responses, fields, globalStats }: ExportPa
       r.location?.longitude || '',
       ...fields.map(f => getDisplayValue(f, r.data[f.id])),
     ]);
-    const wsData = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    wsData['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, ...fields.map(() => ({ wch: 25 }))];
-    XLSX.utils.book_append_sheet(wb, wsData, 'Données brutes');
+    sheets.push({ name: 'Données brutes', rows: [headers, ...rows] as any });
 
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout]), `${survey.title}_analyse_complete.xlsx`);
+    await downloadXlsx(`${survey.title}_analyse_complete.xlsx`, sheets as any);
     toast.success('Export Excel détaillé généré');
   };
 
