@@ -1,6 +1,8 @@
-import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, BarChart3, PieChart, Hash, MessageSquare, Star, Calendar, MapPin, Phone, Mail, User } from 'lucide-react';
+import { useMemo, useState, useEffect } from 'react';
+import { ChevronDown, ChevronUp, BarChart3, PieChart, Hash, MessageSquare, Star, Calendar, MapPin, Phone, Mail, User, UserCheck, Navigation, Mountain, Globe } from 'lucide-react';
 import { DbSurveyField, DbSurveyResponse } from '@/hooks/useSurveys';
+import { supabase } from '@/integrations/supabase/client';
+import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -81,10 +83,135 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
     return valueStr;
   };
 
+  // State for surveyor data fetching
+  const [surveyorBadges, setSurveyorBadges] = useState<Map<string, SurveyorBadge>>(new Map());
+  const [locationNames, setLocationNames] = useState<Map<string, { city: string; country: string; altitude?: number }>>(new Map());
+
+  // Fetch surveyor badges for surveyor_id fields
+  useEffect(() => {
+    if (field.field_type !== 'surveyor_id') return;
+
+    const fetchBadges = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('surveyor_badges')
+          .select('*');
+        
+        if (!error && data) {
+          const badgeMap = new Map<string, SurveyorBadge>();
+          (data as unknown as SurveyorBadge[]).forEach(badge => {
+            badgeMap.set(badge.surveyor_id, badge);
+            badgeMap.set(badge.id, badge);
+          });
+          setSurveyorBadges(badgeMap);
+        }
+      } catch (err) {
+        console.error('Error fetching badges:', err);
+      }
+    };
+
+    fetchBadges();
+  }, [field.field_type]);
+
+  // Helper to parse and display surveyor ID with name
+  const getSurveyorDisplay = (value: any): { id: string; name: string; fullDisplay: string } => {
+    // Handle object format
+    if (typeof value === 'object' && value !== null) {
+      const id = value.surveyor_id || value.id || '';
+      const name = value.surveyor_name || value.name || `${value.first_name || ''} ${value.last_name || ''}`.trim();
+      return { id, name, fullDisplay: name ? `${name} (${id})` : id };
+    }
+    
+    // Handle string format - try to get badge info
+    const stringId = String(value);
+    const badge = surveyorBadges.get(stringId);
+    if (badge) {
+      const name = `${badge.first_name} ${badge.last_name}`.trim();
+      return { id: badge.surveyor_id, name, fullDisplay: `${name} (${badge.surveyor_id})` };
+    }
+    
+    return { id: stringId, name: '', fullDisplay: stringId };
+  };
+
+  // Helper to parse location with city, country, altitude
+  const getLocationDisplay = (loc: any): { display: string; city: string; country: string; altitude?: number; coords: string } => {
+    if (!loc) return { display: 'N/A', city: '', country: '', coords: '' };
+    
+    if (typeof loc === 'string') {
+      return { display: loc, city: '', country: '', coords: '' };
+    }
+    
+    const lat = loc.latitude ?? loc.lat ?? 0;
+    const lng = loc.longitude ?? loc.lng ?? 0;
+    const altitude = loc.altitude ?? loc.alt;
+    const city = loc.city || loc.locality || '';
+    const country = loc.country || loc.country_name || '';
+    const address = loc.address || loc.name || '';
+    
+    let display = '';
+    if (city && country) {
+      display = `${city}, ${country}`;
+    } else if (address) {
+      display = address;
+    } else {
+      display = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+    }
+    
+    if (altitude !== undefined && altitude !== null) {
+      display += ` (${Math.round(altitude)}m)`;
+    }
+    
+    return { 
+      display, 
+      city, 
+      country, 
+      altitude: altitude !== undefined ? Math.round(altitude) : undefined,
+      coords: `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+    };
+  };
+
   const analysis = useMemo(() => {
     const allValues = responses.map(r => r.data[field.id]);
     const values = allValues.filter(v => v !== undefined && v !== null && v !== '');
     const responseRate = responses.length > 0 ? Math.round((values.length / responses.length) * 100) : 0;
+
+    // SURVEYOR_ID FIELD - Special handling
+    if (field.field_type === 'surveyor_id') {
+      const surveyorCounts: Record<string, { count: number; id: string; name: string }> = {};
+      
+      values.forEach(v => {
+        const info = getSurveyorDisplay(v);
+        const key = info.fullDisplay || info.id;
+        if (!surveyorCounts[key]) {
+          surveyorCounts[key] = { count: 0, id: info.id, name: info.name };
+        }
+        surveyorCounts[key].count++;
+      });
+      
+      const chartData = Object.entries(surveyorCounts)
+        .map(([display, data]) => ({
+          name: display.length > 30 ? display.slice(0, 30) + '...' : display,
+          fullName: display,
+          value: data.count,
+          percentage: values.length > 0 ? Math.round((data.count / values.length) * 100) : 0,
+          surveyorId: data.id,
+          surveyorName: data.name,
+        }))
+        .sort((a, b) => b.value - a.value);
+      
+      const uniqueSurveyors = Object.keys(surveyorCounts).length;
+      
+      return {
+        type: 'surveyor' as const,
+        data: chartData,
+        total: values.length,
+        uniqueCount: uniqueSurveyors,
+        responseRate,
+        responseCount: values.length,
+        insight: `${values.length} réponses par ${uniqueSurveyors} enquêteur${uniqueSurveyors > 1 ? 's' : ''}`,
+        sentiment: 'neutral',
+      };
+    }
 
     // CATEGORICAL FIELDS (select, multiselect)
     if (field.field_type === 'select' || field.field_type === 'multiselect') {
@@ -186,34 +313,48 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
       };
     }
 
-    // LOCATION FIELDS
+    // LOCATION FIELDS - Enhanced with city, country, altitude
     if (field.field_type === 'location') {
-      const locations = values.filter(v => v && typeof v === 'object');
+      const locations = values.filter(v => v && (typeof v === 'object' || typeof v === 'string'));
       
-      // Count by location text or coordinates
-      const locationCounts: Record<string, number> = {};
+      // Parse and count by display location (city, country)
+      const locationCounts: Record<string, { count: number; city: string; country: string; altitude?: number; coords: string }> = {};
+      
       locations.forEach(loc => {
-        const key = typeof loc === 'string' ? loc : (loc.address || loc.name || `${loc.lat || loc.latitude},${loc.lng || loc.longitude}`);
-        locationCounts[key] = (locationCounts[key] || 0) + 1;
+        const parsed = getLocationDisplay(loc);
+        const key = parsed.display;
+        if (!locationCounts[key]) {
+          locationCounts[key] = { count: 0, city: parsed.city, country: parsed.country, altitude: parsed.altitude, coords: parsed.coords };
+        }
+        locationCounts[key].count++;
       });
 
       const chartData = Object.entries(locationCounts)
-        .map(([name, value]) => ({
-          name: name.length > 30 ? name.slice(0, 30) + '...' : name,
-          fullName: name,
-          value,
-          percentage: locations.length > 0 ? Math.round((value / locations.length) * 100) : 0,
+        .map(([display, data]) => ({
+          name: display.length > 35 ? display.slice(0, 35) + '...' : display,
+          fullName: display,
+          value: data.count,
+          percentage: locations.length > 0 ? Math.round((data.count / locations.length) * 100) : 0,
+          city: data.city,
+          country: data.country,
+          altitude: data.altitude,
+          coords: data.coords,
         }))
         .sort((a, b) => b.value - a.value);
 
+      // Extract unique countries
+      const uniqueCountries = new Set(chartData.filter(d => d.country).map(d => d.country));
+
       return {
         type: 'location' as const,
-        data: chartData.slice(0, 10),
+        data: chartData.slice(0, 15),
         responseRate,
         responseCount: values.length,
         total: locations.length,
+        countriesCount: uniqueCountries.size,
+        countries: Array.from(uniqueCountries),
         insight: locations.length > 0 
-          ? `${locations.length} localisations sur ${chartData.length} lieux` 
+          ? `${locations.length} localisations dans ${uniqueCountries.size > 0 ? uniqueCountries.size + ' pays' : chartData.length + ' lieux'}`
           : 'Aucune localisation',
         sentiment: 'neutral',
       };
@@ -334,6 +475,8 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
         return <Phone className="h-4 w-4" />;
       case 'email':
         return <Mail className="h-4 w-4" />;
+      case 'surveyor_id':
+        return <UserCheck className="h-4 w-4" />;
       default:
         return <MessageSquare className="h-4 w-4" />;
     }
@@ -510,26 +653,108 @@ export const FieldAnalysisCard = ({ field, responses, index, compact = false }: 
               </div>
             )}
 
-            {/* LOCATION DISPLAY */}
-            {analysis.type === 'location' && (
+            {/* SURVEYOR_ID DISPLAY */}
+            {analysis.type === 'surveyor' && (
               <div className="space-y-4">
-                <div className="text-center p-3 bg-muted/30 rounded-lg">
-                  <MapPin className="h-5 w-5 mx-auto mb-1 text-primary" />
-                  <p className="text-lg font-bold">{analysis.total}</p>
-                  <p className="text-[10px] text-muted-foreground">Localisations collectées</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <UserCheck className="h-5 w-5 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-bold">{analysis.total}</p>
+                    <p className="text-[10px] text-muted-foreground">Total réponses</p>
+                  </div>
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <User className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                    <p className="text-lg font-bold">{analysis.uniqueCount}</p>
+                    <p className="text-[10px] text-muted-foreground">Enquêteurs</p>
+                  </div>
                 </div>
 
                 {analysis.data && analysis.data.length > 0 && (
                   <>
-                    <p className="text-xs font-medium text-muted-foreground">Top lieux (répartition):</p>
-                    <div className="space-y-2">
-                      {analysis.data.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-2 text-xs">
-                          <MapPin className="h-3 w-3 text-muted-foreground shrink-0" />
-                          <span className="flex-1 truncate" title={item.fullName}>{item.fullName}</span>
-                          <span className="font-medium">{item.value}</span>
-                          <span className="text-muted-foreground w-14 text-right">({item.percentage}%)</span>
-                          <Progress value={item.percentage} className="w-16 h-1.5" />
+                    <p className="text-xs font-medium text-muted-foreground">Répartition par enquêteur:</p>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {analysis.data.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2 text-xs p-2 bg-muted/20 rounded-lg">
+                          <div 
+                            className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0"
+                          >
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium truncate" title={item.fullName}>
+                              {item.surveyorName || 'Enquêteur'}
+                            </p>
+                            <p className="text-muted-foreground text-[10px]">
+                              ID: {item.surveyorId}
+                            </p>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="font-bold text-primary">{item.value}</p>
+                            <p className="text-[10px] text-muted-foreground">{item.percentage}%</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* LOCATION DISPLAY - Enhanced with city, country, altitude */}
+            {analysis.type === 'location' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <MapPin className="h-5 w-5 mx-auto mb-1 text-primary" />
+                    <p className="text-lg font-bold">{analysis.total}</p>
+                    <p className="text-[10px] text-muted-foreground">Localisations</p>
+                  </div>
+                  <div className="text-center p-3 bg-muted/30 rounded-lg">
+                    <Globe className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                    <p className="text-lg font-bold">{(analysis as any).countriesCount || 0}</p>
+                    <p className="text-[10px] text-muted-foreground">Pays</p>
+                  </div>
+                </div>
+
+                {/* Countries list */}
+                {(analysis as any).countries && (analysis as any).countries.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {(analysis as any).countries.slice(0, 8).map((country: string, idx: number) => (
+                      <Badge key={idx} variant="secondary" className="text-[10px]">
+                        {country}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {analysis.data && analysis.data.length > 0 && (
+                  <>
+                    <p className="text-xs font-medium text-muted-foreground">Top lieux (ville, pays, altitude):</p>
+                    <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                      {analysis.data.map((item: any, idx: number) => (
+                        <div key={idx} className="p-2 bg-muted/20 rounded-lg space-y-1">
+                          <div className="flex items-center gap-2 text-xs">
+                            <MapPin className="h-3 w-3 text-primary shrink-0" />
+                            <span className="flex-1 font-medium truncate" title={item.fullName}>
+                              {item.fullName}
+                            </span>
+                            <span className="font-bold text-primary">{item.value}</span>
+                            <span className="text-muted-foreground">({item.percentage}%)</span>
+                          </div>
+                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground pl-5">
+                            {item.coords && (
+                              <span className="flex items-center gap-1">
+                                <Navigation className="h-2.5 w-2.5" />
+                                {item.coords}
+                              </span>
+                            )}
+                            {item.altitude !== undefined && (
+                              <span className="flex items-center gap-1">
+                                <Mountain className="h-2.5 w-2.5" />
+                                {item.altitude}m
+                              </span>
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
