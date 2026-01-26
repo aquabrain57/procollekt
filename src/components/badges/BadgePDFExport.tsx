@@ -22,6 +22,22 @@ const getRoleLabel = (role: string) => {
   return roles[role] || role;
 };
 
+// Helper to load image as base64
+const loadImageAsBase64 = async (url: string): Promise<string | null> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+};
+
 export function BadgePDFExport({ badge }: BadgePDFExportProps) {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -31,12 +47,12 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       const doc = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: [85.6, 120], // Extended badge size
+        format: [85.6, 140], // Extended badge size for photo
       });
 
-      // Background
+      // Background gradient effect
       doc.setFillColor(59, 130, 246);
-      doc.rect(0, 0, 85.6, 18, 'F');
+      doc.rect(0, 0, 85.6, 22, 'F');
 
       // Header
       doc.setTextColor(255, 255, 255);
@@ -45,28 +61,64 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       doc.text('BADGE ENQUÊTEUR', 42.8, 8, { align: 'center' });
       doc.setFontSize(7);
       doc.text('YouCollect', 42.8, 14, { align: 'center' });
+      doc.setFontSize(6);
+      doc.text(badge.organization || '', 42.8, 19, { align: 'center' });
 
-      // Name
-      doc.setTextColor(0, 0, 0);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${badge.first_name} ${badge.last_name}`, 42.8, 28, { align: 'center' });
+      let yPos = 28;
 
-      // ID and Role
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'normal');
-      doc.text(`ID: ${badge.surveyor_id}`, 42.8, 34, { align: 'center' });
-      
-      if (badge.role) {
-        doc.setFontSize(7);
-        doc.text(getRoleLabel(badge.role), 42.8, 39, { align: 'center' });
+      // Photo section - circular frame effect
+      if (badge.photo_url) {
+        try {
+          const photoBase64 = await loadImageAsBase64(badge.photo_url);
+          if (photoBase64) {
+            // Draw circular border
+            doc.setDrawColor(59, 130, 246);
+            doc.setLineWidth(1);
+            doc.circle(42.8, yPos + 15, 16, 'S');
+            
+            // Add photo (approximation of circle via clipping rectangle)
+            doc.addImage(photoBase64, 'JPEG', 27.8, yPos, 30, 30);
+            yPos += 35;
+          }
+        } catch (e) {
+          console.error('Error loading photo:', e);
+          yPos += 5;
+        }
+      } else {
+        // Placeholder for no photo
+        doc.setFillColor(240, 240, 240);
+        doc.circle(42.8, yPos + 15, 15, 'F');
+        doc.setTextColor(150, 150, 150);
+        doc.setFontSize(8);
+        doc.text('Photo', 42.8, yPos + 17, { align: 'center' });
+        yPos += 35;
       }
 
-      let yPos = 45;
+      // Name - Bold and prominent
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${badge.first_name} ${badge.last_name}`, 42.8, yPos, { align: 'center' });
+      yPos += 6;
+
+      // ID and Role
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(59, 130, 246);
+      doc.text(`ID: ${badge.surveyor_id}`, 42.8, yPos, { align: 'center' });
+      yPos += 5;
+      
+      if (badge.role) {
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(getRoleLabel(badge.role), 42.8, yPos, { align: 'center' });
+        yPos += 5;
+      }
 
       // Contact Info
+      doc.setFontSize(7);
+      doc.setTextColor(80, 80, 80);
       if (badge.email) {
-        doc.setFontSize(6);
         doc.text(badge.email, 42.8, yPos, { align: 'center' });
         yPos += 4;
       }
@@ -75,16 +127,9 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
         yPos += 4;
       }
 
-      // Organization
-      if (badge.organization) {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(7);
-        doc.text(badge.organization, 42.8, yPos, { align: 'center' });
-        yPos += 4;
-      }
-
       // Location
       if (badge.covered_zone || badge.city) {
+        yPos += 1;
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(6);
         const location = [badge.covered_zone, badge.city, badge.country].filter(Boolean).join(', ');
@@ -99,14 +144,15 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
         yPos += 4;
       }
 
-      // Organization Contact
+      // Organization Contact Box
       if (badge.organization_email || badge.organization_phone) {
         yPos += 2;
-        doc.setFillColor(240, 240, 240);
-        doc.rect(5, yPos - 3, 75.6, 12, 'F');
+        doc.setFillColor(245, 245, 245);
+        doc.roundedRect(5, yPos - 2, 75.6, 12, 2, 2, 'F');
         doc.setFontSize(5);
-        doc.text('Contact Organisation:', 42.8, yPos, { align: 'center' });
-        yPos += 3;
+        doc.setTextColor(100, 100, 100);
+        doc.text('Contact Organisation:', 42.8, yPos + 1, { align: 'center' });
+        yPos += 4;
         if (badge.organization_email) {
           doc.text(badge.organization_email, 42.8, yPos, { align: 'center' });
           yPos += 3;
@@ -117,7 +163,8 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
         }
       }
 
-      // Status
+      // Status badge
+      yPos = Math.max(yPos + 3, 118);
       const statusColors: Record<string, [number, number, number]> = {
         active: [34, 197, 94],
         suspended: [239, 68, 68],
@@ -125,19 +172,21 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       };
       const statusColor = statusColors[badge.status] || statusColors.active;
       doc.setFillColor(...statusColor);
-      doc.roundedRect(33, yPos + 2, 20, 5, 1, 1, 'F');
+      doc.roundedRect(30, yPos, 25.6, 6, 2, 2, 'F');
       doc.setTextColor(255, 255, 255);
-      doc.setFontSize(6);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
       const statusLabel = badge.status === 'active' ? 'ACTIF' : badge.status === 'suspended' ? 'SUSPENDU' : 'EXPIRÉ';
-      doc.text(statusLabel, 43, yPos + 5.5, { align: 'center' });
+      doc.text(statusLabel, 42.8, yPos + 4.2, { align: 'center' });
 
       // Footer
-      doc.setTextColor(128, 128, 128);
+      doc.setTextColor(150, 150, 150);
       doc.setFontSize(5);
-      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 42.8, 116, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 42.8, 136, { align: 'center' });
 
       doc.save(`badge_${badge.surveyor_id}.pdf`);
-      toast.success('Badge exporté en PDF');
+      toast.success('Badge exporté en PDF avec photo');
     } catch (error) {
       console.error('Error exporting PDF:', error);
       toast.error("Erreur lors de l'export PDF");
@@ -153,8 +202,8 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       const ctx = canvas.getContext('2d');
       if (!ctx) throw new Error('Canvas not supported');
 
-      const width = 400;
-      const height = 550;
+      const width = 450;
+      const height = 650;
       canvas.width = width;
       canvas.height = height;
 
@@ -164,35 +213,98 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
 
       // Header
       ctx.fillStyle = '#3b82f6';
-      ctx.fillRect(0, 0, width, 60);
+      ctx.fillRect(0, 0, width, 70);
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 18px Arial';
+      ctx.font = 'bold 20px Arial';
       ctx.textAlign = 'center';
       ctx.fillText('BADGE ENQUÊTEUR', width / 2, 30);
-      ctx.font = '12px Arial';
+      ctx.font = '13px Arial';
       ctx.fillText('YouCollect', width / 2, 48);
+      if (badge.organization) {
+        ctx.font = '11px Arial';
+        ctx.fillText(badge.organization, width / 2, 62);
+      }
+
+      let yPos = 90;
+
+      // Photo - Draw circular placeholder or load actual photo
+      if (badge.photo_url) {
+        try {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          await new Promise<void>((resolve, reject) => {
+            img.onload = () => {
+              // Draw circular clip for photo
+              ctx.save();
+              ctx.beginPath();
+              ctx.arc(width / 2, yPos + 55, 55, 0, Math.PI * 2);
+              ctx.clip();
+              ctx.drawImage(img, width / 2 - 55, yPos, 110, 110);
+              ctx.restore();
+              
+              // Draw border around photo
+              ctx.strokeStyle = '#3b82f6';
+              ctx.lineWidth = 3;
+              ctx.beginPath();
+              ctx.arc(width / 2, yPos + 55, 56, 0, Math.PI * 2);
+              ctx.stroke();
+              
+              resolve();
+            };
+            img.onerror = reject;
+            img.src = badge.photo_url!;
+          });
+          yPos += 125;
+        } catch {
+          // Draw placeholder circle if photo fails
+          ctx.fillStyle = '#f0f0f0';
+          ctx.beginPath();
+          ctx.arc(width / 2, yPos + 55, 55, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#999999';
+          ctx.font = '14px Arial';
+          ctx.fillText('Photo', width / 2, yPos + 60);
+          yPos += 125;
+        }
+      } else {
+        // Placeholder for no photo
+        ctx.fillStyle = '#f0f0f0';
+        ctx.beginPath();
+        ctx.arc(width / 2, yPos + 55, 55, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#e0e0e0';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#999999';
+        ctx.font = '14px Arial';
+        ctx.fillText('Photo', width / 2, yPos + 60);
+        yPos += 125;
+      }
 
       // Name
       ctx.fillStyle = '#000000';
-      ctx.font = 'bold 22px Arial';
-      ctx.fillText(`${badge.first_name} ${badge.last_name}`, width / 2, 95);
+      ctx.font = 'bold 24px Arial';
+      ctx.fillText(`${badge.first_name} ${badge.last_name}`, width / 2, yPos);
+      yPos += 28;
 
       // ID
-      ctx.font = '14px Arial';
-      ctx.fillStyle = '#666666';
-      ctx.fillText(`ID: ${badge.surveyor_id}`, width / 2, 120);
+      ctx.font = '15px Arial';
+      ctx.fillStyle = '#3b82f6';
+      ctx.fillText(`ID: ${badge.surveyor_id}`, width / 2, yPos);
+      yPos += 22;
 
       // Role
       if (badge.role) {
-        ctx.font = '13px Arial';
-        ctx.fillText(getRoleLabel(badge.role), width / 2, 140);
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#666666';
+        ctx.fillText(getRoleLabel(badge.role), width / 2, yPos);
+        yPos += 20;
       }
 
-      let yPos = 165;
-
       // Contact
-      ctx.font = '11px Arial';
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#666666';
       if (badge.email) {
         ctx.fillText(badge.email, width / 2, yPos);
         yPos += 18;
@@ -202,19 +314,10 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
         yPos += 18;
       }
 
-      // Organization
-      if (badge.organization) {
-        ctx.font = 'bold 13px Arial';
-        ctx.fillStyle = '#000000';
-        ctx.fillText(badge.organization, width / 2, yPos);
-        yPos += 20;
-      }
-
       // Location
-      ctx.font = '11px Arial';
-      ctx.fillStyle = '#666666';
       const location = [badge.covered_zone, badge.city, badge.country].filter(Boolean).join(', ');
       if (location) {
+        yPos += 5;
         ctx.fillText(location, width / 2, yPos);
         yPos += 18;
       }
@@ -222,13 +325,14 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       // Supervisor
       if (badge.supervisor_name) {
         ctx.fillText(`Superviseur: ${badge.supervisor_name}`, width / 2, yPos);
-        yPos += 20;
+        yPos += 22;
       }
 
       // Organization contact box
       if (badge.organization_email || badge.organization_phone) {
+        yPos += 5;
         ctx.fillStyle = '#f5f5f5';
-        ctx.fillRect(20, yPos, width - 40, 50);
+        ctx.fillRect(25, yPos, width - 50, 50);
         ctx.fillStyle = '#666666';
         ctx.font = '10px Arial';
         ctx.fillText('Contact Organisation:', width / 2, yPos + 15);
@@ -242,6 +346,7 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       }
 
       // Status badge
+      yPos = Math.max(yPos + 10, 560);
       const statusColors: Record<string, string> = {
         active: '#22c55e',
         suspended: '#ef4444',
@@ -249,13 +354,13 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       };
       ctx.fillStyle = statusColors[badge.status] || statusColors.active;
       ctx.beginPath();
-      ctx.roundRect(width / 2 - 50, yPos, 100, 30, 8);
+      ctx.roundRect(width / 2 - 55, yPos, 110, 35, 8);
       ctx.fill();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 14px Arial';
+      ctx.font = 'bold 16px Arial';
       const statusLabel = badge.status === 'active' ? 'ACTIF' : badge.status === 'suspended' ? 'SUSPENDU' : 'EXPIRÉ';
-      ctx.fillText(statusLabel, width / 2, yPos + 20);
+      ctx.fillText(statusLabel, width / 2, yPos + 23);
 
       // Border
       ctx.strokeStyle = '#e5e7eb';
@@ -268,7 +373,7 @@ export function BadgePDFExport({ badge }: BadgePDFExportProps) {
       link.href = canvas.toDataURL(`image/${format}`);
       link.click();
 
-      toast.success(`Badge exporté en ${format.toUpperCase()}`);
+      toast.success(`Badge exporté en ${format.toUpperCase()} avec photo`);
     } catch (error) {
       console.error('Error exporting image:', error);
       toast.error("Erreur lors de l'export image");

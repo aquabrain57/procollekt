@@ -509,7 +509,9 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
                 {response.location ? (
                   <LocationBadge 
                     latitude={response.location.latitude} 
-                    longitude={response.location.longitude} 
+                    longitude={response.location.longitude}
+                    altitude={(response.location as any).altitude}
+                    showAltitude={true}
                   />
                 ) : (
                   <span className="text-muted-foreground">—</span>

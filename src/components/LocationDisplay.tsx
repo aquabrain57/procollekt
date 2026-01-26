@@ -1,10 +1,12 @@
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, Mountain } from 'lucide-react';
 import { useReverseGeocode } from '@/hooks/useReverseGeocode';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface LocationDisplayProps {
   latitude: number | undefined | null;
   longitude: number | undefined | null;
+  altitude?: number | null;
   showCoordinates?: boolean;
   compact?: boolean;
   className?: string;
@@ -12,7 +14,8 @@ interface LocationDisplayProps {
 
 export const LocationDisplay = ({ 
   latitude, 
-  longitude, 
+  longitude,
+  altitude,
   showCoordinates = false,
   compact = false,
   className = ''
@@ -49,6 +52,12 @@ export const LocationDisplay = ({
           {fullAddress || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`}
         </span>
       </div>
+      {altitude !== undefined && altitude !== null && (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-6">
+          <Mountain className="h-3 w-3" />
+          Alt: {altitude.toFixed(0)}m
+        </div>
+      )}
       {showCoordinates && (city || region) && (
         <div className="text-xs text-muted-foreground ml-6">
           GPS: {latitude.toFixed(6)}, {longitude.toFixed(6)}
@@ -58,15 +67,19 @@ export const LocationDisplay = ({
   );
 };
 
-// Simple inline location display for tables - shows locality + country
+// Enhanced inline location display for tables - shows locality, country, and altitude
 export const LocationBadge = ({ 
   latitude, 
   longitude,
-  showCountry = true
+  altitude,
+  showCountry = true,
+  showAltitude = false
 }: { 
   latitude: number | undefined | null; 
   longitude: number | undefined | null;
+  altitude?: number | null;
   showCountry?: boolean;
+  showAltitude?: boolean;
 }) => {
   const { city, region, country, loading } = useReverseGeocode(latitude, longitude);
 
@@ -97,21 +110,53 @@ export const LocationBadge = ({
     displayText = `${latitude.toFixed(4)}°, ${longitude.toFixed(4)}°`;
   }
 
+  // Add altitude if available and requested
+  const altitudeText = altitude !== undefined && altitude !== null ? `${altitude.toFixed(0)}m` : null;
+
   return (
-    <Badge variant="secondary" className="text-xs gap-1 max-w-[180px]">
-      <MapPin className="h-3 w-3 flex-shrink-0 text-green-600" />
-      <span className="truncate" title={displayText}>{displayText}</span>
-    </Badge>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Badge variant="secondary" className="text-xs gap-1 max-w-[200px] cursor-help">
+            <MapPin className="h-3 w-3 flex-shrink-0 text-green-600" />
+            <span className="truncate">{displayText}</span>
+            {showAltitude && altitudeText && (
+              <>
+                <span className="text-muted-foreground">|</span>
+                <Mountain className="h-3 w-3 flex-shrink-0 text-blue-500" />
+                <span>{altitudeText}</span>
+              </>
+            )}
+          </Badge>
+        </TooltipTrigger>
+        <TooltipContent side="bottom" className="max-w-xs">
+          <div className="space-y-1 text-xs">
+            <div className="font-medium">{displayText}</div>
+            <div className="text-muted-foreground">
+              GPS: {latitude.toFixed(6)}°, {longitude.toFixed(6)}°
+            </div>
+            {altitudeText && (
+              <div className="text-muted-foreground flex items-center gap-1">
+                <Mountain className="h-3 w-3" />
+                Altitude: {altitudeText}
+              </div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 };
 
 // Extended location display with full details for reports
 export const LocationFull = ({ 
   latitude, 
-  longitude 
+  longitude,
+  altitude
 }: { 
   latitude: number | undefined | null; 
   longitude: number | undefined | null;
+  altitude?: number | null;
 }) => {
   const { city, region, country, fullAddress, loading } = useReverseGeocode(latitude, longitude);
 
@@ -135,8 +180,14 @@ export const LocationFull = ({
         <span>{city || region || 'Position GPS'}</span>
         {country && <span className="text-muted-foreground">({country})</span>}
       </div>
-      <div className="text-xs text-muted-foreground ml-5">
-        {latitude.toFixed(6)}°, {longitude.toFixed(6)}°
+      <div className="text-xs text-muted-foreground ml-5 space-y-0.5">
+        <div>{latitude.toFixed(6)}°, {longitude.toFixed(6)}°</div>
+        {altitude !== undefined && altitude !== null && (
+          <div className="flex items-center gap-1">
+            <Mountain className="h-3 w-3" />
+            Altitude: {altitude.toFixed(0)}m
+          </div>
+        )}
       </div>
     </div>
   );
