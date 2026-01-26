@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { reverseGeocodeBatch } from '@/hooks/useReverseGeocode';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { 
@@ -58,11 +59,13 @@ interface AIAnalysis {
 
 interface FieldAnalytics {
   field: any;
-  type: 'categorical' | 'numeric' | 'text';
+  type: 'categorical' | 'numeric' | 'text' | 'surveyor' | 'geo';
   data?: { name: string; value: number; percentage: number }[];
   stats?: { avg: number; min: number; max: number; count: number };
   total?: number;
   count?: number;
+  uniqueCount?: number;
+  sampleValues?: string[];
 }
 
 const CHART_COLORS = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
@@ -115,15 +118,119 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
     return valueStr;
   };
 
+  // Helpers for surveyor and geo field display
+  const isGpsLikeField = useCallback((f: any) => {
+    const label = String(f?.label || '').toLowerCase();
+    const type = String(f?.field_type || '').toLowerCase();
+    return type === 'location' || type === 'point' || /\bgps\b|position\s*gps|localisation|geolocal/i.test(label);
+  }, []);
+
+  const surveyorFieldId = useMemo(
+    () => fields.find((f: any) => String(f.field_type) === 'surveyor_id')?.id,
+    [fields]
+  );
+
+  // State for geocoded locations
+  const [gpsGeocodedByCoord, setGpsGeocodedByCoord] = useState<
+    Map<string, { city: string | null; region: string | null; country: string | null }>
+  >(new Map());
+
+  // Geocode GPS coords once (for geo/gps-like fields)
+  useEffect(() => {
+    const run = async () => {
+      const gpsLikeFields = fields.filter(isGpsLikeField);
+      const hasSurveyorLoc = surveyorFieldId && responses.some((r: any) => r.location);
+      if (gpsLikeFields.length === 0 && !hasSurveyorLoc) return;
+
+      const withLoc = responses.filter((r: any) => r.location?.latitude && r.location?.longitude);
+      if (withLoc.length === 0) return;
+
+      const freq = new Map<string, { lat: number; lng: number; count: number }>();
+      for (const r of withLoc) {
+        const lat = Number(r.location.latitude);
+        const lng = Number(r.location.longitude);
+        if (!isFinite(lat) || !isFinite(lng)) continue;
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        const prev = freq.get(key);
+        freq.set(key, prev ? { ...prev, count: prev.count + 1 } : { lat, lng, count: 1 });
+      }
+
+      const top = Array.from(freq.entries())
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 50)
+        .map(([key, v]) => ({ id: key, latitude: v.lat, longitude: v.lng }));
+
+      try {
+        const results = await reverseGeocodeBatch(top);
+        const next = new Map<string, { city: string | null; region: string | null; country: string | null }>();
+        for (const [id, loc] of results.entries()) next.set(id, loc);
+        setGpsGeocodedByCoord(next);
+      } catch (e) {
+        console.error('PremiumReport GPS geocoding error:', e);
+      }
+    };
+
+    run();
+  }, [fields, responses, isGpsLikeField, surveyorFieldId]);
+
   // Compute analytics per field with proper labels
   const fieldAnalytics: FieldAnalytics[] = useMemo(() => {
+    const getSurveyorDisplay = (value: any, response: any): string => {
+      if (typeof value === 'object' && value !== null) {
+        const id = value.surveyor_id || value.id || response?.surveyor_id || '';
+        const name = value.surveyor_name || value.name || `${value.first_name || ''} ${value.last_name || ''}`.trim();
+        if (name && id) return `${name} (${id})`;
+        return name || id || '';
+      }
+      const id = String(value ?? response?.surveyor_id ?? '');
+      const nested = surveyorFieldId ? response?.data?.[surveyorFieldId] : null;
+      if (nested && typeof nested === 'object') {
+        const name = nested.surveyor_name || `${nested.first_name || ''} ${nested.last_name || ''}`.trim();
+        const resolvedId = nested.surveyor_id || id;
+        if (name && resolvedId) return `${name} (${resolvedId})`;
+      }
+      return id;
+    };
+
+    const asString = (v: any) => {
+      if (v === undefined || v === null || v === '') return '';
+      if (typeof v === 'string') return v;
+      try {
+        return JSON.stringify(v);
+      } catch {
+        return String(v);
+      }
+    };
+
+    const buildGeoSamples = () => {
+      const withLoc = responses.filter((r: any) => r.location?.latitude && r.location?.longitude);
+      const freq = new Map<string, number>();
+      for (const r of withLoc) {
+        const lat = Number(r.location.latitude);
+        const lng = Number(r.location.longitude);
+        if (!isFinite(lat) || !isFinite(lng)) continue;
+        const key = `${lat.toFixed(4)},${lng.toFixed(4)}`;
+        freq.set(key, (freq.get(key) || 0) + 1);
+      }
+      const top = Array.from(freq.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 12)
+        .map(([coordKey, count]) => {
+          const loc = gpsGeocodedByCoord.get(coordKey);
+          const label = loc
+            ? [loc.city, loc.region, loc.country].filter(Boolean).join(', ')
+            : coordKey;
+          return `${label} — ${count} rép.`;
+        });
+      return { total: withLoc.length, unique: freq.size, samples: top };
+    };
+
     return fields.map(field => {
       const values = responses.map(r => r.data[field.id]).filter(v => v !== undefined && v !== null && v !== '');
-      
+
       if (field.field_type === 'select' || field.field_type === 'multiselect') {
         const optionCounts: Record<string, number> = {};
         
-        // Initialize with form options
         if (field.options && Array.isArray(field.options)) {
           (field.options as any[]).forEach(opt => {
             const label = typeof opt === 'string' ? opt : (opt.label || opt.value || opt);
@@ -178,9 +285,29 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
         return { field, type: 'numeric' as const, data, stats: { avg, min, max, count: numbers.length } };
       }
 
-      return { field, type: 'text' as const, count: values.length };
+      // SURVEYOR_ID field => show ID + Nom
+      if (String(field.field_type) === 'surveyor_id') {
+        const all = responses
+          .map((r: any) => getSurveyorDisplay(r.data?.[field.id], r))
+          .filter(Boolean);
+        const unique = new Set(all.map(v => v.toLowerCase().trim())).size;
+        const samples = Array.from(new Set(all)).slice(0, 10);
+        return { field, type: 'surveyor' as const, count: all.length, uniqueCount: unique, sampleValues: samples };
+      }
+
+      // GPS-like questions => show real locality from response.location
+      if (isGpsLikeField(field)) {
+        const geo = buildGeoSamples();
+        return { field, type: 'geo' as const, count: geo.total, uniqueCount: geo.unique, sampleValues: geo.samples };
+      }
+
+      // Default text: show actual answers
+      const allText = values.map(asString).filter(Boolean);
+      const unique = new Set(allText.map(v => v.toLowerCase().trim())).size;
+      const samples = Array.from(new Set(allText)).slice(0, 10);
+      return { field, type: 'text' as const, count: allText.length, uniqueCount: unique, sampleValues: samples };
     });
-  }, [fields, responses]);
+  }, [fields, responses, gpsGeocodedByCoord, surveyorFieldId, isGpsLikeField]);
 
   // Global stats
   const globalStats = useMemo(() => {
@@ -1593,7 +1720,11 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
                   <div>
                     <CardTitle className="text-base">{fa.field.label}</CardTitle>
                     <CardDescription className="text-xs">
-                      {fa.type === 'categorical' ? 'Question à choix' : fa.type === 'numeric' ? 'Question numérique' : 'Question ouverte'}
+                      {fa.type === 'categorical' ? 'Question à choix' 
+                        : fa.type === 'numeric' ? 'Question numérique' 
+                        : fa.type === 'surveyor' ? 'ID Enquêteur' 
+                        : fa.type === 'geo' ? 'Position GPS' 
+                        : 'Question ouverte'}
                     </CardDescription>
                   </div>
                   <Badge variant="outline">
@@ -1681,9 +1812,37 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
                   </div>
                 )}
 
-                {fa.type === 'text' && (
-                  <div className="p-4 bg-muted/50 rounded-lg text-center">
-                    <p className="text-sm text-muted-foreground">{fa.count || 0} réponses textuelles</p>
+                {(fa.type === 'text' || fa.type === 'surveyor' || fa.type === 'geo') && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">
+                        {fa.count || 0} réponse{(fa.count || 0) > 1 ? 's' : ''}
+                        {typeof fa.uniqueCount === 'number' ? ` • ${fa.uniqueCount} unique${fa.uniqueCount > 1 ? 's' : ''}` : ''}
+                      </p>
+                      {fa.type === 'surveyor' && (
+                        <Badge variant="secondary" className="text-[10px]">ID + Nom</Badge>
+                      )}
+                      {fa.type === 'geo' && (
+                        <Badge variant="secondary" className="text-[10px]">Ville / Zone / Pays</Badge>
+                      )}
+                    </div>
+
+                    {fa.sampleValues && fa.sampleValues.length > 0 ? (
+                      <ScrollArea className="h-[140px] rounded-lg border border-border bg-muted/30">
+                        <div className="p-3 space-y-2">
+                          {fa.sampleValues.map((v: string, idx: number) => (
+                            <div key={idx} className="text-sm">
+                              <span className="text-muted-foreground mr-2">•</span>
+                              <span className="break-words">{v}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    ) : (
+                      <div className="p-4 bg-muted/50 rounded-lg text-center">
+                        <p className="text-sm text-muted-foreground">Aucune valeur</p>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

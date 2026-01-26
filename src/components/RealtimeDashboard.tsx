@@ -4,7 +4,7 @@ import { fr } from 'date-fns/locale';
 import { 
   RefreshCw, Bell, BellOff, Wifi, WifiOff, 
   Clock, Users, TrendingUp, Activity, CheckCircle,
-  MapPin, Zap, ClipboardList, BarChart3
+  MapPin, Zap, ClipboardList, BarChart3, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import {
 import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
 import { DbSurvey } from '@/hooks/useSurveys';
 import { cn } from '@/lib/utils';
+import { LocationBadge } from '@/components/LocationDisplay';
 
 interface RealtimeDashboardProps {
   surveys: DbSurvey[];
@@ -96,6 +97,7 @@ export const RealtimeDashboard = ({ surveys: initialSurveys, surveyId, onSurveyS
         surveyTitle: survey?.title || 'Enquête',
         createdAt: r.created_at,
         hasLocation: !!r.location,
+        location: r.location,
       };
     });
 
@@ -368,12 +370,18 @@ export const RealtimeDashboard = ({ surveys: initialSurveys, surveyId, onSurveyS
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {item.hasLocation && (
+                    {item.hasLocation && item.location ? (
+                      <LocationBadge 
+                        latitude={item.location.latitude} 
+                        longitude={item.location.longitude}
+                        showCountry={true}
+                      />
+                    ) : item.hasLocation ? (
                       <Badge variant="outline" className="text-[10px] gap-1">
                         <MapPin className="h-2.5 w-2.5" />
                         GPS
                       </Badge>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               ))}
