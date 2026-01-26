@@ -32,10 +32,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area
 } from 'recharts';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { downloadXlsx } from '@/lib/excel';
 
 interface AdvancedReportsProps {
   survey: DbSurvey;
@@ -409,8 +409,7 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
   }, [globalStats, fieldAnalytics]);
 
   // Export functions
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportToExcel = async () => {
     
     // Summary sheet
     const summary = [
@@ -448,9 +447,6 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
       summary.push([]);
     });
     
-    const summaryWs = XLSX.utils.aoa_to_sheet(summary);
-    XLSX.utils.book_append_sheet(wb, summaryWs, 'Rapport');
-
     // Raw data
     const headers = ['#', 'Date', 'GPS Lat', 'GPS Lng', ...fields.map(f => f.label)];
     const rows = responses.map((response, index) => {
@@ -469,11 +465,10 @@ export const AdvancedReports = ({ survey, responses }: AdvancedReportsProps) => 
       ];
     });
 
-    const dataWs = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, dataWs, 'Données brutes');
-
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout]), `${survey.title}_rapport_analyse.xlsx`);
+    await downloadXlsx(`${survey.title}_rapport_analyse.xlsx`, [
+      { name: 'Rapport', rows: summary as any },
+      { name: 'Données brutes', rows: [headers, ...rows] as any },
+    ]);
   };
 
   const exportToPDF = () => {

@@ -55,8 +55,8 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { LocationBadge, LocationDisplay, LocationFull } from '@/components/LocationDisplay';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { downloadXlsx } from '@/lib/excel';
 
 interface ResponsesTableProps {
   survey: DbSurvey;
@@ -358,8 +358,7 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
     saveAs(blob, `${survey.title}_reponses.csv`);
   };
 
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportToExcel = async () => {
     
     const baseHeaders = ['#', 'Date', 'Heure'];
     const surveyorHeaders = hasSurveyorIdField ? ['ID Enquêteur', 'Nom Enquêteur'] : [];
@@ -397,11 +396,9 @@ export const ResponsesTable = ({ survey, responses }: ResponsesTableProps) => {
       ];
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, ws, 'Réponses');
-
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout]), `${survey.title}_reponses.xlsx`);
+    await downloadXlsx(`${survey.title}_reponses.xlsx`, [
+      { name: 'Réponses', rows: [headers, ...rows] as any },
+    ]);
   };
 
   const tableContent = (

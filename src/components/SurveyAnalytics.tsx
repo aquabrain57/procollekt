@@ -20,11 +20,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend, LineChart, Line
 } from 'recharts';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, BorderStyle } from 'docx';
+import { downloadXlsx } from '@/lib/excel';
 
 interface SurveyAnalyticsProps {
   survey: DbSurvey;
@@ -133,8 +133,7 @@ export const SurveyAnalytics = ({ survey, responses }: SurveyAnalyticsProps) => 
   }, [fields, responses]);
 
   // Export functions
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportToExcel = async () => {
     
     // Responses sheet
     const headers = ['Date', 'Localisation', ...fields.map(f => f.label)];
@@ -155,9 +154,6 @@ export const SurveyAnalytics = ({ survey, responses }: SurveyAnalyticsProps) => 
         ...fieldValues,
       ];
     });
-
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, ws, 'Réponses');
 
     // Summary sheet
     const summaryData = [
@@ -185,11 +181,10 @@ export const SurveyAnalytics = ({ survey, responses }: SurveyAnalyticsProps) => 
       summaryData.push([]);
     });
 
-    const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, summaryWs, 'Résumé');
-
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout], { type: 'application/octet-stream' }), `${survey.title.replace(/\s+/g, '_')}_rapport.xlsx`);
+    await downloadXlsx(`${survey.title.replace(/\s+/g, '_')}_rapport.xlsx`, [
+      { name: 'Réponses', rows: [headers, ...rows] as any },
+      { name: 'Résumé', rows: summaryData as any },
+    ]);
   };
 
   const exportToPDF = () => {

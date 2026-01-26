@@ -21,11 +21,11 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend, LineChart, Line, AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar
 } from 'recharts';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel } from 'docx';
+import { downloadXlsx } from '@/lib/excel';
 
 interface DetailedAnalysisProps {
   survey: DbSurvey;
@@ -196,9 +196,7 @@ export const DetailedAnalysis = ({ survey, responses }: DetailedAnalysisProps) =
   }, [stats, fieldAnalytics]);
 
   // Export functions
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
-    
+  const exportToExcel = async () => {
     // Summary sheet
     const summary = [
       ['RAPPORT D\'ANALYSE DÉTAILLÉ'],
@@ -213,9 +211,6 @@ export const DetailedAnalysis = ({ survey, responses }: DetailedAnalysisProps) =
       ['RECOMMANDATIONS'],
       ...recommendations.map(r => [r]),
     ];
-    
-    const summaryWs = XLSX.utils.aoa_to_sheet(summary);
-    XLSX.utils.book_append_sheet(wb, summaryWs, 'Résumé');
 
     // Detailed data
     const headers = ['Date', 'Localisation', ...fields.map(f => f.label)];
@@ -237,11 +232,10 @@ export const DetailedAnalysis = ({ survey, responses }: DetailedAnalysisProps) =
       ];
     });
 
-    const dataWs = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    XLSX.utils.book_append_sheet(wb, dataWs, 'Données');
-
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout]), `${survey.title}_analyse_complete.xlsx`);
+    await downloadXlsx(`${survey.title}_analyse_complete.xlsx`, [
+      { name: 'Résumé', rows: summary as any },
+      { name: 'Données', rows: [headers, ...rows] as any },
+    ]);
   };
 
   const exportToPDF = () => {

@@ -36,10 +36,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
+import { downloadXlsx, objectsToAOA } from '@/lib/excel';
 
 interface SettingsPanelProps {
   syncStatus: SyncStatus;
@@ -100,7 +100,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
 
       if (fieldsError) throw fieldsError;
 
-      const wb = XLSX.utils.book_new();
+      const sheets: { name: string; rows: (string | number | boolean | Date | null | undefined)[][] }[] = [];
 
       if (surveys && surveys.length > 0) {
         const surveysData = surveys.map(s => ({
@@ -111,8 +111,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
           'Date de création': format(new Date(s.created_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale }),
           'Dernière modification': format(new Date(s.updated_at), 'dd/MM/yyyy HH:mm', { locale: dateLocale }),
         }));
-        const surveysWs = XLSX.utils.json_to_sheet(surveysData);
-        XLSX.utils.book_append_sheet(wb, surveysWs, 'Enquêtes');
+        sheets.push({ name: 'Enquêtes', rows: objectsToAOA(surveysData as any) });
       }
 
       for (const survey of (surveys || [])) {
@@ -145,8 +144,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
           });
 
           const sheetName = survey.title.slice(0, 28) + (survey.title.length > 28 ? '...' : '');
-          const ws = XLSX.utils.json_to_sheet(responseData);
-          XLSX.utils.book_append_sheet(wb, ws, sheetName);
+          sheets.push({ name: sheetName, rows: objectsToAOA(responseData as any) });
         }
       }
 
@@ -163,11 +161,12 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
         ['Publiées', surveys?.filter(s => s.status === 'active').length || 0],
         ['Brouillons', surveys?.filter(s => s.status === 'draft').length || 0],
       ];
-      const summaryWs = XLSX.utils.aoa_to_sheet(summaryData);
-      XLSX.utils.book_append_sheet(wb, summaryWs, 'Résumé');
+      sheets.push({ name: 'Résumé', rows: summaryData as any });
 
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-      saveAs(new Blob([wbout]), `WooCollekt_Export_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+      await downloadXlsx(
+        `WooCollekt_Export_${format(new Date(), 'yyyy-MM-dd')}.xlsx`,
+        sheets,
+      );
 
       toast.success('Export terminé avec succès');
       setShowExportDialog(false);

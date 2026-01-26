@@ -35,7 +35,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, Legend, AreaChart, Area
 } from 'recharts';
-import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -43,6 +42,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, Ta
 import pptxgen from 'pptxgenjs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { downloadXlsx } from '@/lib/excel';
 
 interface PremiumReportProps {
   survey: DbSurvey;
@@ -1195,8 +1195,8 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
   };
 
   // Export to Excel
-  const exportToExcel = () => {
-    const wb = XLSX.utils.book_new();
+  const exportToExcel = async () => {
+    const sheets: { name: string; rows: any[][] }[] = [];
     
     // Summary sheet
     const summaryData = [
@@ -1229,9 +1229,7 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
       );
     }
     
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    wsSummary['!cols'] = [{ wch: 30 }, { wch: 50 }];
-    XLSX.utils.book_append_sheet(wb, wsSummary, 'Résumé');
+    sheets.push({ name: 'Résumé', rows: summaryData as any });
 
     // Per question analysis
     fieldAnalytics.forEach((fa, index) => {
@@ -1254,9 +1252,7 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
             d.percentage >= 50 ? '★ Dominant' : d.percentage >= 25 ? '○ Significatif' : ''
           ])
         ];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{ wch: 5 }, { wch: 40 }, { wch: 12 }, { wch: 12 }, { wch: 15 }];
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        sheets.push({ name: sheetName, rows: sheetData as any });
       } else if (fa.type === 'numeric' && fa.stats) {
         const sheetData = [
           [`Q${index + 1}: ${fa.field.label}`],
@@ -1269,9 +1265,7 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
           ['Maximum', fa.stats.max],
           ['Nombre de réponses', fa.stats.count],
         ];
-        const ws = XLSX.utils.aoa_to_sheet(sheetData);
-        ws['!cols'] = [{ wch: 25 }, { wch: 20 }];
-        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        sheets.push({ name: sheetName, rows: sheetData as any });
       }
     });
 
@@ -1296,12 +1290,9 @@ export const PremiumReport = ({ survey, responses }: PremiumReportProps) => {
       ];
     });
 
-    const wsData = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-    wsData['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 12 }, ...fields.map(() => ({ wch: 25 }))];
-    XLSX.utils.book_append_sheet(wb, wsData, 'Données brutes');
+    sheets.push({ name: 'Données brutes', rows: [headers, ...rows] as any });
 
-    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-    saveAs(new Blob([wbout]), `${reportTitle.replace(/\s+/g, '_')}_Rapport_Premium.xlsx`);
+    await downloadXlsx(`${reportTitle.replace(/\s+/g, '_')}_Rapport_Premium.xlsx`, sheets as any);
     toast.success('Rapport Excel généré avec succès');
   };
 
