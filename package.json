@@ -54,7 +54,7 @@
     "i18next": "^25.7.4",
     "input-otp": "^1.4.2",
     "jsbarcode": "^3.12.3",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.462.0",
     "mapbox-gl": "^3.17.0",
