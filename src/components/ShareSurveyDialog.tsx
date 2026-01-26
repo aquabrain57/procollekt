@@ -151,14 +151,14 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
           </DialogHeader>
           
            <div className="flex flex-col items-center py-4" ref={fullScreenQrRef}>
-             <div className="bg-background p-4 rounded-xl shadow-xl border border-border">
+             <div className="bg-background p-6 rounded-xl shadow-xl border border-border">
                <QRCodeCanvas
                  value={surveyUrl}
-                 size={240}
+                 size={300}
                  includeMargin
                  level="H"
-                 fgColor={qrColors.fg}
-                 bgColor={qrColors.bg}
+                 fgColor="#000000"
+                 bgColor="#ffffff"
                />
              </div>
             
@@ -285,14 +285,14 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
               </Button>
             </div>
             <div className="flex items-center gap-2 sm:gap-3" ref={qrRef}>
-               <div className="bg-background p-1.5 sm:p-2 rounded-lg shadow-sm border border-border flex-shrink-0">
+               <div className="bg-background p-2 sm:p-3 rounded-lg shadow-sm border border-border flex-shrink-0">
                  <QRCodeCanvas
                    value={surveyUrl}
-                   size={88}
+                   size={100}
                    includeMargin
                    level="H"
-                  fgColor={qrColors.fg}
-                  bgColor={qrColors.bg}
+                   fgColor="#000000"
+                   bgColor="#ffffff"
                  />
                </div>
               <div className="flex flex-col gap-1.5 flex-1 min-w-0">

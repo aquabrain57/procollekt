@@ -69,7 +69,7 @@ export const generateBadgeQRData = (badge: SurveyorBadge): string => {
   return JSON.stringify(data);
 };
 
-export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBadge; style: QRStyleExtended; size?: number }) {
+export function QRCodePreview({ badge, style, size = 160 }: { badge: SurveyorBadge; style: QRStyleExtended; size?: number }) {
   const qrData = generateBadgeQRData(badge);
   
   const getQRColors = () => {
@@ -136,7 +136,8 @@ export function QRCodePreview({ badge, style, size = 120 }: { badge: SurveyorBad
         level="H"
         bgColor={colors.bg}
         fgColor={colors.fg}
-        marginSize={1}
+        marginSize={2}
+        includeMargin
       />
       {style === 'elegant' && (
         <div className="mt-2 text-center">
@@ -189,13 +190,13 @@ export function QRStyleSelector({ badge, selectedStyle, onStyleChange }: QRStyle
         ))}
       </RadioGroup>
       
-      {/* Large Preview */}
+      {/* Large Preview - Optimized for distance scanning */}
       <Card className="mt-4">
-        <CardContent className="p-4 flex flex-col items-center">
-          <p className="text-sm font-medium mb-3">Aperçu du QR Code</p>
-          <QRCodePreview badge={badge} style={selectedStyle} size={200} />
+        <CardContent className="p-6 flex flex-col items-center">
+          <p className="text-sm font-medium mb-3">Aperçu du QR Code (Haute résolution)</p>
+          <QRCodePreview badge={badge} style={selectedStyle} size={280} />
           <p className="text-xs text-muted-foreground mt-3 text-center max-w-xs">
-            Ce QR code contient toutes les informations de l'enquêteur : identité, organisation, superviseur et statistiques.
+            QR code haute résolution optimisé pour le scan à distance. Contient toutes les informations de l'enquêteur.
           </p>
         </CardContent>
       </Card>

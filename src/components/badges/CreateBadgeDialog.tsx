@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, UserPlus, User, Building2, MapPin, Users, Camera } from 'lucide-react';
+import { Loader2, UserPlus, User, Building2, MapPin, Users, Camera, Wand2, RefreshCw } from 'lucide-react';
 import { CreateBadgeInput, useSurveyorBadges } from '@/hooks/useSurveyorBadges';
 import { BadgePhotoUpload } from './BadgePhotoUpload';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   surveyor_id: z.string().min(2, 'ID minimum 2 caractères').max(20, 'ID maximum 20 caractères'),
@@ -37,6 +38,22 @@ interface CreateBadgeDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
 }
+
+// Generate unique surveyor ID based on role and existing badges count
+const generateSurveyorId = (role: string, existingCount: number): string => {
+  const prefixes: Record<string, string> = {
+    surveyor: 'EQ',
+    supervisor: 'SUP',
+    team_lead: 'TL',
+    coordinator: 'COORD',
+    data_collector: 'DC',
+    field_agent: 'FA',
+  };
+  const prefix = prefixes[role] || 'EQ';
+  const number = String(existingCount + 1).padStart(3, '0');
+  const timestamp = Date.now().toString(36).slice(-3).toUpperCase();
+  return `${prefix}${number}-${timestamp}`;
+};
 
 export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadgeDialogProps) {
   const { createBadge, badges } = useSurveyorBadges();
@@ -68,6 +85,15 @@ export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadge
       supervisor_name: '',
     },
   });
+
+  // Auto-generate ID function
+  const handleGenerateId = useCallback(() => {
+    const role = form.getValues('role') || 'surveyor';
+    const existingCount = badges.filter(b => b.role === role).length;
+    const newId = generateSurveyorId(role, existingCount);
+    form.setValue('surveyor_id', newId);
+    toast.success(`ID généré: ${newId}`);
+  }, [badges, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
@@ -158,10 +184,34 @@ export function CreateBadgeDialog({ open, onOpenChange, onSuccess }: CreateBadge
                     name="surveyor_id"
                     render={({ field }) => (
                       <FormItem className="col-span-2">
-                        <FormLabel>ID Enquêteur *</FormLabel>
-                        <FormControl>
-                          <Input placeholder="EQ001" {...field} />
-                        </FormControl>
+                        <FormLabel className="flex items-center justify-between">
+                          <span>ID Enquêteur *</span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGenerateId}
+                            className="h-7 text-xs gap-1"
+                          >
+                            <Wand2 className="h-3 w-3" />
+                            Générer auto
+                          </Button>
+                        </FormLabel>
+                        <div className="flex gap-2">
+                          <FormControl>
+                            <Input placeholder="EQ001" {...field} className="flex-1" />
+                          </FormControl>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleGenerateId}
+                            title="Regénérer l'ID"
+                            className="h-9 w-9 shrink-0"
+                          >
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                        </div>
                         <FormMessage />
                       </FormItem>
                     )}
