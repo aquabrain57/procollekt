@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Lock, MapPin, Smartphone, Clock, User, FileCheck } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { SurveyorBadge } from '@/hooks/useSurveyorBadges';
@@ -9,13 +9,23 @@ interface FormSignatureProps {
   location?: { latitude: number; longitude: number } | null;
 }
 
+// Generate SHA-256 hash using Web Crypto API
+async function generateSHA256Hash(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export function FormSignature({ badge, surveyId, location }: FormSignatureProps) {
-  const signature = useMemo(() => {
+  const [hash, setHash] = useState<string>('');
+  
+  const signatureData = useMemo(() => {
     const timestamp = new Date().toISOString();
     const deviceId = getDeviceId();
 
-    // Create signature hash
-    const signatureData = {
+    return {
       surveyorId: badge.surveyor_id,
       badgeId: badge.id,
       surveyId,
@@ -24,22 +34,20 @@ export function FormSignature({ badge, surveyId, location }: FormSignatureProps)
       longitude: location?.longitude,
       deviceId,
     };
-
-    // Simple hash for display (in production, use crypto)
-    const hash = btoa(JSON.stringify(signatureData)).slice(0, 32);
-
-    return {
-      ...signatureData,
-      hash,
-    };
   }, [badge, surveyId, location]);
+
+  // Generate hash asynchronously
+  useEffect(() => {
+    const dataString = `${signatureData.surveyorId}:${signatureData.badgeId}:${signatureData.surveyId}:${signatureData.timestamp}:${signatureData.latitude ?? 'null'}:${signatureData.longitude ?? 'null'}:${signatureData.deviceId}`;
+    generateSHA256Hash(dataString).then(h => setHash(h.slice(0, 32)));
+  }, [signatureData]);
 
   return (
     <Card className="border-dashed border-2 border-primary/30 bg-primary/5">
       <CardHeader className="pb-2">
         <CardTitle className="text-sm flex items-center gap-2">
           <Lock className="w-4 h-4" />
-          Signature Numérique
+          Empreinte Numérique
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-xs">
@@ -48,20 +56,20 @@ export function FormSignature({ badge, surveyId, location }: FormSignatureProps)
             <User className="w-3 h-3" />
             <span>ID Enquêteur:</span>
           </div>
-          <span className="font-mono">{signature.surveyorId}</span>
+          <span className="font-mono">{signatureData.surveyorId}</span>
 
           <div className="flex items-center gap-2 text-muted-foreground">
             <FileCheck className="w-3 h-3" />
             <span>Badge ID:</span>
           </div>
-          <span className="font-mono truncate">{signature.badgeId.slice(0, 8)}...</span>
+          <span className="font-mono truncate">{signatureData.badgeId.slice(0, 8)}...</span>
 
           <div className="flex items-center gap-2 text-muted-foreground">
             <Clock className="w-3 h-3" />
             <span>Horodatage:</span>
           </div>
           <span className="font-mono">
-            {new Date(signature.timestamp).toLocaleString('fr-FR')}
+            {new Date(signatureData.timestamp).toLocaleString('fr-FR')}
           </span>
 
           {location && (
@@ -80,16 +88,16 @@ export function FormSignature({ badge, surveyId, location }: FormSignatureProps)
             <Smartphone className="w-3 h-3" />
             <span>Appareil:</span>
           </div>
-          <span className="font-mono truncate">{signature.deviceId.slice(0, 8)}...</span>
+          <span className="font-mono truncate">{signatureData.deviceId.slice(0, 8)}...</span>
         </div>
 
         <div className="pt-2 border-t">
           <div className="flex items-center gap-2 text-muted-foreground mb-1">
             <Lock className="w-3 h-3" />
-            <span>Hash:</span>
+            <span>Empreinte (SHA-256):</span>
           </div>
           <span className="font-mono text-[10px] break-all bg-muted p-1 rounded block">
-            {signature.hash}
+            {hash || 'Calcul...'}
           </span>
         </div>
       </CardContent>
@@ -110,29 +118,31 @@ function getDeviceId(): string {
   return deviceId;
 }
 
-export function generateSignatureData(
+export async function generateSignatureData(
   badge: SurveyorBadge,
   surveyId: string,
   location?: { latitude: number; longitude: number } | null
 ) {
   const timestamp = new Date().toISOString();
   const deviceId = getDeviceId();
+  const gpsLatitude = location?.latitude ?? null;
+  const gpsLongitude = location?.longitude ?? null;
+
+  // Create canonical string for hashing
+  const dataString = `${badge.surveyor_id}:${badge.id}:${surveyId}:${timestamp}:${gpsLatitude ?? 'null'}:${gpsLongitude ?? 'null'}:${deviceId}`;
+  
+  // Generate SHA-256 hash (cryptographic, not reversible)
+  const signatureHash = await generateSHA256Hash(dataString);
 
   const signatureData = {
     surveyor_id: badge.surveyor_id,
     badge_id: badge.id,
     survey_id: surveyId,
     timestamp,
-    gps_latitude: location?.latitude || null,
-    gps_longitude: location?.longitude || null,
+    gps_latitude: gpsLatitude,
+    gps_longitude: gpsLongitude,
     device_id: deviceId,
-    signature_hash: btoa(JSON.stringify({
-      s: badge.surveyor_id,
-      b: badge.id,
-      t: timestamp,
-      l: location,
-      d: deviceId,
-    })).slice(0, 64),
+    signature_hash: signatureHash.slice(0, 64),
   };
 
   return signatureData;

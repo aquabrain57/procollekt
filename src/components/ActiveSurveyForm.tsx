@@ -23,7 +23,19 @@ export const ActiveSurveyForm = ({ survey, onComplete, requireSurveyorValidation
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [validatedBadge, setValidatedBadge] = useState<SurveyorBadge | null>(null);
-  const [signatureData, setSignatureData] = useState<ReturnType<typeof generateSignatureData> | null>(null);
+  
+  // Type for signature data (awaited result of generateSignatureData)
+  type SignatureDataType = {
+    surveyor_id: string;
+    badge_id: string;
+    survey_id: string;
+    timestamp: string;
+    gps_latitude: number | null;
+    gps_longitude: number | null;
+    device_id: string;
+    signature_hash: string;
+  };
+  const [signatureData, setSignatureData] = useState<SignatureDataType | null>(null);
 
   const convertToFormField = (dbField: DbSurveyField) => ({
     id: dbField.id,
@@ -124,17 +136,17 @@ export const ActiveSurveyForm = ({ survey, onComplete, requireSurveyorValidation
     setValidatedBadge(badge);
     // Generate signature data when badge is validated
     navigator.geolocation?.getCurrentPosition(
-      (position) => {
-        const sig = generateSignatureData(
+      async (position) => {
+        const sig = await generateSignatureData(
           badge,
           survey.id,
           { latitude: position.coords.latitude, longitude: position.coords.longitude }
         );
         setSignatureData(sig);
       },
-      () => {
+      async () => {
         // GPS not available, generate without location
-        const sig = generateSignatureData(badge, survey.id);
+        const sig = await generateSignatureData(badge, survey.id);
         setSignatureData(sig);
       },
       { timeout: 5000 }
