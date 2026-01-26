@@ -30,7 +30,7 @@ interface PendingResponse {
   created_at: string;
 }
 
-// Hook pour le reverse geocoding
+// Hook pour le reverse geocoding (uses edge function proxy for privacy)
 const useReverseGeocode = (lat: number | null, lng: number | null) => {
   const [locationName, setLocationName] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -44,12 +44,14 @@ const useReverseGeocode = (lat: number | null, lng: number | null) => {
     const fetchLocationName = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lng}&localityLanguage=fr`
-        );
-        const data = await response.json();
-        const city = data.city || data.locality || data.principalSubdivision || '';
-        const country = data.countryName || '';
+        const { data, error } = await supabase.functions.invoke('reverse-geocode', {
+          body: { latitude: lat, longitude: lng, language: 'fr' }
+        });
+        
+        if (error) throw error;
+        
+        const city = data.city || '';
+        const country = data.country || '';
         setLocationName(city ? `${city}, ${country}` : country);
       } catch (error) {
         console.error('Error reverse geocoding:', error);
