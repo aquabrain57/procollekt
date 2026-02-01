@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  Briefcase,
   Building2,
   Eye,
   EyeOff,
@@ -13,9 +14,10 @@ import {
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import authBg from '@/assets/auth-bg-field.jpg';
+import authBg from '@/assets/auth-data-collection.jpg';
 import logo from '@/assets/youcollect-logo.png';
 import { useAuth } from '@/contexts/AuthContext';
+import { ACTIVITY_SECTORS, getDefaultNameForCountry } from '@/data/accountConfig';
 
 // Country codes mapping
 const COUNTRY_CODES: Record<string, string> = {
@@ -59,6 +61,7 @@ const signupSchema = loginSchema.extend({
     .trim()
     .min(2, { message: "L'organisation est requise" })
     .max(120, { message: "L'organisation est trop longue" }),
+  sector: z.string().min(1, { message: 'Le secteur est requis' }),
   phone: z
     .string()
     .trim()
@@ -79,13 +82,15 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [countryDetected, setCountryDetected] = useState(false);
+  const [countryDetected, setCountryDetected] = useState<string | null>(null);
+  const [defaultName, setDefaultName] = useState('Jean Dupont');
 
   const [formData, setFormData] = useState<FormData>({
     email: '',
     password: '',
     fullName: '',
     organization: '',
+    sector: '',
     phone: '+228', // Default Togo country code
   });
 
@@ -106,12 +111,16 @@ const Auth = () => {
         const data = await response.json();
         const countryCode = data.country_code;
         
-        if (countryCode && COUNTRY_CODES[countryCode]) {
-          setFormData(prev => ({ 
-            ...prev, 
-            phone: COUNTRY_CODES[countryCode] 
-          }));
-          setCountryDetected(true);
+        if (countryCode) {
+          setCountryDetected(countryCode);
+          setDefaultName(getDefaultNameForCountry(countryCode));
+          
+          if (COUNTRY_CODES[countryCode]) {
+            setFormData(prev => ({ 
+              ...prev, 
+              phone: COUNTRY_CODES[countryCode] 
+            }));
+          }
         }
       }
     } catch {
@@ -164,9 +173,11 @@ const Auth = () => {
         }
         toast.success('Connexion réussie !');
       } else {
+        const sectorLabel = ACTIVITY_SECTORS.find(s => s.value === formData.sector)?.label || formData.sector;
+        
         const { error } = await signUp(formData.email, formData.password, {
           fullName: String(formData.fullName || '').trim(),
-          organization: String(formData.organization || '').trim(),
+          organization: `${String(formData.organization || '').trim()} (${sectorLabel})`,
           phone: String(formData.phone || '').trim(),
         });
 
@@ -217,133 +228,161 @@ const Auth = () => {
         backgroundPosition: 'center',
       }}
     >
-      <div className="min-h-screen bg-background/60 backdrop-blur-md flex flex-col">
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      <div className="min-h-screen bg-background/70 backdrop-blur-md flex flex-col">
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
           {/* Logo */}
-          <div className="flex flex-col items-center gap-3 mb-8 slide-up">
+          <div className="flex flex-col items-center gap-2 mb-6 slide-up">
             <img 
               src={logo} 
               alt="Youcollect" 
-              className="h-24 w-auto drop-shadow-lg"
+              className="h-16 sm:h-24 w-auto drop-shadow-lg"
             />
-            <p className="text-sm text-muted-foreground">Collecte de données intelligente</p>
+            <p className="text-xs sm:text-sm text-muted-foreground text-center">
+              Collecte de données intelligente
+            </p>
           </div>
 
           {/* Form Card */}
           <div
-            className="w-full max-w-sm bg-card/95 backdrop-blur rounded-2xl border border-border p-6 shadow-lg slide-up"
+            className="w-full max-w-sm bg-card/95 backdrop-blur rounded-2xl border border-border p-4 sm:p-6 shadow-lg slide-up"
             style={{ animationDelay: '100ms' }}
           >
-            <h2 className="text-xl font-semibold text-foreground mb-2 text-center">
+            <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1 sm:mb-2 text-center">
               {isLogin ? 'Connexion' : 'Créer un compte'}
             </h2>
-            <p className="text-sm text-muted-foreground mb-6 text-center">
+            <p className="text-xs sm:text-sm text-muted-foreground mb-4 sm:mb-6 text-center">
               {isLogin
                 ? 'Connectez-vous pour accéder à vos enquêtes'
                 : 'Inscrivez-vous pour commencer à collecter des données'}
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
               {!isLogin && (
                 <>
                   {/* Full Name */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Nom complet</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs sm:text-sm font-medium text-foreground">Nom complet</label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                       <input
                         type="text"
-                        placeholder="Jean Dupont"
+                        placeholder={defaultName}
                         value={formData.fullName || ''}
                         onChange={(e) => setFormData((p) => ({ ...p, fullName: e.target.value }))}
-                        className="input-field pl-10"
+                        className="input-field pl-9 sm:pl-10 h-9 sm:h-10 text-sm"
                       />
                     </div>
-                    {errors.fullName && <p className="text-sm text-destructive">{errors.fullName}</p>}
+                    {errors.fullName && <p className="text-xs text-destructive">{errors.fullName}</p>}
                   </div>
 
                   {/* Organization */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Organisation</label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs sm:text-sm font-medium text-foreground">Organisation</label>
                     <div className="relative">
-                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                       <input
                         type="text"
                         placeholder="Ministère / ONG / Entreprise"
                         value={formData.organization || ''}
                         onChange={(e) => setFormData((p) => ({ ...p, organization: e.target.value }))}
-                        className="input-field pl-10"
+                        className="input-field pl-9 sm:pl-10 h-9 sm:h-10 text-sm"
                       />
                     </div>
                     {errors.organization && (
-                      <p className="text-sm text-destructive">{errors.organization}</p>
+                      <p className="text-xs text-destructive">{errors.organization}</p>
                     )}
                   </div>
 
-                  {/* Phone */}
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Téléphone</label>
+                  {/* Sector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs sm:text-sm font-medium text-foreground">Secteur d'activité</label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                      <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground pointer-events-none z-10" />
+                      <select
+                        value={formData.sector || ''}
+                        onChange={(e) => setFormData((p) => ({ ...p, sector: e.target.value }))}
+                        className="input-field pl-9 sm:pl-10 h-9 sm:h-10 text-sm appearance-none cursor-pointer pr-8"
+                      >
+                        <option value="">Sélectionner un secteur...</option>
+                        {ACTIVITY_SECTORS.map((s) => (
+                          <option key={s.value} value={s.value}>
+                            {s.label}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <svg className="h-4 w-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                    {errors.sector && <p className="text-xs text-destructive">{errors.sector}</p>}
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs sm:text-sm font-medium text-foreground">Téléphone</label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                       <input
                         type="tel"
                         placeholder="+243..."
                         value={formData.phone || ''}
                         onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
-                        className="input-field pl-10"
+                        className="input-field pl-9 sm:pl-10 h-9 sm:h-10 text-sm"
                       />
                     </div>
-                    {errors.phone && <p className="text-sm text-destructive">{errors.phone}</p>}
+                    {errors.phone && <p className="text-xs text-destructive">{errors.phone}</p>}
                   </div>
                 </>
               )}
 
               {/* Email */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Email</label>
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-medium text-foreground">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   <input
                     type="email"
                     placeholder="vous@exemple.com"
                     value={formData.email}
                     onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                    className="input-field pl-10"
+                    className="input-field pl-9 sm:pl-10 h-9 sm:h-10 text-sm"
                   />
                 </div>
-                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
               </div>
 
               {/* Password */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Mot de passe</label>
+              <div className="space-y-1.5">
+                <label className="text-xs sm:text-sm font-medium text-foreground">Mot de passe</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
-                    className="input-field pl-10 pr-10"
+                    className="input-field pl-9 sm:pl-10 pr-10 h-9 sm:h-10 text-sm"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
                   </button>
                 </div>
-                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
               </div>
 
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full btn-primary py-3 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full btn-primary py-2.5 sm:py-3 rounded-lg font-medium flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
               >
                 {isSubmitting ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
                 ) : isLogin ? (
                   'Se connecter'
                 ) : (
@@ -356,7 +395,7 @@ const Auth = () => {
                   <button
                     type="button"
                     onClick={handleForgotPassword}
-                    className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
                   >
                     Mot de passe oublié ?
                   </button>
@@ -364,13 +403,13 @@ const Auth = () => {
               )}
             </form>
 
-            <div className="mt-6 text-center">
+            <div className="mt-4 sm:mt-6 text-center">
               <button
                 onClick={() => {
                   setIsLogin((v) => !v);
                   setErrors({});
                 }}
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                className="text-xs sm:text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 {isLogin ? (
                   <>
@@ -386,7 +425,7 @@ const Auth = () => {
           </div>
         </div>
 
-        <div className="p-6 text-center text-sm text-muted-foreground">
+        <div className="p-4 sm:p-6 text-center text-xs sm:text-sm text-muted-foreground">
           <p>Youcollect - Collecte de données intelligente</p>
           <p>Mode hors ligne compatible</p>
         </div>

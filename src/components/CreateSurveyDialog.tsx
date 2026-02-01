@@ -243,13 +243,13 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
 
   // Render project info fields inline (no nested component to avoid re-renders)
   const renderProjectInfoFields = () => (
-    <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
-      <h4 className="font-medium text-sm text-foreground flex items-center gap-2">
+    <div className="space-y-3 p-3 bg-muted/30 rounded-lg border">
+      <h4 className="font-medium text-xs sm:text-sm text-foreground flex items-center gap-2">
         📋 Informations du projet
       </h4>
       
-      <div className="space-y-2">
-        <Label htmlFor="survey-title">Nom du projet *</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="survey-title" className="text-xs">Nom du projet *</Label>
         <input
           id="survey-title"
           ref={titleRef}
@@ -260,15 +260,15 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           maxLength={100}
           autoComplete="off"
           spellCheck={false}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         />
         {errors.title && (
-          <p className="text-sm text-destructive">{errors.title}</p>
+          <p className="text-xs text-destructive">{errors.title}</p>
         )}
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="survey-description">Description</Label>
+      <div className="space-y-1.5">
+        <Label htmlFor="survey-description" className="text-xs">Description</Label>
         <textarea
           id="survey-description"
           ref={descriptionRef}
@@ -278,21 +278,21 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           maxLength={500}
           autoComplete="off"
           spellCheck={false}
-          className="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[50px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
         {errors.description && (
-          <p className="text-sm text-destructive">{errors.description}</p>
+          <p className="text-xs text-destructive">{errors.description}</p>
         )}
       </div>
 
-      {/* Cover Image Upload */}
-      <div className="space-y-2">
-        <Label className="flex items-center gap-1.5">
-          <Image className="h-3.5 w-3.5" />
+      {/* Cover Image Upload - Compact */}
+      <div className="space-y-1.5">
+        <Label className="flex items-center gap-1.5 text-xs">
+          <Image className="h-3 w-3" />
           Image illustrative (optionnel)
         </Label>
         {coverImagePreview ? (
-          <div className="relative w-full h-32 rounded-lg border overflow-hidden bg-muted">
+          <div className="relative w-full h-20 rounded-lg border overflow-hidden bg-muted">
             <img 
               src={coverImagePreview} 
               alt="Aperçu" 
@@ -302,7 +302,7 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
               type="button"
               variant="destructive"
               size="icon"
-              className="absolute top-2 right-2 h-6 w-6"
+              className="absolute top-1 right-1 h-5 w-5"
               onClick={removeCoverImage}
             >
               <X className="h-3 w-3" />
@@ -310,15 +310,12 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
           </div>
         ) : (
           <div 
-            className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer"
+            className="border border-dashed border-border rounded-lg p-2 text-center hover:border-primary/50 transition-colors cursor-pointer"
             onClick={() => fileInputRef.current?.click()}
           >
-            <Image className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-xs text-muted-foreground">
-              Cliquez pour ajouter une image
-            </p>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              PNG, JPG jusqu'à 5 Mo
+            <Image className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-[10px] text-muted-foreground">
+              Cliquez pour ajouter (max 5 Mo)
             </p>
           </div>
         )}
@@ -331,48 +328,48 @@ export const CreateSurveyDialog = ({ onSubmit, onSurveyCreated }: CreateSurveyDi
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5">
-            <Briefcase className="h-3.5 w-3.5" />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="flex items-center gap-1 text-xs">
+            <Briefcase className="h-3 w-3" />
             Secteur *
           </Label>
           <Select value={sector} onValueChange={handleSectorChange}>
-            <SelectTrigger className={errors.sector ? 'border-destructive' : ''}>
+            <SelectTrigger className={`h-9 text-xs ${errors.sector ? 'border-destructive' : ''}`}>
               <SelectValue placeholder="Sélectionner..." />
             </SelectTrigger>
-            <SelectContent className="max-h-[200px]">
+            <SelectContent className="max-h-[180px]">
               {SURVEY_SECTORS.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
+                <SelectItem key={s.value} value={s.value} className="text-xs">
                   {s.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {errors.sector && (
-            <p className="text-sm text-destructive">{errors.sector}</p>
+            <p className="text-[10px] text-destructive">{errors.sector}</p>
           )}
         </div>
 
-        <div className="space-y-2">
-          <Label className="flex items-center gap-1.5">
-            <Globe className="h-3.5 w-3.5" />
+        <div className="space-y-1">
+          <Label className="flex items-center gap-1 text-xs">
+            <Globe className="h-3 w-3" />
             Pays *
           </Label>
           <Select value={country} onValueChange={handleCountryChange}>
-            <SelectTrigger className={errors.country ? 'border-destructive' : ''}>
+            <SelectTrigger className={`h-9 text-xs ${errors.country ? 'border-destructive' : ''}`}>
               <SelectValue placeholder="Sélectionner..." />
             </SelectTrigger>
-            <SelectContent className="max-h-[200px]">
+            <SelectContent className="max-h-[180px]">
               {COUNTRIES.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
+                <SelectItem key={c.value} value={c.value} className="text-xs">
                   {c.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           {errors.country && (
-            <p className="text-sm text-destructive">{errors.country}</p>
+            <p className="text-[10px] text-destructive">{errors.country}</p>
           )}
         </div>
       </div>
