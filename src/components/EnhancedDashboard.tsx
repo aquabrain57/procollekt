@@ -12,6 +12,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart as RechartsPieChart, Pie, Cell, BarChart, Bar
 } from 'recharts';
+import { RealtimeGPSMap } from '@/components/dashboard/RealtimeGPSMap';
 
 interface EnhancedDashboardProps {
   surveys: DbSurvey[];
@@ -167,6 +168,13 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
           </CardContent>
         </Card>
       </div>
+
+      {/* GPS Map - Real-time */}
+      {responses.some(r => r.location) && (
+        <div className="w-full">
+          <RealtimeGPSMap responses={responses} title="Points de collecte en temps réel" />
+        </div>
+      )}
 
       {/* Charts Row - Full Width */}
       <div className="grid lg:grid-cols-2 gap-4 sm:gap-6 w-full">
