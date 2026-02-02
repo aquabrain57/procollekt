@@ -233,7 +233,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
   };
 
   return (
-    <div className="space-y-4 w-full">
+    <div className="space-y-3 w-full">
       {/* Appearance Section */}
       <Card className="border-border">
         <Collapsible open={expandedSections.has('appearance')} onOpenChange={() => toggleSection('appearance')}>
