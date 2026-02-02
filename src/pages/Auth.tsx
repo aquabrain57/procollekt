@@ -221,14 +221,22 @@ const Auth = () => {
 
   return (
     <div
-      className="min-h-screen"
-      style={{
-        backgroundImage: `url(${authBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+      className="min-h-screen relative"
     >
-      <div className="min-h-screen bg-background/70 backdrop-blur-md flex flex-col">
+      {/* Background image - clearly visible with slight blur */}
+      <div 
+        className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `url(${authBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'blur(2px)',
+        }}
+      />
+      {/* Subtle overlay for readability */}
+      <div className="absolute inset-0 z-0 bg-background/40" />
+      
+      <div className="relative z-10 min-h-screen flex flex-col">
         <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-8 sm:py-12">
           {/* Logo */}
           <div className="flex flex-col items-center gap-2 mb-6 slide-up">
@@ -244,7 +252,7 @@ const Auth = () => {
 
           {/* Form Card */}
           <div
-            className="w-full max-w-sm bg-card/95 backdrop-blur rounded-2xl border border-border p-4 sm:p-6 shadow-lg slide-up"
+            className="w-full max-w-sm bg-card/90 backdrop-blur-sm rounded-2xl border border-border/80 p-4 sm:p-6 shadow-xl slide-up"
             style={{ animationDelay: '100ms' }}
           >
             <h2 className="text-lg sm:text-xl font-semibold text-foreground mb-1 sm:mb-2 text-center">
