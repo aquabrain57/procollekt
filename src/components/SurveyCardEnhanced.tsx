@@ -3,6 +3,7 @@ import { DbSurvey, DbSurveyResponse } from '@/hooks/useSurveys';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import defaultCover from '@/assets/auth-field-bg.jpg';
 
 interface SurveyCardEnhancedProps {
   survey: DbSurvey;
@@ -67,30 +68,23 @@ export const SurveyCardEnhanced = ({
       className="relative bg-card border border-border rounded-xl overflow-hidden hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
       onClick={onClick}
     >
-      {/* Cover Image Thumbnail - Extra small */}
-      {survey.cover_image_url && (
-        <div className="absolute top-3 right-3 w-9 h-9 rounded-md overflow-hidden bg-muted shadow-sm border border-border/50">
-          <img 
-            src={survey.cover_image_url} 
-            alt={survey.title}
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.currentTarget.parentElement!.style.display = 'none';
-            }}
-          />
-        </div>
-      )}
+      {/* Cover Image Thumbnail - Extra small - Always show with fallback */}
+      <div className="absolute top-3 right-3 w-9 h-9 rounded-md overflow-hidden bg-muted shadow-sm border border-border/50">
+        <img 
+          src={survey.cover_image_url || defaultCover} 
+          alt={survey.title}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.src = defaultCover;
+          }}
+        />
+      </div>
       
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             {/* Header with icon and status */}
             <div className="flex items-center gap-2 mb-2">
-              {!survey.cover_image_url && (
-                <div className="p-2 rounded-lg bg-primary/10 shrink-0">
-                  <ClipboardList className="h-4 w-4 text-primary" />
-                </div>
-              )}
               <Badge 
                 variant="outline" 
                 className={cn('text-[10px] h-5', statusColors[survey.status as keyof typeof statusColors])}

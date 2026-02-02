@@ -12,6 +12,7 @@ import { ActiveSurveyForm } from '@/components/ActiveSurveyForm';
 import { SurveyAnalytics } from '@/components/SurveyAnalytics';
 import { EnhancedDashboard } from '@/components/EnhancedDashboard';
 import { DataModuleTabs } from '@/components/DataModuleTabs';
+import { AboutSection } from '@/components/AboutSection';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -260,9 +261,9 @@ const Index = () => {
     switch (activeTab) {
       case 'home':
         return (
-          <div className="px-2 sm:px-4 lg:px-6 py-4 space-y-4 pb-24 w-full max-w-none">
-            {/* Welcome Section */}
-            <div className="slide-up">
+          <div className="py-4 space-y-6 pb-24 w-full">
+            {/* Welcome Section - Full Width */}
+            <div className="slide-up px-4 sm:px-6 lg:px-8">
               <h2 className="text-2xl font-bold text-foreground mb-1">
                 Bonjour, {displayName} 👋
               </h2>
@@ -271,13 +272,13 @@ const Index = () => {
               </p>
             </div>
 
-            {/* Enhanced Dashboard Stats - Full Width */}
-            <div className="w-full">
+            {/* Enhanced Dashboard Stats - Full Width, No Margins */}
+            <div className="w-full px-2 sm:px-4 lg:px-6">
               <EnhancedDashboard surveys={surveys} responses={allResponses} />
             </div>
 
-            {/* Quick Actions */}
-            <div className="slide-up" style={{ animationDelay: '200ms' }}>
+            {/* Quick Actions - Full Width */}
+            <div className="slide-up px-4 sm:px-6 lg:px-8" style={{ animationDelay: '200ms' }}>
               <h3 className="font-semibold text-foreground mb-3">Actions rapides</h3>
               <div className="grid grid-cols-2 gap-3">
                 <button
@@ -304,9 +305,9 @@ const Index = () => {
               </div>
             </div>
 
-            {/* Active Surveys */}
+            {/* Active Surveys - Full Width */}
             {activeSurveys.length > 0 && (
-              <div className="slide-up" style={{ animationDelay: '250ms' }}>
+              <div className="slide-up px-4 sm:px-6 lg:px-8" style={{ animationDelay: '250ms' }}>
                 <h3 className="font-semibold text-foreground mb-3">Enquêtes disponibles</h3>
                 <div className="space-y-3">
                     {activeSurveys.slice(0, 3).map((survey) => (
@@ -324,6 +325,11 @@ const Index = () => {
                 </div>
               </div>
             )}
+
+            {/* About Section - Full Width */}
+            <div className="px-4 sm:px-6 lg:px-8">
+              <AboutSection />
+            </div>
           </div>
         );
 
@@ -463,7 +469,7 @@ const Index = () => {
 
       case 'settings':
         return (
-          <div className="p-4 pb-24 w-full">
+          <div className="px-2 sm:px-4 lg:px-6 py-4 pb-24 w-full">
             <SettingsPanel
               syncStatus={syncStatus}
               onSync={handleSync}

@@ -53,8 +53,8 @@ const plans: PricingPlan[] = [
       { name: 'Exports basiques (CSV)', included: true },
       { name: 'Analyses IA avancées', included: false },
       { name: 'Rapports Premium', included: false },
-      { name: 'API & Intégrations', included: false },
-      { name: 'Multi-projets', included: false },
+      { name: 'API REST complète', included: false },
+      { name: 'Multi-projets & équipes', included: false },
       { name: 'Marque blanche', included: false },
       { name: 'Support prioritaire', included: false },
     ],
@@ -82,8 +82,8 @@ const plans: PricingPlan[] = [
       { name: 'Analyses IA basiques', included: true, highlight: true },
       { name: 'Rapports Premium', included: true, highlight: true },
       { name: 'Badges enquêteurs QR Code', included: true, highlight: true },
-      { name: 'API & Intégrations', included: false },
-      { name: 'Multi-projets', included: false },
+      { name: 'API REST (lecture seule)', included: true, highlight: true },
+      { name: 'Multi-projets & équipes', included: false },
       { name: 'Marque blanche', included: false },
     ],
   },
@@ -111,8 +111,8 @@ const plans: PricingPlan[] = [
       { name: 'Analyses IA complètes', included: true, highlight: true },
       { name: 'Rapports personnalisés', included: true, highlight: true },
       { name: 'Badges enquêteurs + signatures', included: true, highlight: true },
-      { name: 'API REST complète', included: true, highlight: true },
-      { name: 'Multi-projets & équipes', included: true, highlight: true },
+      { name: 'API REST complète (lecture/écriture)', included: true, highlight: true },
+      { name: 'Multi-projets & gestion d\'équipes', included: true, highlight: true },
       { name: 'Marque blanche & personnalisation', included: true, highlight: true },
     ],
   },
@@ -162,7 +162,7 @@ export default function Pricing() {
         syncStatus={syncStatus}
       />
 
-      <div className="container mx-auto px-4 py-8 sm:py-12">
+      <div className="w-full px-2 sm:px-4 lg:px-6 py-8 sm:py-12">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <Badge variant="outline" className="mb-4 border-primary/30">
             Tarification simple et transparente

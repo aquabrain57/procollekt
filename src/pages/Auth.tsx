@@ -14,7 +14,7 @@ import {
 import { z } from 'zod';
 import { toast } from 'sonner';
 
-import authBg from '@/assets/auth-data-collection.jpg';
+import authBg from '@/assets/auth-field-bg.jpg';
 import logo from '@/assets/youcollect-logo.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { ACTIVITY_SECTORS, getDefaultNameForCountry } from '@/data/accountConfig';
