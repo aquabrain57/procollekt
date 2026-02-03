@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Progress } from '@/components/ui/progress';
 import { PublicSurveyorIdField } from '@/components/PublicSurveyorIdField';
+import defaultFormImage from '@/assets/auth-field-bg.jpg';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1279,33 +1280,59 @@ const Survey = () => {
     );
   }
 
+  // Get cover image or use default
+  const coverImage = survey?.cover_image_url || defaultFormImage;
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
-        <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-              <div className="min-w-0 flex-1">
-                <h1 className="font-bold text-foreground truncate text-xs sm:text-sm">{survey?.title}</h1>
-                {survey?.description && (
-                  <>
-                    {/* Desktop: show description inline */}
-                    <p className="text-[10px] sm:text-xs text-muted-foreground/80 truncate hidden sm:block">{survey.description}</p>
-                    {/* Mobile: show info icon with tooltip/popover for description */}
-                    <div className="sm:hidden flex items-center gap-1 text-[10px] text-muted-foreground/80">
-                      <button
-                        onClick={() => toast.info(survey.description, { duration: 5000 })}
-                        className="flex items-center gap-1 hover:text-primary transition-colors"
-                      >
-                        <Info className="h-3 w-3" />
-                        <span className="truncate max-w-[150px]">{survey.description.slice(0, 30)}{survey.description.length > 30 ? '...' : ''}</span>
-                      </button>
-                    </div>
-                  </>
-                )}
+    <div className="min-h-screen bg-background lg:flex">
+      {/* Desktop: Side image panel */}
+      <div className="hidden lg:flex lg:w-2/5 xl:w-1/3 fixed right-0 top-0 h-screen">
+        <div className="relative w-full h-full">
+          <img 
+            src={coverImage}
+            alt={survey?.title || 'Survey'}
+            className="w-full h-full object-cover"
+            onError={(e) => { e.currentTarget.src = defaultFormImage; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-background/20 to-background/80" />
+          
+          {/* Survey info overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent">
+            <h2 className="text-white font-bold text-xl mb-2">{survey?.title}</h2>
+            {survey?.description && (
+              <p className="text-white/80 text-sm line-clamp-3">{survey.description}</p>
+            )}
+          </div>
+        </div>
+      </div>
+      
+      {/* Main content area */}
+      <div className="w-full lg:w-3/5 xl:w-2/3 lg:pr-0">
+        {/* Header */}
+        <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
+          <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
+                  <h1 className="font-bold text-foreground truncate text-xs sm:text-sm">{survey?.title}</h1>
+                  {survey?.description && (
+                    <>
+                      {/* Desktop: show description inline */}
+                      <p className="text-[10px] sm:text-xs text-muted-foreground/80 truncate hidden sm:block lg:hidden">{survey.description}</p>
+                      {/* Mobile: show info icon with tooltip/popover for description */}
+                      <div className="sm:hidden flex items-center gap-1 text-[10px] text-muted-foreground/80">
+                        <button
+                          onClick={() => toast.info(survey.description, { duration: 5000 })}
+                          className="flex items-center gap-1 hover:text-primary transition-colors"
+                        >
+                          <Info className="h-3 w-3" />
+                          <span className="truncate max-w-[150px]">{survey.description.slice(0, 30)}{survey.description.length > 30 ? '...' : ''}</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
             <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               {/* Field Mode Toggle */}
               <button
@@ -1487,6 +1514,7 @@ const Survey = () => {
 
       {/* PWA Install Banner */}
       <PWAInstallBanner />
+      </div>
     </div>
   );
 };
