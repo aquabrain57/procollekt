@@ -57,31 +57,37 @@ export const MySurveysList = ({
     );
   }
 
+  const defaultCover = '/placeholder.svg';
+
   return (
     <div className="space-y-3">
       {surveys.map((survey) => (
         <div
           key={survey.id}
-          className="bg-card border border-border rounded-xl p-4"
+          className="bg-card border border-border rounded-xl overflow-hidden"
         >
-          <div className="flex items-start justify-between">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start gap-3">
-                {survey.cover_image_url && (
-                  <img
-                    src={survey.cover_image_url}
-                    alt={t('mySurveys.coverAlt', "Image de l'enquête")}
-                    loading="lazy"
-                    className="w-12 h-12 rounded-lg object-cover border border-border flex-shrink-0"
-                  />
-                )}
+          <div className="flex">
+            {/* Thumbnail on left - always visible */}
+            <div className="w-16 sm:w-20 h-auto min-h-[80px] flex-shrink-0 bg-muted">
+              <img
+                src={survey.cover_image_url || defaultCover}
+                alt={t('mySurveys.coverAlt', "Image de l'enquête")}
+                loading="lazy"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = defaultCover;
+                }}
+              />
+            </div>
 
+            <div className="flex-1 p-3 sm:p-4 min-w-0">
+              <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h3 className="font-semibold text-foreground truncate">
+                    <h3 className="font-semibold text-foreground truncate text-sm sm:text-base">
                       {survey.title}
                     </h3>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-medium ${
                       survey.status === 'active'
                         ? 'bg-success/10 text-success'
                         : 'bg-muted text-muted-foreground'
@@ -92,24 +98,20 @@ export const MySurveysList = ({
                     </span>
                   </div>
                   {survey.description && (
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2 break-words">
+                    <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mb-2 break-words">
                       {survey.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                  <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-muted-foreground flex-wrap">
                     <span>
-                      {t('mySurveys.createdOn', 'Créé le')} {format(new Date(survey.created_at), 'dd MMM yyyy', { locale: dateLocale })}
+                      {format(new Date(survey.created_at), 'dd MMM yyyy', { locale: dateLocale })}
                     </span>
                     <span className="flex items-center gap-1 text-primary font-medium">
                       <MessageSquare className="h-3 w-3" />
-                      {responseCounts[survey.id] || 0} {(responseCounts[survey.id] || 0) !== 1 
-                        ? t('mySurveys.responses', 'réponses') 
-                        : t('mySurveys.response', 'réponse')}
+                      {responseCounts[survey.id] || 0}
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -175,6 +177,8 @@ export const MySurveysList = ({
                 </AlertDialog>
               </DropdownMenuContent>
             </DropdownMenu>
+              </div>
+            </div>
           </div>
         </div>
       ))}

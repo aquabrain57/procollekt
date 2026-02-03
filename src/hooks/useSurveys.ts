@@ -368,6 +368,48 @@ export const useSurveyResponses = (surveyId?: string) => {
     fetchResponses();
   }, [fetchResponses]);
 
+  // Subscribe to realtime updates for responses
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('responses-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'survey_responses',
+          ...(surveyId ? { filter: `survey_id=eq.${surveyId}` } : {}),
+        },
+        (payload) => {
+          const newResponse = payload.new as DbSurveyResponse;
+          setResponses(prev => {
+            // Avoid duplicates
+            if (prev.some(r => r.id === newResponse.id)) return prev;
+            return [newResponse, ...prev];
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'survey_responses',
+        },
+        (payload) => {
+          const deletedId = (payload.old as any).id;
+          setResponses(prev => prev.filter(r => r.id !== deletedId));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, surveyId]);
+
   const submitResponse = async (
     surveyId: string, 
     data: Record<string, any>, 

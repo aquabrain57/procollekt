@@ -68,30 +68,31 @@ export const SurveyCardEnhanced = ({
       className="relative bg-card border border-border rounded-xl overflow-hidden hover:bg-muted/50 hover:border-primary/30 transition-all cursor-pointer slide-up"
       onClick={onClick}
     >
-      {/* Cover Image Thumbnail - Extra small - Always show with fallback */}
-      <div className="absolute top-3 right-3 w-9 h-9 rounded-md overflow-hidden bg-muted shadow-sm border border-border/50">
-        <img 
-          src={survey.cover_image_url || defaultCover} 
-          alt={survey.title}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = defaultCover;
-          }}
-        />
-      </div>
-      
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            {/* Header with icon and status */}
-            <div className="flex items-center gap-2 mb-2">
-              <Badge 
-                variant="outline" 
-                className={cn('text-[10px] h-5', statusColors[survey.status as keyof typeof statusColors])}
-              >
-                {statusLabels[survey.status as keyof typeof statusLabels] || survey.status}
-              </Badge>
-            </div>
+      <div className="flex">
+        {/* Cover Image Thumbnail - Left side */}
+        <div className="w-16 sm:w-20 h-auto min-h-[80px] flex-shrink-0 bg-muted">
+          <img 
+            src={survey.cover_image_url || defaultCover} 
+            alt={survey.title}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = defaultCover;
+            }}
+          />
+        </div>
+        
+        <div className="flex-1 p-3 sm:p-4 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0">
+              {/* Header with status */}
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <Badge 
+                  variant="outline" 
+                  className={cn('text-[10px] h-5', statusColors[survey.status as keyof typeof statusColors])}
+                >
+                  {statusLabels[survey.status as keyof typeof statusLabels] || survey.status}
+                </Badge>
+              </div>
             
             {/* Title */}
             <h3 className="font-semibold text-foreground mb-1.5 truncate">
@@ -121,31 +122,32 @@ export const SurveyCardEnhanced = ({
               )}
             </div>
 
-            {/* Stats row */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
-                <span>{responseCount} réponse{responseCount !== 1 ? 's' : ''}</span>
+              {/* Stats row */}
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  <span>{responseCount} réponse{responseCount !== 1 ? 's' : ''}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col items-center gap-2 shrink-0">
-            {showSubscribe && survey.status === 'active' && (
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-xs h-7 px-2"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSubscribe?.();
-                }}
-              >
-                <Star className="h-3 w-3 mr-1" />
-                Suivre
-              </Button>
-            )}
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-2 shrink-0">
+              {showSubscribe && survey.status === 'active' && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-xs h-7 px-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onSubscribe?.();
+                  }}
+                >
+                  <Star className="h-3 w-3 mr-1" />
+                  Suivre
+                </Button>
+              )}
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </div>
           </div>
         </div>
       </div>
