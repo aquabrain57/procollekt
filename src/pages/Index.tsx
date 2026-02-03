@@ -13,6 +13,7 @@ import { SurveyAnalytics } from '@/components/SurveyAnalytics';
 import { EnhancedDashboard } from '@/components/EnhancedDashboard';
 import { DataModuleTabs } from '@/components/DataModuleTabs';
 import { AboutSection } from '@/components/AboutSection';
+import { LandingFooter } from '@/components/LandingFooter';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
@@ -330,6 +331,9 @@ const Index = () => {
             <div className="px-4 sm:px-6 lg:px-8">
               <AboutSection />
             </div>
+
+            {/* Footer */}
+            <LandingFooter />
           </div>
         );
 
