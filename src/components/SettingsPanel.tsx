@@ -2,14 +2,12 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
   RefreshCw, Trash2, Download, Upload, LogOut,
-  Settings, Shield, ChevronRight, Database, Cloud,
-  Sun, Moon, Monitor, Globe, Languages
+  Settings, ChevronRight, Database, Cloud
 } from 'lucide-react';
 import { SyncStatus } from '@/types/survey';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
-import { useTheme } from '@/contexts/ThemeContext';
 import { ProfileEditor } from './ProfileEditor';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -29,17 +27,19 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { saveAs } from 'file-saver';
 import { format } from 'date-fns';
 import { fr, enUS } from 'date-fns/locale';
 import { downloadXlsx, objectsToAOA } from '@/lib/excel';
+
+// Import new modular settings sections
+import {
+  AppearanceSection,
+  SecuritySection,
+  NotificationsSection,
+  APISection,
+  SubscriptionSection,
+} from './settings';
 
 interface SettingsPanelProps {
   syncStatus: SyncStatus;
@@ -52,7 +52,6 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
   const { t, i18n } = useTranslation();
   const { signOut, user } = useAuth();
   const { profile } = useProfile();
-  const { theme, setTheme } = useTheme();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -228,94 +227,13 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
     toast.success('Déconnexion réussie');
   };
 
-  const handleLanguageChange = (lang: string) => {
-    i18n.changeLanguage(lang);
-  };
-
   return (
     <div className="space-y-3 w-full">
       {/* Appearance Section */}
-      <Card className="border-border">
-        <Collapsible open={expandedSections.has('appearance')} onOpenChange={() => toggleSection('appearance')}>
-          <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-500/10 rounded-lg">
-                    <Sun className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-base">{t('settings.appearance')}</CardTitle>
-                    <CardDescription className="text-xs">{t('settings.appearanceDesc')}</CardDescription>
-                  </div>
-                </div>
-                <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has('appearance') ? 'rotate-90' : ''}`} />
-              </div>
-            </CardHeader>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent className="pt-0 space-y-4">
-              {/* Theme */}
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  {theme === 'dark' ? <Moon className="h-4 w-4" /> : theme === 'light' ? <Sun className="h-4 w-4" /> : <Monitor className="h-4 w-4" />}
-                  <span className="text-sm font-medium">{t('settings.theme')}</span>
-                </div>
-                <Select value={theme} onValueChange={(v: 'light' | 'dark' | 'system') => setTheme(v)}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">
-                      <div className="flex items-center gap-2">
-                        <Sun className="h-4 w-4" />
-                        {t('settings.lightMode')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="dark">
-                      <div className="flex items-center gap-2">
-                        <Moon className="h-4 w-4" />
-                        {t('settings.darkMode')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="system">
-                      <div className="flex items-center gap-2">
-                        <Monitor className="h-4 w-4" />
-                        {t('settings.systemMode')}
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Language */}
-              <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <Languages className="h-4 w-4" />
-                  <span className="text-sm font-medium">{t('settings.language')}</span>
-                </div>
-                <Select value={i18n.language} onValueChange={handleLanguageChange}>
-                  <SelectTrigger className="w-[130px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="fr">
-                      <div className="flex items-center gap-2">
-                        🇫🇷 {t('settings.french')}
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="en">
-                      <div className="flex items-center gap-2">
-                        🇬🇧 {t('settings.english')}
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
-      </Card>
+      <AppearanceSection
+        isExpanded={expandedSections.has('appearance')}
+        onToggle={() => toggleSection('appearance')}
+      />
 
       {/* Profile Section */}
       <Card className="border-border">
@@ -344,6 +262,31 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
         </Collapsible>
       </Card>
 
+      {/* Security Section */}
+      <SecuritySection
+        isExpanded={expandedSections.has('security')}
+        onToggle={() => toggleSection('security')}
+        userEmail={user?.email}
+      />
+
+      {/* Notifications Section */}
+      <NotificationsSection
+        isExpanded={expandedSections.has('notifications')}
+        onToggle={() => toggleSection('notifications')}
+      />
+
+      {/* API Section */}
+      <APISection
+        isExpanded={expandedSections.has('api')}
+        onToggle={() => toggleSection('api')}
+      />
+
+      {/* Subscription Section */}
+      <SubscriptionSection
+        isExpanded={expandedSections.has('subscription')}
+        onToggle={() => toggleSection('subscription')}
+      />
+
       {/* Sync Section */}
       <Card className="border-border">
         <Collapsible open={expandedSections.has('sync')} onOpenChange={() => toggleSection('sync')}>
@@ -351,8 +294,8 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
             <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-500/10 rounded-lg">
-                    <Cloud className="h-5 w-5 text-green-600" />
+                  <div className="p-2 bg-emerald-500/10 rounded-lg">
+                    <Cloud className="h-5 w-5 text-emerald-600" />
                   </div>
                   <div>
                     <CardTitle className="text-base">{t('settings.sync')}</CardTitle>
@@ -363,7 +306,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${syncStatus.isOnline ? 'bg-green-500' : 'bg-orange-500'}`} />
+                  <div className={`w-2.5 h-2.5 rounded-full ${syncStatus.isOnline ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                   <ChevronRight className={`h-5 w-5 text-muted-foreground transition-transform ${expandedSections.has('sync') ? 'rotate-90' : ''}`} />
                 </div>
               </div>
@@ -384,12 +327,12 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
               </div>
 
               {pendingCount > 0 && (
-                <div className="flex items-center justify-between p-3 bg-orange-500/10 rounded-lg border border-orange-500/20">
+                <div className="flex items-center justify-between p-3 bg-amber-500/10 rounded-lg border border-amber-500/20">
                   <div>
-                    <p className="font-medium text-sm text-orange-700">{t('settings.pendingResponses')}</p>
-                    <p className="text-xs text-orange-600">{pendingCount} {t('settings.toSync')}</p>
+                    <p className="font-medium text-sm text-amber-700">{t('settings.pendingResponses')}</p>
+                    <p className="text-xs text-amber-600">{pendingCount} {t('settings.toSync')}</p>
                   </div>
-                  <Badge variant="outline" className="border-orange-500 text-orange-600">
+                  <Badge variant="outline" className="border-amber-500 text-amber-600">
                     {pendingCount}
                   </Badge>
                 </div>
@@ -477,7 +420,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-500/10 rounded-lg">
-                    <Shield className="h-5 w-5 text-purple-600" />
+                    <LogOut className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
                     <CardTitle className="text-base">{t('settings.account')}</CardTitle>
@@ -530,7 +473,7 @@ export const SettingsPanel = ({ syncStatus, onSync, onClearData, pendingCount }:
               onClick={handleExportAllData}
               disabled={isExporting}
             >
-              <Download className="h-4 w-4 mr-3 text-green-600" />
+              <Download className="h-4 w-4 mr-3 text-emerald-600" />
               Excel (.xlsx) - Complet avec feuilles séparées
             </Button>
             <Button
