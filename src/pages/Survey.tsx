@@ -1285,29 +1285,29 @@ const Survey = () => {
 
   return (
     <div className="min-h-screen bg-background lg:flex">
-      {/* Desktop: Side image panel */}
-      <div className="hidden lg:flex lg:w-2/5 xl:w-1/3 fixed right-0 top-0 h-screen">
-        <div className="relative w-full h-full">
+      {/* Desktop: Side image panel - square format */}
+      <div className="hidden lg:flex lg:w-[400px] xl:w-[450px] fixed right-8 top-1/2 -translate-y-1/2 z-10">
+        <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-2xl border border-border/50">
           <img 
             src={coverImage}
             alt={survey?.title || 'Survey'}
             className="w-full h-full object-cover"
             onError={(e) => { e.currentTarget.src = defaultFormImage; }}
           />
-          <div className="absolute inset-0 bg-gradient-to-l from-transparent via-background/20 to-background/80" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           
           {/* Survey info overlay */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/70 to-transparent">
-            <h2 className="text-white font-bold text-xl mb-2">{survey?.title}</h2>
+          <div className="absolute bottom-0 left-0 right-0 p-5">
+            <h2 className="text-white font-bold text-lg mb-1 line-clamp-2">{survey?.title}</h2>
             {survey?.description && (
-              <p className="text-white/80 text-sm line-clamp-3">{survey.description}</p>
+              <p className="text-white/80 text-sm line-clamp-2">{survey.description}</p>
             )}
           </div>
         </div>
       </div>
       
       {/* Main content area */}
-      <div className="w-full lg:w-3/5 xl:w-2/3 lg:pr-0">
+      <div className="w-full lg:w-[calc(100%-450px)] xl:w-[calc(100%-500px)] lg:pr-0">
         {/* Header */}
         <header className="sticky top-0 z-50 bg-background/95 backdrop-blur border-b border-border">
           <div className="max-w-2xl mx-auto px-3 sm:px-4 py-2 sm:py-3">
