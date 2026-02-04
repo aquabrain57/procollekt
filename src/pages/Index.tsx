@@ -499,7 +499,7 @@ const Index = () => {
         onTabChange={surveyView === 'list' ? setActiveTab : undefined}
       />
 
-      <main className="fade-in max-w-5xl mx-auto">
+      <main className="fade-in w-full max-w-none">
         {renderContent()}
       </main>
 
