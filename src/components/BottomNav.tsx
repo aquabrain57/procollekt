@@ -21,13 +21,21 @@ export const BottomNav = ({ activeTab, onTabChange }: BottomNavProps) => {
   const navigate = useNavigate();
 
   const handleTabClick = (tab: typeof tabs[0]) => {
+    // Prevent double-click or rapid switching
+    if (tab.id === activeTab && tab.id !== 'badges') {
+      return;
+    }
+    
     if (tab.id === 'badges') {
       navigate('/badges');
     } else {
       if (window.location.pathname !== '/') {
         navigate('/');
       }
-      onTabChange(tab.id);
+      // Use setTimeout to prevent race conditions in state updates
+      setTimeout(() => {
+        onTabChange(tab.id);
+      }, 0);
     }
   };
 
