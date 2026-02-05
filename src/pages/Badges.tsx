@@ -60,7 +60,7 @@ const Badges = () => {
         onTabChange={handleTabChange}
       />
 
-      <main className="fade-in max-w-5xl mx-auto p-4 pb-24">
+      <main className="fade-in w-full max-w-none px-2 sm:px-4 lg:px-6 py-4 pb-24">
         <Tabs defaultValue="management" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="management" className="flex items-center gap-2">

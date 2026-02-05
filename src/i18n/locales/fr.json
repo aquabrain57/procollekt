@@ -125,7 +125,11 @@
     "withLocation": "Avec localisation",
     "surveyDistribution": "Répartition des enquêtes",
     "active": "Actives",
-    "draft": "Brouillons"
+    "draft": "Brouillons",
+    "noLocation": "Sans GPS",
+    "byStatus": "Par statut",
+    "byLocation": "Par localisation",
+    "bySync": "Par synchronisation"
   },
   "form": {
     "required": "Requis",
