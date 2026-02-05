@@ -125,7 +125,11 @@
     "withLocation": "With location",
     "surveyDistribution": "Survey distribution",
     "active": "Active",
-    "draft": "Drafts"
+    "draft": "Drafts",
+    "noLocation": "No GPS",
+    "byStatus": "By status",
+    "byLocation": "By location",
+    "bySync": "By sync"
   },
   "form": {
     "required": "Required",

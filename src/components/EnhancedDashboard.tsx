@@ -67,6 +67,18 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
       { name: t('dashboard.draft'), value: draftSurveys, color: '#f59e0b' },
     ].filter(s => s.value > 0);
 
+    // Response sources distribution (geolocated vs non-geolocated)
+    const sourceData = [
+      { name: t('dashboard.geolocated'), value: geolocated, color: '#f97316' },
+      { name: t('dashboard.noLocation'), value: totalResponses - geolocated, color: '#94a3b8' },
+    ].filter(s => s.value > 0);
+
+    // Sync status distribution  
+    const syncData = [
+      { name: t('dashboard.synced'), value: synced, color: '#22c55e' },
+      { name: t('dashboard.pending'), value: pending, color: '#eab308' },
+    ].filter(s => s.value > 0);
+
     // Today's activity
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayResponses = responses.filter(r => 
@@ -85,6 +97,8 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
       chartData,
       bySurvey,
       statusData,
+      sourceData,
+      syncData,
       todayResponses,
       avgPerSurvey: activeSurveys > 0 ? Math.round(totalResponses / activeSurveys) : 0,
     };
@@ -286,37 +300,106 @@ export const EnhancedDashboard = ({ surveys, responses }: EnhancedDashboardProps
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center gap-8">
-              <div className="h-[120px] w-[120px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      data={stats.statusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={30}
-                      outerRadius={50}
-                      dataKey="value"
-                    >
-                      {stats.statusData.map((entry, index) => (
-                        <Cell key={index} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+              {/* Survey Status */}
+              <div className="flex flex-col items-center">
+                <p className="text-xs font-medium text-muted-foreground mb-2">{t('dashboard.byStatus')}</p>
+                <div className="h-[100px] w-[100px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsPieChart>
+                      <Pie
+                        data={stats.statusData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={25}
+                        outerRadius={45}
+                        dataKey="value"
+                      >
+                        {stats.statusData.map((entry, index) => (
+                          <Cell key={index} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </RechartsPieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-2 space-y-1">
+                  {stats.statusData.map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                      <span className="text-muted-foreground">{item.name}</span>
+                      <span className="font-bold text-foreground">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="space-y-2">
-                {stats.statusData.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2">
-                    <div 
-                      className="w-3 h-3 rounded-full" 
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span className="text-sm text-foreground">{item.name}</span>
-                    <span className="text-sm font-bold text-foreground">{item.value}</span>
+
+              {/* GPS Distribution */}
+              {stats.sourceData.length > 0 && (
+                <div className="flex flex-col items-center">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{t('dashboard.byLocation')}</p>
+                  <div className="h-[100px] w-[100px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={stats.sourceData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={25}
+                          outerRadius={45}
+                          dataKey="value"
+                        >
+                          {stats.sourceData.map((entry, index) => (
+                            <Cell key={index} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
                   </div>
-                ))}
-              </div>
+                  <div className="mt-2 space-y-1">
+                    {stats.sourceData.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-muted-foreground">{item.name}</span>
+                        <span className="font-bold text-foreground">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sync Status Distribution */}
+              {stats.syncData.length > 0 && (
+                <div className="flex flex-col items-center">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{t('dashboard.bySync')}</p>
+                  <div className="h-[100px] w-[100px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartsPieChart>
+                        <Pie
+                          data={stats.syncData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={25}
+                          outerRadius={45}
+                          dataKey="value"
+                        >
+                          {stats.syncData.map((entry, index) => (
+                            <Cell key={index} fill={entry.color} />
+                          ))}
+                        </Pie>
+                      </RechartsPieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {stats.syncData.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-xs">
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-muted-foreground">{item.name}</span>
+                        <span className="font-bold text-foreground">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

@@ -12,6 +12,7 @@ import Survey from "./pages/Survey";
 import Pricing from "./pages/Pricing";
 import Badges from "./pages/Badges";
 import NotFound from "./pages/NotFound";
+import Help from "./pages/Help";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
               <Route path="/survey/:id" element={<Survey />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/badges" element={<Badges />} />
+              <Route path="/help" element={<Help />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
