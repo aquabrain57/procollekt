@@ -1157,7 +1157,7 @@ const Survey = () => {
     // Always save locally first (public access - no auth required)
     setPendingResponses(prev => [...prev, responseData]);
     
-    // Try to sync if online (using anonymous insert if possible)
+    // Try to sync immediately if online
     if (isOnline) {
       try {
         // Check if user is authenticated
@@ -1181,6 +1181,8 @@ const Survey = () => {
           if (!error) {
             // Remove from pending if sync successful
             setPendingResponses(prev => prev.filter(r => r.id !== responseData.id));
+            // Also sync any other pending responses
+            syncPendingResponsesNow(user.id);
           }
         }
         // If not authenticated, keep in local storage for later sync
@@ -1191,9 +1193,99 @@ const Survey = () => {
     }
 
     setSubmitted(true);
-    toast.success(isOnline ? 'Réponse enregistrée !' : 'Réponse sauvegardée localement');
+    toast.success(isOnline ? 'Réponse synchronisée avec le serveur !' : 'Réponse sauvegardée localement (sera synchronisée)');
     setSubmitting(false);
   };
+
+  // Sync pending responses when online
+  const syncPendingResponsesNow = async (userId: string) => {
+    const currentPending = pendingResponses.filter(r => r.survey_id !== survey?.id); // exclude just synced
+    if (currentPending.length === 0) return;
+    
+    let syncedCount = 0;
+    const remainingResponses: PendingResponse[] = [];
+    
+    for (const response of currentPending) {
+      try {
+        const { error } = await supabase
+          .from('survey_responses')
+          .insert({
+            survey_id: response.survey_id,
+            user_id: userId,
+            data: response.data,
+            location: response.location,
+            sync_status: 'synced',
+          });
+        
+        if (!error) {
+          syncedCount++;
+        } else {
+          remainingResponses.push(response);
+        }
+      } catch (err) {
+        remainingResponses.push(response);
+      }
+    }
+    
+    if (syncedCount > 0) {
+      setPendingResponses(remainingResponses);
+      toast.success(`${syncedCount} réponse(s) en attente synchronisée(s)`);
+    }
+  };
+
+  // Auto-sync when coming back online
+  useEffect(() => {
+    const handleOnline = async () => {
+      if (pendingResponses.length === 0) return;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        toast.info('Connexion rétablie, synchronisation en cours...');
+        
+        let syncedCount = 0;
+        const remainingResponses: PendingResponse[] = [];
+        
+        for (const response of pendingResponses) {
+          try {
+            const { error } = await supabase
+              .from('survey_responses')
+              .insert({
+                survey_id: response.survey_id,
+                user_id: user.id,
+                data: response.data,
+                location: response.location,
+                sync_status: 'synced',
+              });
+            
+            if (!error) {
+              syncedCount++;
+            } else {
+              remainingResponses.push(response);
+            }
+          } catch (err) {
+            remainingResponses.push(response);
+          }
+        }
+        
+        setPendingResponses(remainingResponses);
+        
+        if (syncedCount > 0) {
+          toast.success(`${syncedCount} réponse(s) synchronisée(s) avec le serveur`);
+        }
+      }
+    };
+    
+    window.addEventListener('online', handleOnline);
+    
+    // Initial sync check on mount if online
+    if (isOnline && pendingResponses.length > 0) {
+      handleOnline();
+    }
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+    };
+  }, []);
 
   const handleNewResponse = () => {
     setSubmitted(false);
