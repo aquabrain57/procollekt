@@ -67,8 +67,8 @@ export const MySurveysList = ({
           className="bg-card border border-border rounded-xl overflow-hidden"
         >
           <div className="flex">
-            {/* Thumbnail on left - always visible */}
-            <div className="w-16 sm:w-20 h-auto min-h-[80px] flex-shrink-0 bg-muted">
+            {/* Thumbnail on left - compact square format */}
+            <div className="w-12 h-12 sm:w-14 sm:h-14 flex-shrink-0 bg-muted rounded-lg overflow-hidden m-2">
               <img
                 src={survey.cover_image_url || defaultCover}
                 alt={t('mySurveys.coverAlt', "Image de l'enquête")}
@@ -80,7 +80,7 @@ export const MySurveysList = ({
               />
             </div>
 
-            <div className="flex-1 p-3 sm:p-4 min-w-0">
+            <div className="flex-1 py-2 pr-3 sm:py-3 sm:pr-4 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
