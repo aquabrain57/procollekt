@@ -63,6 +63,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "form_signatures_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "surveyor_badges_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "form_signatures_response_id_fkey"
             columns: ["response_id"]
             isOneToOne: true
@@ -74,6 +81,13 @@ export type Database = {
             columns: ["survey_id"]
             isOneToOne: false
             referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "form_signatures_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys_public"
             referencedColumns: ["id"]
           },
         ]
@@ -204,6 +218,13 @@ export type Database = {
             referencedRelation: "surveys"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "survey_fields_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       survey_responses: {
@@ -252,10 +273,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "survey_responses_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "surveyor_badges_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "survey_responses_survey_id_fkey"
             columns: ["survey_id"]
             isOneToOne: false
             referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys_public"
             referencedColumns: ["id"]
           },
         ]
@@ -392,6 +427,13 @@ export type Database = {
             referencedRelation: "surveyor_badges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "surveyor_locations_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "surveyor_badges_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       surveys: {
@@ -429,7 +471,100 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      survey_fields_public: {
+        Row: {
+          conditional_on: Json | null
+          field_order: number | null
+          field_type: string | null
+          id: string | null
+          label: string | null
+          max_value: number | null
+          min_value: number | null
+          options: Json | null
+          placeholder: string | null
+          required: boolean | null
+          survey_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_fields_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "survey_fields_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surveyor_badges_public: {
+        Row: {
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          organization: string | null
+          photo_url: string | null
+          project: string | null
+          role: string | null
+          status: Database["public"]["Enums"]["badge_status"] | null
+          surveyor_id: string | null
+        }
+        Insert: {
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          organization?: string | null
+          photo_url?: string | null
+          project?: string | null
+          role?: string | null
+          status?: Database["public"]["Enums"]["badge_status"] | null
+          surveyor_id?: string | null
+        }
+        Update: {
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          organization?: string | null
+          photo_url?: string | null
+          project?: string | null
+          role?: string | null
+          status?: Database["public"]["Enums"]["badge_status"] | null
+          surveyor_id?: string | null
+        }
+        Relationships: []
+      }
+      surveys_public: {
+        Row: {
+          cover_image_url: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          status: string | null
+          title: string | null
+        }
+        Insert: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Update: {
+          cover_image_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string | null
+          status?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never

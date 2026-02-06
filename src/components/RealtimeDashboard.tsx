@@ -7,7 +7,7 @@ import {
   MapPin, Zap, ClipboardList, BarChart3, Globe
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ import { useRealtimeDashboard } from '@/hooks/useRealtimeDashboard';
 import { DbSurvey } from '@/hooks/useSurveys';
 import { cn } from '@/lib/utils';
 import { LocationBadge } from '@/components/LocationDisplay';
+import { RealtimeGPSMap } from '@/components/dashboard/RealtimeGPSMap';
 
 interface RealtimeDashboardProps {
   surveys: DbSurvey[];
@@ -338,6 +339,12 @@ export const RealtimeDashboard = ({ surveys: initialSurveys, surveyId, onSurveyS
           </Card>
         )}
       </div>
+
+      {/* Real-time GPS Map */}
+      <RealtimeGPSMap 
+        responses={responses} 
+        title="Carte temps réel des collectes"
+      />
 
       {/* Latest responses */}
       {stats.latest.length > 0 && (

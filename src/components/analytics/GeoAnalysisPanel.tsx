@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
-import { MapPin, Globe, TrendingUp, AlertTriangle, Loader2, Navigation, Target, User } from 'lucide-react';
+import { MapPin, Globe, TrendingUp, AlertTriangle, Loader2, Navigation, Target, User, RefreshCw } from 'lucide-react';
 import { DbSurveyResponse, DbSurveyField } from '@/hooks/useSurveys';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
 import { ResponsesMapLibre } from '@/components/ResponsesMapLibre';
+import { RealtimeGPSMap } from '@/components/dashboard/RealtimeGPSMap';
 import { reverseGeocodeBatch } from '@/hooks/useReverseGeocode';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
@@ -223,15 +225,21 @@ export const GeoAnalysisPanel = ({ responses, fields, zoneFieldId }: GeoAnalysis
         </Card>
       </div>
 
-      {/* Map */}
+      {/* Real-time GPS Map with zones */}
+      <RealtimeGPSMap 
+        responses={responses} 
+        title="Carte temps réel des collectes"
+      />
+
+      {/* Legacy Map for detailed markers */}
       <Card className="overflow-hidden">
         <CardHeader className="pb-2 bg-gradient-to-r from-primary/5 to-purple-500/5">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <MapPin className="h-4 w-4 text-primary" />
-            Carte des réponses
+            Carte détaillée des réponses
           </CardTitle>
           <CardDescription className="text-xs">
-            Visualisation géographique en temps réel de la collecte
+            Tous les points de collecte avec détails
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4">
