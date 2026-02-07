@@ -80,7 +80,7 @@ export const RealtimeGPSMap = ({ responses, title = 'Carte temps réel' }: Realt
     const geocodeZones = async () => {
       if (clusters.length === 0) return;
 
-      const locations = clusters.slice(0, 20).map(z => ({
+      const locations = clusters.slice(0, 50).map(z => ({
         id: z.id,
         latitude: z.lat,
         longitude: z.lng,
@@ -90,7 +90,7 @@ export const RealtimeGPSMap = ({ responses, title = 'Carte temps réel' }: Realt
         const results = await reverseGeocodeBatch(locations);
         const names = new Map<string, string>();
         results.forEach((geo, id) => {
-          const name = [geo.city, geo.region].filter(Boolean).join(', ') || `Zone ${id}`;
+          const name = [geo.city, geo.region, geo.country].filter(Boolean).join(', ') || 'Zone';
           names.set(id, name);
         });
         setZoneNames(names);

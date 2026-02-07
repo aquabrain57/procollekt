@@ -1154,46 +1154,68 @@ const Survey = () => {
       created_at: new Date().toISOString(),
     };
 
-    // Always save locally first (public access - no auth required)
-    setPendingResponses(prev => [...prev, responseData]);
-    
-    // Try to sync immediately if online
+    const saveLocally = () => {
+      setPendingResponses((prev) => [...prev, responseData]);
+    };
+
+    const markSubmitted = (mode: 'synced' | 'pending') => {
+      setSubmitted(true);
+      if (mode === 'synced') {
+        toast.success('Réponse synchronisée avec le serveur !');
+      } else {
+        toast.success('Réponse sauvegardée localement (sera synchronisée)');
+      }
+    };
+
+    // Try to insert immediately when online; fallback to local queue if it fails.
     if (isOnline) {
       try {
-        // Check if user is authenticated
         const { data: { user } } = await supabase.auth.getUser();
-        
-        if (user) {
-          // If authenticated, insert directly with surveyor info
-          const { error } = await supabase
-            .from('survey_responses')
-            .insert({
-              survey_id: survey.id,
-              user_id: user.id,
-              data: formData,
-              location,
-              sync_status: 'synced',
-              surveyor_id: surveyorId,
-              badge_id: badgeId,
-              surveyor_validated: surveyorValidated,
-            });
 
-          if (!error) {
-            // Remove from pending if sync successful
-            setPendingResponses(prev => prev.filter(r => r.id !== responseData.id));
-            // Also sync any other pending responses
-            syncPendingResponsesNow(user.id);
-          }
+        // If not authenticated, we can't write to the database with current security rules.
+        if (!user) {
+          saveLocally();
+          toast.warning('Connexion requise pour synchroniser. Réponse conservée sur ce téléphone.');
+          setSubmitted(true);
+          setSubmitting(false);
+          return;
         }
-        // If not authenticated, keep in local storage for later sync
+
+        const { error } = await supabase
+          .from('survey_responses')
+          .insert({
+            survey_id: survey.id,
+            user_id: user.id,
+            data: formData,
+            location,
+            sync_status: 'synced',
+            surveyor_id: surveyorId,
+            badge_id: badgeId,
+            surveyor_validated: surveyorValidated,
+          });
+
+        if (error) {
+          saveLocally();
+          markSubmitted('pending');
+        } else {
+          // Also try to sync any already-pending items
+          syncPendingResponsesNow(user.id);
+          markSubmitted('synced');
+        }
       } catch (err) {
         console.error('Error syncing response:', err);
-        // Keep in local storage
+        saveLocally();
+        markSubmitted('pending');
+      } finally {
+        setSubmitting(false);
       }
+
+      return;
     }
 
-    setSubmitted(true);
-    toast.success(isOnline ? 'Réponse synchronisée avec le serveur !' : 'Réponse sauvegardée localement (sera synchronisée)');
+    // Offline: queue locally
+    saveLocally();
+    markSubmitted('pending');
     setSubmitting(false);
   };
 
