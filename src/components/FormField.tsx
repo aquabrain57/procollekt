@@ -830,11 +830,15 @@ export const FormFieldComponent = ({ field, value, onChange, error }: FormFieldP
               )}
             >
               {value ? (
-                <img
-                  src={value}
-                  alt="Captured"
-                  className="w-full h-48 object-cover rounded-lg"
-                />
+                <div className="p-3 sm:p-4">
+                  <div className="mx-auto w-full max-w-[260px] aspect-square overflow-hidden rounded-lg border border-border bg-muted">
+                    <img
+                      src={value}
+                      alt="Captured"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
                   <Camera className="h-8 w-8 mb-2" />

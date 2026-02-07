@@ -202,7 +202,7 @@ export const ShareSurveyDialog = ({ surveyId, surveyTitle, surveyDescription, co
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="text-[10px] sm:text-xs h-7 sm:h-8 px-1.5 sm:px-3">
           <Share2 className="h-3 w-3 mr-0.5 sm:mr-1 flex-shrink-0" />
-          <span className="hidden xs:inline">{t('share.share', 'Partager')}</span>
+          <span className="hidden sm:inline">{t('share.share', 'Partager')}</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="w-[90vw] max-w-[300px] sm:max-w-sm mx-auto p-2 sm:p-3 max-h-[85vh] overflow-y-auto overflow-x-hidden">

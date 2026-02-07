@@ -69,11 +69,12 @@ export const SurveyCardEnhanced = ({
       onClick={onClick}
     >
       <div className="flex">
-        {/* Cover Image Thumbnail - Left side, Square format */}
-        <div className="w-20 sm:w-24 aspect-square flex-shrink-0 bg-muted relative overflow-hidden">
+        {/* Cover Image Thumbnail - Left side, compact square format */}
+        <div className="w-12 sm:w-14 aspect-square flex-shrink-0 bg-muted relative overflow-hidden rounded-lg m-2">
           <img 
             src={survey.cover_image_url || defaultCover} 
             alt={survey.title}
+            loading="lazy"
             className="absolute inset-0 w-full h-full object-cover"
             onError={(e) => {
               e.currentTarget.src = defaultCover;
